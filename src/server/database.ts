@@ -3,13 +3,17 @@ import "server-only";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import * as schema from "@/db/schema";
 import bcrypt from "bcryptjs";
 
 const configuredDataDirectory = process.env.PKT_STUDY_DATA_DIR;
+const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
 const dataDirectory = configuredDataDirectory
   ? path.resolve(configuredDataDirectory)
+  : isNextBuild
+    ? path.join(os.tmpdir(), `pkt-study-build-${process.pid}`)
   : path.join(process.cwd(), ".data");
 const databasePath = path.join(dataDirectory, "pkt-study.db");
 const pendingRestorePath = path.join(dataDirectory, "pkt-study.restore-pending.db");
