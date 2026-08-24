@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "PKT Study Fullstack",
+  "version": "0.1.0",
+  "identifier": "com.cj.pkt.study.fullstack",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:4300",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../.next/static"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "PKT 프로젝트",
+        "width": 1280,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "fullscreen": false,
+        "resizable": true,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": -100,
+          "y": 0
+        },
+        "dragDropEnabled": false
+      }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": true, "targets": ["app", "dmg", "nsis"] }
+}

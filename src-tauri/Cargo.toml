@@ -1,0 +1,16 @@
+[package]
+name = "pkt-study-fullstack"
+version = "0.1.0"
+description = "PKT Study desktop fullstack app"
+authors = ["CJ"]
+edition = "2021"
+
+[lib]
+name = "pkt_study_fullstack_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
