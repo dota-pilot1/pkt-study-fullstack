@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 /** 마우스로 탐색 컬럼의 너비를 조절한다. */
 export function useColumnResize(
@@ -11,24 +11,35 @@ export function useColumnResize(
   const startWidth = useRef(width);
 
   useEffect(() => {
-    const move = (event: MouseEvent) => {
+    const move = (event: PointerEvent) => {
       if (!dragging.current) return;
       onChange(Math.min(max, Math.max(min, startWidth.current + event.clientX - startX.current)));
     };
-    const up = () => { dragging.current = false; };
-    window.addEventListener("mousemove", move);
-    window.addEventListener("mouseup", up);
+    const up = () => {
+      dragging.current = false;
+      document.body.style.removeProperty("cursor");
+      document.body.style.removeProperty("user-select");
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     return () => {
-      window.removeEventListener("mousemove", move);
-      window.removeEventListener("mouseup", up);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      document.body.style.removeProperty("cursor");
+      document.body.style.removeProperty("user-select");
     };
   }, [max, min, onChange]);
 
-  return useCallback((event: React.MouseEvent) => {
+  return useCallback((event: ReactPointerEvent<HTMLElement>) => {
     dragging.current = true;
     startX.current = event.clientX;
     startWidth.current = width;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     event.preventDefault();
+    event.stopPropagation();
   }, [width]);
 }
-

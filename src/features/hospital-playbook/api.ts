@@ -178,17 +178,17 @@ export const playbookApi = {
     request<void>(`${BASE}/documents/${id}`, { method: "DELETE", errorMessage: "문서를 삭제하지 못했습니다." }),
 
   comments: (documentId: number) =>
-    request<PlaybookDocumentComment[]>(`${BASE}/documents/${documentId}/comments`, { errorMessage: "댓글을 불러오지 못했습니다." }),
+    request<PlaybookDocumentComment[]>(`${BASE}/comments?documentId=${documentId}`, { errorMessage: "댓글을 불러오지 못했습니다." }),
 
   createComment: (documentId: number, body: { title?: string; content: string; parentId?: number | null }) =>
-    request<PlaybookDocumentComment[]>(`${BASE}/documents/${documentId}/comments`, {
+    request<PlaybookDocumentComment>(`${BASE}/comments`, {
       method: "POST",
-      body,
+      body: { ...body, documentId },
       errorMessage: "댓글을 등록하지 못했습니다.",
     }),
 
   updateComment: (id: number, body: { title?: string; content: string }) =>
-    request<PlaybookDocumentComment[]>(`${BASE}/comments/${id}`, {
+    request<PlaybookDocumentComment>(`${BASE}/comments/${id}`, {
       method: "PATCH",
       body,
       errorMessage: "댓글을 수정하지 못했습니다.",
@@ -204,4 +204,3 @@ export const playbookApi = {
       errorMessage: "문서 순서를 저장하지 못했습니다.",
     }),
 };
-

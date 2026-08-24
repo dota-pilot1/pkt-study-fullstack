@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev -p 4300",
     "build": "next build",
+    "build:tauri": "npm run build && node scripts/prepare-tauri-release.mjs",
     "start": "next start -p 4300",
     "lint": "eslint",
+    "pretauri": "node scripts/prepare-tauri-sidecar.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -37,7 +39,8 @@
     "next": "16.1.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",

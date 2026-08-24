@@ -9,6 +9,7 @@ import PageHeaderSearch from "../../shared/ui/PageHeaderSearch";
 import { useColumnResize } from "../../shared/lib/useColumnResize";
 import ColumnResizeHandle from "../../shared/ui/ColumnResizeHandle";
 import { playbookApi, type PlaybookCategory, type PlaybookDocumentSummary, type PlaybookDomain } from "../../features/hospital-playbook/api";
+import { usePlaybookLayoutStore } from "../../features/hospital-playbook/layout-store";
 import { playbookTreeKey, usePlaybookTree } from "../../features/hospital-playbook/queries";
 import DocumentDrawer from "./DocumentDrawer";
 import DocumentPage from "./DocumentPage";
@@ -17,8 +18,6 @@ import DocumentContextApiDialog from "./DocumentContextApiDialog";
 import ListColumn from "./ListColumn";
 import LlmApiGuideDialog from "./LlmApiGuideDialog";
 
-const CATEGORY_WIDTH_KEY = "pkt-study-category-width-v2";
-const TOPIC_WIDTH_KEY = "pkt-study-topic-width-v2";
 // 접힌 헤더에 제목·개수·펼치기 버튼이 나란히 들어갈 만큼은 남긴다. 더 좁히면 내용이 끼어 쪼그라들어 보인다.
 const COLLAPSED_COLUMN_WIDTH = 148;
 const EMPTY_CATEGORIES: PlaybookCategory[] = [];
@@ -80,11 +79,6 @@ function SortableTreeDocumentRow({
   );
 }
 
-function storedWidth(key: string, fallback: number) {
-  const value = Number(window.localStorage.getItem(key));
-  return Number.isFinite(value) ? Math.min(560, Math.max(240, value)) : fallback;
-}
-
 function flattenDocuments(documents: PlaybookDocumentSummary[]) {
   const children = new Map<number, PlaybookDocumentSummary[]>();
   const roots: PlaybookDocumentSummary[] = [];
@@ -122,10 +116,15 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
   const [contextApiDocument, setContextApiDocument] = useState<PlaybookDocumentSummary | null>(null);
   const expandedTopicId = useRef<number | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-  const [categoryWidth, setCategoryWidth] = useState(() => storedWidth(CATEGORY_WIDTH_KEY, 280));
-  const [topicWidth, setTopicWidth] = useState(() => storedWidth(TOPIC_WIDTH_KEY, 300));
-  const [categoryCollapsed, setCategoryCollapsed] = useState(false);
-  const [topicCollapsed, setTopicCollapsed] = useState(false);
+  const categoryWidth = usePlaybookLayoutStore((state) => state.categoryWidth);
+  const topicWidth = usePlaybookLayoutStore((state) => state.topicWidth);
+  const categoryCollapsed = usePlaybookLayoutStore((state) => state.categoryCollapsed);
+  const topicCollapsed = usePlaybookLayoutStore((state) => state.topicCollapsed);
+  const hydrateLayout = usePlaybookLayoutStore((state) => state.hydrate);
+  const setCategoryWidth = usePlaybookLayoutStore((state) => state.setCategoryWidth);
+  const setTopicWidth = usePlaybookLayoutStore((state) => state.setTopicWidth);
+  const toggleCategory = usePlaybookLayoutStore((state) => state.toggleCategory);
+  const toggleTopic = usePlaybookLayoutStore((state) => state.toggleTopic);
 
   const categories: PlaybookCategory[] = tree.data ?? EMPTY_CATEGORIES;
   const category = useMemo(() => categories.find((item) => item.id === categoryId) ?? null, [categories, categoryId]);
@@ -148,8 +147,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
   const resizeTopic = useColumnResize(topicWidth, setTopicWidth, { min: 260, max: 600 });
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: playbookTreeKey(domain) });
 
-  useEffect(() => { window.localStorage.setItem(CATEGORY_WIDTH_KEY, String(categoryWidth)); }, [categoryWidth]);
-  useEffect(() => { window.localStorage.setItem(TOPIC_WIDTH_KEY, String(topicWidth)); }, [topicWidth]);
+  useEffect(() => { hydrateLayout(); }, [hydrateLayout]);
   useEffect(() => {
     if (!categories.length) {
       setCategoryId((current) => current === null ? current : null);
@@ -282,8 +280,16 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
     reorderDocuments.mutate({ topicId: topic.id, ids: arrayMove(siblings, from, to).map((item) => item.id), parentId: source.parentId });
   };
 
-  const detail = drawerDocument.data;
   const flatDocuments = documentRows.map((row) => row.document);
+  const drawerSummary = drawerDocumentId === null ? undefined : flatDocuments.find((item) => item.id === drawerDocumentId);
+  const detail = drawerDocument.data ?? (drawerSummary ? {
+    ...drawerSummary,
+    content: "",
+    createdBy: null,
+    approvedBy: null,
+    approvedAt: null,
+    updatedAt: new Date().toISOString(),
+  } : undefined);
   const detailIndex = detail ? flatDocuments.findIndex((item) => item.id === detail.id) : -1;
   const previous = detailIndex > 0 ? flatDocuments[detailIndex - 1] : undefined;
   const next = detailIndex >= 0 ? flatDocuments[detailIndex + 1] : undefined;
@@ -342,10 +348,10 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
       <div className="min-h-0 flex-1 overflow-auto bg-surface-muted p-4">
         {tree.isPending ? <div className="grid h-full place-items-center text-text-muted"><Loader2 className="size-6 animate-spin" /></div> : tree.isError ? <div className="grid h-full place-items-center text-sm font-semibold text-text-muted">노트를 불러오지 못했습니다.</div> : (
           <main className="flex h-full min-h-[640px] min-w-[960px] gap-1">
-            <div className="h-full min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 ease-out" style={{ width: categoryCollapsed ? COLLAPSED_COLUMN_WIDTH : categoryWidth }}><ListColumn title="1차 메뉴" items={categories.map((item) => ({ id: item.id, title: item.title, count: item.topics.length }))} selectedId={categoryId} onSelect={setCategoryId} onCreate={(title) => createCategory.mutate(title)} onRename={(id, title) => renameCategory.mutate({ id, title })} onDelete={(id) => deleteCategory.mutate(id)} onReorder={(ids) => reorderCategories.mutate(ids)} emptyLabel="아직 영역이 없습니다." createPlaceholder="영역 이름" expandedWidth={categoryWidth} collapsed={categoryCollapsed} onToggle={() => setCategoryCollapsed((value) => !value)} /></div>
-            <div className={"shrink-0 transition-opacity duration-200 " + (categoryCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onMouseDown={resizeCategory} /></div>
-            <div className="h-full min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 ease-out" style={{ width: topicCollapsed ? COLLAPSED_COLUMN_WIDTH : topicWidth }}><ListColumn title="2차 메뉴" items={(category?.topics ?? EMPTY_TOPICS).map((item) => ({ id: item.id, title: item.title, count: item.documents.length, badge: <FileText className="size-4 shrink-0 text-brand-primary" /> }))} selectedId={topicId} onSelect={setTopicId} onCreate={(title) => category && createTopic.mutate({ categoryId: category.id, title })} onRename={(id, title) => renameTopic.mutate({ id, title })} onDelete={(id) => deleteTopic.mutate(id)} onReorder={(ids) => category && reorderTopics.mutate({ categoryId: category.id, ids })} emptyLabel={category ? "아직 주제가 없습니다." : "먼저 영역을 선택하세요."} createPlaceholder="주제 이름" disabled={!category} expandedWidth={topicWidth} collapsed={topicCollapsed} onToggle={() => setTopicCollapsed((value) => !value)} /></div>
-            <div className={"shrink-0 transition-opacity duration-200 " + (topicCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onMouseDown={resizeTopic} /></div>
+            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: categoryCollapsed ? COLLAPSED_COLUMN_WIDTH : categoryWidth }}><ListColumn title="1차 메뉴" items={categories.map((item) => ({ id: item.id, title: item.title, count: item.topics.length }))} selectedId={categoryId} onSelect={setCategoryId} onCreate={(title) => createCategory.mutate(title)} onRename={(id, title) => renameCategory.mutate({ id, title })} onDelete={(id) => deleteCategory.mutate(id)} onReorder={(ids) => reorderCategories.mutate(ids)} emptyLabel="아직 영역이 없습니다." createPlaceholder="영역 이름" expandedWidth={categoryWidth} collapsed={categoryCollapsed} onToggle={toggleCategory} /></div>
+            <div className={"shrink-0 transition-opacity duration-200 " + (categoryCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onPointerDown={resizeCategory} /></div>
+            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: topicCollapsed ? COLLAPSED_COLUMN_WIDTH : topicWidth }}><ListColumn title="2차 메뉴" items={(category?.topics ?? EMPTY_TOPICS).map((item) => ({ id: item.id, title: item.title, count: item.documents.length, badge: <FileText className="size-4 shrink-0 text-brand-primary" /> }))} selectedId={topicId} onSelect={setTopicId} onCreate={(title) => category && createTopic.mutate({ categoryId: category.id, title })} onRename={(id, title) => renameTopic.mutate({ id, title })} onDelete={(id) => deleteTopic.mutate(id)} onReorder={(ids) => category && reorderTopics.mutate({ categoryId: category.id, ids })} emptyLabel={category ? "아직 주제가 없습니다." : "먼저 선택하세요."} createPlaceholder="주제 이름" disabled={!category} expandedWidth={topicWidth} collapsed={topicCollapsed} onToggle={toggleTopic} /></div>
+            <div className={"shrink-0 transition-opacity duration-200 " + (topicCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onPointerDown={resizeTopic} /></div>
             <section className="flex min-h-0 min-w-[420px] flex-1 flex-col rounded-lg border border-surface-border bg-surface-raised shadow-sm">
               <header className="flex h-12 min-h-12 shrink-0 items-center justify-between gap-3 border-b border-surface-border-soft px-4 py-0">
                 <div className="min-w-0">
@@ -460,8 +466,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
           </main>
         )}
       </div>
-      {drawerDocument.isPending && drawerDocumentId !== null && <div className="fixed inset-0 z-50 grid place-items-center bg-black/20"><Loader2 className="size-7 animate-spin text-brand-primary" /></div>}
-      {detail && <DocumentDrawer document={detail} previous={previous ? { ...detail, id: previous.id, title: previous.title } : undefined} next={next ? { ...detail, id: next.id, title: next.title } : undefined} onNavigate={(target) => setDrawerDocumentId(target.id)} onChanged={invalidate} onOpenPage={() => { setDrawerDocumentId(null); setPageDocumentId(detail.id); }} onDelete={() => deleteDocument.mutate(detail.id)} onClose={() => setDrawerDocumentId(null)} deleting={deleteDocument.isPending} deleteError={deleteDocument.isError ? (deleteDocument.error as Error).message : undefined} />}
+      {detail && <DocumentDrawer document={detail} loading={drawerDocument.isPending} previous={previous ? { ...detail, id: previous.id, title: previous.title } : undefined} next={next ? { ...detail, id: next.id, title: next.title } : undefined} onNavigate={(target) => setDrawerDocumentId(target.id)} onChanged={invalidate} onOpenPage={() => { setDrawerDocumentId(null); setPageDocumentId(detail.id); }} onDelete={() => deleteDocument.mutate(detail.id)} onClose={() => setDrawerDocumentId(null)} deleting={deleteDocument.isPending} deleteError={deleteDocument.isError ? (deleteDocument.error as Error).message : undefined} />}
       {llmApiGuideOpen && <LlmApiGuideDialog domain={domain} topicId={topicId} parentDocumentId={drawerDocumentId} onClose={() => setLlmApiGuideOpen(false)} />}
       {contextApiDocument && <DocumentContextApiDialog documentId={contextApiDocument.id} documentTitle={contextApiDocument.title} onClose={() => setContextApiDocument(null)} />}
     </div>

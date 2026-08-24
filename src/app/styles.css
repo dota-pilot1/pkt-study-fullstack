@@ -96,6 +96,25 @@ body {
     @apply flex items-center justify-center rounded-md border border-destructive bg-destructive
            text-destructive-foreground transition-all hover:brightness-110 active:scale-[0.98];
   }
+
+  .drawer-action-group {
+    padding: 3px;
+    border: 1px solid var(--surface-border-soft);
+    border-radius: 10px;
+    background: var(--surface-muted);
+  }
+  .drawer-action-group .ui-icon-button {
+    border-color: transparent;
+    background: transparent;
+  }
+  .drawer-action-group .ui-icon-button:hover {
+    border-color: var(--surface-border);
+    background: var(--surface-raised);
+  }
+  .drawer-action-group-danger {
+    border-color: color-mix(in srgb, var(--destructive) 18%, var(--surface-border-soft));
+    background: color-mix(in srgb, var(--destructive) 4%, var(--surface-muted));
+  }
 }
 
 @keyframes refreshIconSpin {
@@ -155,6 +174,41 @@ body {
     -webkit-user-select: none;
   }
   .lexical-editor-input:focus { box-shadow: none; }
+
+  /* 읽기 드로워는 제목·문단·코드 사이를 편집기보다 여유 있게 분리한다. */
+  .drawer-document-content .lexical-editor-input {
+    padding: 1.75rem 2rem 2.5rem !important;
+    font-size: 15px;
+    line-height: 1.9;
+  }
+  .drawer-document-content .lexical-editor-input p {
+    margin: 0 0 1.6rem;
+    line-height: 1.9;
+  }
+  .drawer-document-content .lexical-editor-input h1,
+  .drawer-document-content .lexical-editor-input h2,
+  .drawer-document-content .lexical-editor-input h3 {
+    margin-top: 4rem !important;
+    margin-bottom: 1.15rem !important;
+    padding-top: 0.5rem;
+    line-height: 1.35;
+  }
+  .drawer-document-content .lexical-editor-input h1:first-child,
+  .drawer-document-content .lexical-editor-input h2:first-child,
+  .drawer-document-content .lexical-editor-input h3:first-child {
+    margin-top: 0;
+  }
+  .drawer-document-content .lexical-editor-input pre,
+  .drawer-document-content .lexical-editor-input code {
+    line-height: 1.65;
+  }
+  .drawer-document-content .lexical-editor-input pre {
+    margin-top: 1.5rem;
+    margin-bottom: 2.2rem;
+  }
+  .drawer-document-scroll > section {
+    margin-top: 2rem;
+  }
   /* 블로그형 인용 블록: 기본 왼쪽 세로선 대신 파스텔 배경과 인용 부호로 구분한다. */
   .lexical-editor-input blockquote {
     position: relative;

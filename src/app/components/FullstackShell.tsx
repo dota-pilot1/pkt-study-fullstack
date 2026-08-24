@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   Boxes, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
   MousePointerClick, Navigation, Settings, SquarePen, User, Workflow, type LucideIcon,
@@ -36,6 +37,49 @@ const groupBand: Record<RailGroup, string | undefined> = {
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 const RAIL_COLLAPSED_KEY = "pkt.study.railCollapsed.v2";
+
+type WindowResizeDirection = "East" | "North" | "NorthEast" | "NorthWest" | "South" | "SouthEast" | "SouthWest" | "West";
+
+const windowResizeHandles: Array<{
+  direction: WindowResizeDirection;
+  className: string;
+  cursor: string;
+}> = [
+  { direction: "North", className: "inset-x-2 top-0 h-1.5", cursor: "n-resize" },
+  { direction: "South", className: "inset-x-2 bottom-0 h-1.5", cursor: "s-resize" },
+  { direction: "West", className: "bottom-2 left-0 top-2 w-1.5", cursor: "w-resize" },
+  { direction: "East", className: "bottom-2 right-0 top-2 w-1.5", cursor: "e-resize" },
+  { direction: "NorthWest", className: "left-0 top-0 size-3", cursor: "nw-resize" },
+  { direction: "NorthEast", className: "right-0 top-0 size-3", cursor: "ne-resize" },
+  { direction: "SouthWest", className: "bottom-0 left-0 size-3", cursor: "sw-resize" },
+  { direction: "SouthEast", className: "bottom-0 right-0 size-3", cursor: "se-resize" },
+];
+
+function WindowResizeHandles() {
+  const isTauri = useSyncExternalStore(
+    () => () => {},
+    () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window,
+    () => false,
+  );
+  if (!isTauri) return null;
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[999]" aria-hidden="true">
+      {windowResizeHandles.map(({ direction, className, cursor }) => (
+        <div
+          key={direction}
+          className={`pointer-events-auto absolute ${className}`}
+          style={{ cursor }}
+          onMouseDown={(event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            void getCurrentWindow().startResizeDragging(direction);
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function useActiveModule() { return useContext(ActiveModuleContext); }
 
@@ -115,6 +159,7 @@ export function FullstackShell({ children }: { children: ReactNode }) {
         <ContentRefreshProvider value={{ refresh: refreshContent, isRefreshing: isRefreshingContent }}><RailToggleProvider value={{ collapsed: railCollapsed, toggle: toggleRail }}>
           <div key={contentRefreshKey} className={"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-opacity duration-300 " + (isRefreshingContent ? "opacity-60" : "opacity-100")}>{children}</div>
         </RailToggleProvider></ContentRefreshProvider>
+        <WindowResizeHandles />
       </div>
     </ActiveModuleContext.Provider></QueryClientProvider></ToastProvider>
   );

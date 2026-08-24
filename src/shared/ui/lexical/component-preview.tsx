@@ -141,23 +141,25 @@ export function ComponentPreview({ block, framed = true }: { block: ComponentPre
 
   return (
     <div className={`gallery-preview ${framed ? "overflow-hidden rounded-lg border border-surface-border-soft bg-surface-raised" : "bg-surface-raised"}`}>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-surface-border-soft px-4 py-2.5">
-        <span className="text-[14px] font-black text-text-primary">{entry.label}</span>
-        {entry.controls.map((control) => (
-          <ControlField
-            key={control.name}
-            control={control}
-            value={props[control.name]}
-            onChange={(next) => setProps((current) => ({ ...current, [control.name]: next }))}
-          />
-        ))}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-surface-border-soft px-5 py-3">
+        <span className="shrink-0 text-[14px] font-black text-text-primary">{entry.label}</span>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2 border-l border-surface-border-soft pl-4">
+          {entry.controls.map((control) => (
+            <ControlField
+              key={control.name}
+              control={control}
+              value={props[control.name]}
+              onChange={(next) => setProps((current) => ({ ...current, [control.name]: next }))}
+            />
+          ))}
+        </div>
         <button
           type="button"
           onClick={() => {
             setActiveFile(sources[0]?.file ?? null)
             setSourceOpen(true)
           }}
-          className="ml-auto text-[12.5px] font-black text-brand-primary hover:underline"
+          className="shrink-0 text-[12.5px] font-black text-brand-primary hover:underline"
         >
           소스 보기
         </button>

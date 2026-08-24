@@ -6,8 +6,8 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:4300",
-    "beforeBuildCommand": "npm run build",
-    "frontendDist": "../.next/static"
+    "beforeBuildCommand": "npm run build:tauri",
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [
@@ -32,5 +32,12 @@
     ],
     "security": { "csp": null }
   },
-  "bundle": { "active": true, "targets": ["app", "dmg", "nsis"] }
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis"],
+    "externalBin": ["binaries/node"],
+    "resources": {
+      "../dist/next/": "next"
+    }
+  }
 }

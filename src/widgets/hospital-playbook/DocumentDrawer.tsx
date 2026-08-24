@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, ExternalLink, Link2, Pencil, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, ExternalLink, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
@@ -38,6 +38,7 @@ function DocumentDrawer({
   onChanged,
   deleting = false,
   deleteError,
+  loading = false,
 }: {
   document: PlaybookDocument;
   previous?: PlaybookDocument;
@@ -49,6 +50,7 @@ function DocumentDrawer({
   onChanged: () => void;
   deleting?: boolean;
   deleteError?: string;
+  loading?: boolean;
 }) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -236,6 +238,14 @@ function DocumentDrawer({
         }`}
         style={{ width: `${drawerSize}vw`, maxWidth: "none" }}
       >
+        {loading && (
+          <div className="absolute inset-0 z-30 grid place-items-center bg-surface-raised/75 backdrop-blur-[1px]">
+            <div className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-raised px-4 py-3 text-sm font-bold text-text-secondary shadow-lg">
+              <Loader2 className="size-4 animate-spin text-brand-primary" />
+              문서를 불러오는 중...
+            </div>
+          </div>
+        )}
         {/* 패널 사이드 일체형 도구 레일 */}
         <div
           className="absolute left-0 top-28 z-20 flex -translate-x-full flex-col items-center rounded-l-xl border border-r-0 border-surface-border bg-surface-raised p-1 shadow-[-4px_0_14px_rgba(0,0,0,0.07)]"
@@ -282,40 +292,46 @@ function DocumentDrawer({
           })}
 
         </div>
-        <header className="flex shrink-0 items-center gap-2 border-b border-surface-border px-4 py-3">
+        <header className="flex shrink-0 items-center gap-3 border-b border-surface-border px-5 py-3.5">
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-black text-brand-primary">개발 노트 · {isEditing ? "수정" : "상세 보기"}</p>
             {!isEditing && <h2 className="mt-0.5 truncate text-lg font-black text-text-primary">{document.title}</h2>}
           </div>
-          <button
-            type="button"
-            className={`ui-icon-button size-8 ${isEditing ? "bg-brand-primary text-white" : ""}`}
-            onClick={() => {
-              closeSearch();
-              setIsEditing(true);
-            }}
-            title="수정"
-          >
-            <Pencil className="size-4" />
-          </button>
-          {onOpenPage && <button type="button" className="ui-icon-button size-8" onClick={onOpenPage} title="전체 페이지로 보기">
-            <ExternalLink className="size-4" />
-          </button>}
-          <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 API 링크 복사">
-            {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
-          </button>
-          <button type="button" className="ui-icon-button size-8" onClick={() => void copyAiContent()} disabled={isSharing} title="AI용 Markdown 내용 복사">
-            {aiContentCopied ? <Check className="size-4" /> : <Clipboard className="size-4" />}
-          </button>
-              <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyAiEditConnection()} disabled={isIssuingAiToken} title="개별 문서 편집 API for LLM 복사">
-            <span className="font-mono text-xs font-black leading-none">{"{}"}</span>
-          </button>
-          <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제">
-            <Trash2 className="size-4" />
-          </button>
-          <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
-            <X className="size-4" />
-          </button>
+          <div className="drawer-action-group flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              className={`ui-icon-button size-8 ${isEditing ? "bg-brand-primary text-white" : ""}`}
+              onClick={() => {
+                closeSearch();
+                setIsEditing(true);
+              }}
+              title="수정"
+            >
+              <Pencil className="size-4" />
+            </button>
+            {onOpenPage && <button type="button" className="ui-icon-button size-8" onClick={onOpenPage} title="전체 페이지로 보기">
+              <ExternalLink className="size-4" />
+            </button>}
+          </div>
+          <div className="drawer-action-group flex shrink-0 items-center gap-1">
+            <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 API 링크 복사">
+              {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
+            </button>
+            <button type="button" className="ui-icon-button size-8" onClick={() => void copyAiContent()} disabled={isSharing} title="AI용 Markdown 내용 복사">
+              {aiContentCopied ? <Check className="size-4" /> : <Clipboard className="size-4" />}
+            </button>
+            <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyAiEditConnection()} disabled={isIssuingAiToken} title="개별 문서 편집 API for LLM 복사">
+              <span className="font-mono text-xs font-black leading-none">{"{}"}</span>
+            </button>
+          </div>
+          <div className="drawer-action-group drawer-action-group-danger flex shrink-0 items-center gap-1">
+            <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제">
+              <Trash2 className="size-4" />
+            </button>
+            <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
+              <X className="size-4" />
+            </button>
+          </div>
         </header>
 
         {searchOpen && !isEditing && (
@@ -351,18 +367,18 @@ function DocumentDrawer({
         )}
 
         {!isEditing && previewBlocks.length > 0 && (
-          <div className="flex shrink-0 gap-1 border-b border-surface-border-soft px-5" role="tablist" aria-label="본문 보기 방식">
-            <button type="button" role="tab" aria-selected={viewTab === "preview"} onClick={() => setViewTab("preview")} className={"border-b-2 px-3 pb-2 pt-2 text-[12px] font-black " + (viewTab === "preview" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")}>출력 결과 ({previewBlocks.length})</button>
-            <button type="button" role="tab" aria-selected={viewTab === "note"} onClick={() => setViewTab("note")} className={"border-b-2 px-3 pb-2 pt-2 text-[12px] font-black " + (viewTab === "note" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")}>노트 정리</button>
+          <div className="flex shrink-0 gap-3 border-b border-surface-border-soft px-6" role="tablist" aria-label="본문 보기 방식">
+            <button type="button" role="tab" aria-selected={viewTab === "preview"} onClick={() => setViewTab("preview")} className={"border-b-2 px-4 pb-3 pt-3 text-sm font-black " + (viewTab === "preview" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")}>출력 결과 ({previewBlocks.length})</button>
+            <button type="button" role="tab" aria-selected={viewTab === "note"} onClick={() => setViewTab("note")} className={"border-b-2 px-4 pb-3 pt-3 text-sm font-black " + (viewTab === "note" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")}>노트 정리</button>
           </div>
         )}
-        <div ref={contentRef} className="min-h-0 flex-1 overflow-y-auto p-5">
+        <div ref={contentRef} className="drawer-document-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6">
           {isEditing ? (
             <DocumentPane documentId={document.id} onChanged={onChanged} onCancel={() => setIsEditing(false)} />
           ) : previewBlocks.length > 0 && viewTab === "preview" ? (
             <PreviewGallery blocks={previewBlocks} />
           ) : document.content.trim() ? (
-            <div className="overflow-hidden rounded-lg border border-surface-border-soft bg-white">
+            <div className="drawer-document-content overflow-hidden rounded-lg border border-surface-border-soft bg-white">
               <LexicalEditor
                 key={document.id}
                 initialState={document.content}
@@ -432,4 +448,3 @@ function DocumentDrawer({
 }
 
 export default DocumentDrawer;
-

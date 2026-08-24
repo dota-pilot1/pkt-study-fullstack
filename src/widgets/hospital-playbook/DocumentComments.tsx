@@ -17,9 +17,14 @@ export default function DocumentComments({ documentId }: { documentId: number })
   const [editingTitle, setEditingTitle] = useState("");
   const [editingContent, setEditingContent] = useState("");
 
-  const store = (next: PlaybookDocumentComment[]) => queryClient.setQueryData(commentKey(documentId), next);
-  const create = useMutation({ mutationFn: (body: { title?: string; content: string; parentId?: number | null }) => playbookApi.createComment(documentId, body), onSuccess: store });
-  const update = useMutation({ mutationFn: (value: { id: number; title?: string; content: string }) => playbookApi.updateComment(value.id, value), onSuccess: store });
+  const create = useMutation({
+    mutationFn: (body: { title?: string; content: string; parentId?: number | null }) => playbookApi.createComment(documentId, body),
+    onSuccess: (created) => queryClient.setQueryData<PlaybookDocumentComment[]>(commentKey(documentId), (current = []) => [...current, created]),
+  });
+  const update = useMutation({
+    mutationFn: (value: { id: number; title?: string; content: string }) => playbookApi.updateComment(value.id, value),
+    onSuccess: (updated) => queryClient.setQueryData<PlaybookDocumentComment[]>(commentKey(documentId), (current = []) => current.map((comment) => comment.id === updated.id ? updated : comment)),
+  });
   const remove = useMutation({ mutationFn: (id: number) => playbookApi.deleteComment(id), onSuccess: () => void queryClient.invalidateQueries({ queryKey: commentKey(documentId) }) });
   const all = comments.data ?? [];
   const roots = all.filter((comment) => comment.parentId === null);
@@ -64,4 +69,3 @@ export default function DocumentComments({ documentId }: { documentId: number })
     </section>
   );
 }
-

@@ -8,6 +8,7 @@ coverage/
 
 # Tauri/Rust build output
 src-tauri/target/
+src-tauri/binaries/
 target/
 
 # Local application data
