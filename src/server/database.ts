@@ -30,6 +30,10 @@ if (fs.existsSync(pendingRestorePath)) {
 }
 
 const sqlite = new Database(databasePath);
+// Next.js may evaluate multiple route modules in parallel during production
+// builds. The schema/bootstrap writes are safe to retry, but SQLite needs a
+// short wait instead of failing immediately with SQLITE_BUSY.
+sqlite.pragma("busy_timeout = 10000");
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = ON");
 sqlite.exec(`
