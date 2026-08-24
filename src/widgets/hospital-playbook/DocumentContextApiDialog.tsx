@@ -7,7 +7,7 @@ import LexicalSamplePreview from "./LexicalSamplePreview";
 type DocumentContextApiDialogProps = { documentId: number; documentTitle: string; onClose: () => void };
 
 export default function DocumentContextApiDialog({ documentId, documentTitle, onClose }: DocumentContextApiDialogProps) {
-  const { guide, sections } = useMemo(() => {
+  const { guide, tabs } = useMemo(() => {
     const endpoint = `${getApiBase()}/api/llm/hospital-playbook/documents/${documentId}/context`;
     const contentEndpoint = `${getApiBase()}/api/llm/hospital-playbook/documents/${documentId}/content`;
     const tabs: ApiGuideTab[] = [
@@ -20,5 +20,5 @@ export default function DocumentContextApiDialog({ documentId, documentTitle, on
     return { tabs, guide: `# PKT Playbook 문서 조회·저장 API\n\ndocumentId: ${documentId}\ndocumentTitle: ${documentTitle}\n\n${tabs.map((tab) => `${tab.label}\n${tab.content}`).join("\n\n---\n\n")}` };
   }, [documentId, documentTitle]);
 
-  return <ApiGuideDialogShell title="2차 노트 관리 API" description="문서 조회·저장 지침을 작업별로 확인합니다." copyText={guide} onClose={onClose} ariaLabel="2차 노트 관리 API" contentAriaLabel="분류된 문서 API 지침" previewAriaLabel="Lexical 저장 형식 샘플" previewTitle="Lexical 작성 샘플" previewDescription="본문과 하위 문서에 사용하는 quote·list·code 블록 샘플입니다." preview={<LexicalSamplePreview />} footer="전체 복사는 모든 탭의 지침을 복사합니다. 문서 생성·삭제·정렬은 전체 노트 관리 API를 사용합니다."><ApiGuideTabs sections={sections} /></ApiGuideDialogShell>;
+  return <ApiGuideDialogShell title="2차 노트 관리 API" description="문서 조회·저장 지침을 작업별로 확인합니다." copyText={guide} onClose={onClose} ariaLabel="2차 노트 관리 API" contentAriaLabel="분류된 문서 API 지침" previewAriaLabel="Lexical 저장 형식 샘플" previewTitle="Lexical 작성 샘플" previewDescription="본문과 하위 문서에 사용하는 quote·list·code 블록 샘플입니다." preview={<LexicalSamplePreview />} footer="전체 복사는 모든 탭의 지침을 복사합니다. 문서 생성·삭제·정렬은 전체 노트 관리 API를 사용합니다."><ApiGuideTabs sections={tabs} /></ApiGuideDialogShell>;
 }
