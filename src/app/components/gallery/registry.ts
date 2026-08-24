@@ -150,8 +150,9 @@ export const GALLERY_ENTRIES: GalleryEntry[] = [
     label: "Sidebar",
     Component: SidebarDemo,
     // label은 nav의 aria-label로만 들어가 화면에 아무 변화가 없다. 컨트롤로 두면 고장처럼 보여 뺐다.
-    defaultProps: { collapsed: false, dense: false },
+    defaultProps: { collapsed: false, dense: false, theme: "light" },
     controls: [
+      { name: "theme", type: "select", options: ["light", "dark"] },
       { name: "collapsed", type: "boolean" },
       { name: "dense", type: "boolean" },
     ],

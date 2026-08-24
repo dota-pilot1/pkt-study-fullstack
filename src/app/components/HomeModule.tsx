@@ -8,7 +8,7 @@ const noteSpaces: Array<{ title: string; description: string; icon: LucideIcon }
   { title: "스프링 노트", description: "Spring Boot, JPA, DDD 계층과 API 설계 기록", icon: Leaf },
   { title: "DB 테이블 설계", description: "PostgreSQL, ERD, JPA와 데이터 모델 기록", icon: Database },
   { title: "리액트 노트", description: "React, Next.js, FSD와 화면 구현 기록", icon: Workflow },
-  { title: "PKT Front Lev1", description: "PKT React 실습 30개와 구현 과정을 기록", icon: GraduationCap },
+  { title: "기본 화면 설계", description: "페이지 단위 UI 설계와 구현 과정을 기록", icon: GraduationCap },
   { title: "공통 컴포넌트", description: "Button, Input, Table 등 화면을 이루는 부품 샘플", icon: Boxes },
   { title: "메뉴·네비게이션", description: "Sidebar, Header, Tabs, Breadcrumb, Pagination 구성", icon: Navigation },
   { title: "폼·유효성 검사", description: "Form 조합, React Hook Form, Zod, 필드 에러 표시", icon: SquarePen },

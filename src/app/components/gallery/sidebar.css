@@ -1,15 +1,57 @@
-/* 외부 UI 라이브러리 없이 쓰는 Sidebar 스타일. 폐쇄망에서도 이 파일만 복사하면 된다. */
+/* 외부 UI 라이브러리 없이 쓰는 Sidebar 스타일. 폐쇄망에서도 이 파일만 복사하면 된다.
+   색상은 CSS 변수로 정의되어 있어 상위 변수 몇 개만 바꾸면 원하는 테마(브랜드 컬러, 다크 등)로 즉시 커스텀된다. */
 .sb {
   box-sizing: border-box;
   width: 232px;
   /* 떠오르는 하위 메뉴가 레일 바깥까지 나가려면 이 여백만큼을 더 밀어야 한다. */
   --sb-pad-x: 8px;
+
+  /* ── 기본 라이트 테마 (모던 클린 스타일) ── */
+  --sb-bg: #ffffff;
+  --sb-border: #e2e8f0;
+  --sb-text: #475569;
+  --sb-text-hover: #0f172a;
+  --sb-hover-bg: #f1f5f9;
+  --sb-active-bg: #2563eb;
+  --sb-active-text: #ffffff;
+  --sb-parent-active-bg: #f8fafc;
+  --sb-parent-active-text: #0f172a;
+  --sb-badge-bg: #f1f5f9;
+  --sb-badge-text: #64748b;
+  --sb-group-label: #94a3b8;
+  --sb-sub-border: #e2e8f0;
+  --sb-popover-bg: #ffffff;
+  --sb-popover-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
   padding: 10px var(--sb-pad-x);
-  background: #0f172a;
-  color: #cbd5e1;
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  border: 1px solid var(--sb-border);
+  border-radius: 10px;
   font-family: inherit;
-  transition: width 0.18s ease;
+  transition: width 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
+
+/* ── 다크 테마 프리셋 ── */
+.sb.is-dark,
+.sb[data-theme='dark'] {
+  --sb-bg: #0f172a;
+  --sb-border: #334155;
+  --sb-text: #cbd5e1;
+  --sb-text-hover: #f8fafc;
+  --sb-hover-bg: #1e293b;
+  --sb-active-bg: #2563eb;
+  --sb-active-text: #ffffff;
+  --sb-parent-active-bg: #1e293b;
+  --sb-parent-active-text: #f8fafc;
+  --sb-badge-bg: #334155;
+  --sb-badge-text: #e2e8f0;
+  --sb-group-label: #64748b;
+  --sb-sub-border: #334155;
+  --sb-popover-bg: #0f172a;
+  --sb-popover-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
+}
+
 .sb.is-collapsed { width: 60px; }
 
 .sb-list,
@@ -41,8 +83,9 @@
   text-align: left;
   text-decoration: none;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.sb-row:hover { background: #1e293b; color: #f8fafc; }
+.sb-row:hover { background: var(--sb-hover-bg); color: var(--sb-text-hover); }
 .sb-row:focus-visible {
   outline: 2px solid #60a5fa;
   outline-offset: -2px;
@@ -52,18 +95,20 @@
 
 /* 현재 페이지는 aria-current="page"가 진실이고, 색은 그 속성을 따라간다. */
 .sb-row[aria-current='page'] {
-  background: #2563eb;
-  color: #fff;
+  background: var(--sb-active-bg);
+  color: var(--sb-active-text);
 }
 /* 자식이 현재 페이지인 그룹.
    접으면 자식 줄이 통째로 사라지므로, 이 표시가 "지금 어디에 있나"의 유일한 단서가 된다. */
 .sb-row.is-parent-active {
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--sb-parent-active-bg);
+  color: var(--sb-parent-active-text);
 }
-.sb-row.is-parent-active .sb-icon { color: #60a5fa; }
+.sb-row.is-parent-active .sb-icon { color: #3b82f6; }
+.sb.is-dark .sb-row.is-parent-active .sb-icon { color: #60a5fa; }
 /* 접힘에서는 라벨도 없으므로 왼쪽 띠를 하나 더 준다. */
-.sb.is-collapsed .sb-row.is-parent-active { box-shadow: inset 2px 0 0 #60a5fa; }
+.sb.is-collapsed .sb-row.is-parent-active { box-shadow: inset 2px 0 0 #3b82f6; }
+.sb.is-collapsed.is-dark .sb-row.is-parent-active { box-shadow: inset 2px 0 0 #60a5fa; }
 
 .sb-icon {
   display: grid;
@@ -85,8 +130,8 @@
   flex: 0 0 auto;
   padding: 2px 7px;
   border-radius: 999px;
-  background: #334155;
-  color: #e2e8f0;
+  background: var(--sb-badge-bg);
+  color: var(--sb-badge-text);
   font-size: 11px;
   font-weight: 800;
 }
@@ -114,13 +159,13 @@
 .sb-sub {
   margin: 2px 0 2px 17px;
   padding-left: 9px;
-  border-left: 1px solid #334155;
+  border-left: 1px solid var(--sb-sub-border);
 }
 .sb-sub .sb-row { font-weight: 600; }
 
 .sb-group-label {
   margin: 12px 10px 4px;
-  color: #64748b;
+  color: var(--sb-group-label);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -169,10 +214,10 @@
   min-width: 176px;
   margin: 0;
   padding: 6px;
-  border: 1px solid #334155;
+  border: 1px solid var(--sb-border);
   border-radius: 10px;
-  background: #0f172a;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
+  background: var(--sb-popover-bg);
+  box-shadow: var(--sb-popover-shadow);
 }
 /* flyout 안에서는 자리가 있으므로 라벨과 배지를 도로 보여 준다. */
 .sb.is-collapsed .sb-sub .sb-label,
@@ -193,4 +238,3 @@
     transition: none;
   }
 }
-

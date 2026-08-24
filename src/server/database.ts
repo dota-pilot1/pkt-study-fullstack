@@ -192,7 +192,7 @@ if (!existingUser) {
 
 const defaultSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("PKT_FRONT_LEV1") as { id: number } | undefined;
 if (!defaultSpace) {
-  sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run("PKT_FRONT_LEV1", "PKT Front Lev1", now, now);
+  sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run("PKT_FRONT_LEV1", "기본 화면 설계", now, now);
   const space = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("PKT_FRONT_LEV1") as { id: number };
   sqlite.prepare("INSERT OR IGNORE INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(space.id, "폐쇄망 개발 환경", 0, now, now);
   const category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ?").get(space.id, "폐쇄망 개발 환경") as { id: number };
@@ -230,6 +230,32 @@ for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSee
   if (!existingDocument) {
     const content = JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: documentText }] }] } });
     sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, topicTitle, content, 0, now, now);
+  }
+}
+
+// 페이지 단위 실습의 대표 주제. 기존 데이터에도 중복 없이 추가해 작업 관리 화면 실습을 복구한다.
+const pktSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("PKT_FRONT_LEV1") as { id: number };
+let pageCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(pktSpace.id, "기본 페이지 작업 - 1") as { id: number } | undefined;
+if (!pageCategory) {
+  const categoryCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?").get(pktSpace.id) as { count: number };
+  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(pktSpace.id, "기본 페이지 작업 - 1", categoryCount.count, now, now);
+  pageCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(pktSpace.id, "기본 페이지 작업 - 1") as { id: number };
+}
+let workManagementTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1").get(pageCategory.id, "작업 관리") as { id: number } | undefined;
+if (!workManagementTopic) {
+  const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?").get(pageCategory.id) as { count: number };
+  sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(pageCategory.id, "작업 관리", topicCount.count, now, now);
+  workManagementTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1").get(pageCategory.id, "작업 관리") as { id: number };
+}
+const workManagementDocuments = [
+  ["작업 관리 목록 조회", "작업지시 목록 조회를 FSD 구조로 구현합니다.\n\nStep 1. 화면 모델 타입 정의\nStep 2. 목록 API 모듈 구현\nStep 3. 조회 훅 연결\nStep 4. 페이지 목록·선택 상태 연결\n\n주요 파일: prac-pkt-react/src/features/work-order/model/work-order.types.ts, prac-pkt-react/src/features/work-order/api/work-order.api.ts, prac-pkt-react/src/features/work-order/model/useWorkOrders.ts"],
+  ["작업 관리 상태 업데이트", "작업지시 상태 변경을 FSD 구조로 구현합니다.\n\nStep 1. 상태 변경 요청 계약 정의\nStep 2. 상태 변경 API 구현\nStep 3. mutation 훅과 캐시 무효화\nStep 4. 드로워 상태 변경 UI 연결\n\n주요 파일: prac-pkt-react/src/features/work-order/model/work-order.types.ts, prac-pkt-react/src/features/work-order/api/work-order.api.ts, prac-pkt-react/src/features/work-order/model/useWorkOrders.ts"],
+] as const;
+const existingWorkManagementDocuments = sqlite.prepare("SELECT id FROM playbook_documents WHERE topic_id = ?").all(workManagementTopic.id) as Array<{ id: number }>;
+if (existingWorkManagementDocuments.length === 0) {
+  for (const [order, [title, text]] of workManagementDocuments.entries()) {
+    const content = JSON.stringify({ root: { children: [{ type: "heading", tag: "h1", children: [{ type: "text", text: title }] }, { type: "paragraph", children: [{ type: "text", text }] }] } });
+    sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(workManagementTopic.id, title, content, order, now, now);
   }
 }
 

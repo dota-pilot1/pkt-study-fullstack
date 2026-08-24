@@ -20,6 +20,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       const body = await response.json() as { message?: string };
       if (body.message) message = body.message;
     } catch { /* 기본 오류 메시지 사용 */ }
+    if (response.status === 401 && typeof window !== "undefined" && window.location.pathname !== "/login") {
+      const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+    }
     throw new ApiError(response.status, message);
   }
   if (response.status === 204) return undefined as T;

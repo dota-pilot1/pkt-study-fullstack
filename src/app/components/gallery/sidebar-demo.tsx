@@ -42,23 +42,27 @@ const MENU: SidebarItem[] = [
 export function SidebarDemo({
   collapsed = false,
   dense = false,
+  theme = 'light',
   label = '주 메뉴',
 }: {
   collapsed?: boolean;
   dense?: boolean;
+  theme?: 'light' | 'dark';
   label?: string;
 }) {
   const [activeId, setActiveId] = useState('lot');
 
   return (
-    <div style={{ display: 'flex', gap: 16, minHeight: 340, background: '#f8fafc', borderRadius: 10, padding: 12 }}>
-      <Sidebar items={MENU} activeId={activeId} onSelect={setActiveId} collapsed={collapsed} dense={dense} label={label} />
+    <div style={{ display: 'flex', gap: 16, minHeight: 340, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+      <Sidebar items={MENU} activeId={activeId} onSelect={setActiveId} collapsed={collapsed} dense={dense} theme={theme} label={label} />
       <div style={{ flex: 1, padding: '10px 4px', color: '#475569', fontSize: 13, fontWeight: 700 }}>
         선택된 항목: <code style={{ color: '#2563eb' }}>{activeId}</code>
         <p style={{ marginTop: 10, fontWeight: 600, lineHeight: 1.7 }}>
           Tab으로 항목 사이를 이동해 보세요. 그룹은 Enter/Space로 펼칩니다.
           <br />
           접힘을 켜면 라벨이 눈에서만 사라지고, 하위 메뉴는 오른쪽에 떠오릅니다.
+          <br />
+          컨트롤에서 <code>theme</code>를 <strong>light / dark</strong>로 전환해 볼 수 있습니다.
         </p>
       </div>
     </div>

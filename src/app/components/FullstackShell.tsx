@@ -23,7 +23,7 @@ const railItems: RailItem[] = [
   { label: "스프링 노트", icon: Leaf, group: "backend" },
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
   { label: "리액트 노트", icon: Workflow, group: "frontend" },
-  { label: "PKT Front Lev1", icon: GraduationCap, group: "frontend" },
+  { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
   { label: "공통 컴포넌트", icon: Boxes, group: "design" },
   { label: "메뉴·네비게이션", icon: Navigation, group: "design" },
   { label: "폼·유효성 검사", icon: SquarePen, group: "design" },
@@ -37,6 +37,12 @@ const groupBand: Record<RailGroup, string | undefined> = {
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 const RAIL_COLLAPSED_KEY = "pkt.study.railCollapsed.v2";
+
+type ShellUser = {
+  username: string;
+  email: string;
+  role: { name: string };
+};
 
 type WindowResizeDirection = "East" | "North" | "NorthEast" | "NorthWest" | "South" | "SouthEast" | "SouthWest" | "West";
 
@@ -83,7 +89,7 @@ function WindowResizeHandles() {
 
 export function useActiveModule() { return useContext(ActiveModuleContext); }
 
-export function FullstackShell({ children }: { children: ReactNode }) {
+export function FullstackShell({ children, user }: { children: ReactNode; user: ShellUser }) {
   const [active, setActive] = useState("노트 홈");
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -132,7 +138,14 @@ export function FullstackShell({ children }: { children: ReactNode }) {
     setContentRefreshKey((key) => key + 1);
     refreshTimerRef.current = window.setTimeout(() => { setIsRefreshingContent(false); refreshTimerRef.current = null; }, 650);
   };
-  const logout = async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.reload(); };
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    } finally {
+      // API 실패 여부와 관계없이 클라이언트 화면도 인증 화면으로 되돌린다.
+      window.location.replace("/login");
+    }
+  };
   const railTint = (percent: number) => `color-mix(in srgb, var(--primary-foreground) ${percent}%, transparent)`;
 
   return (
@@ -153,7 +166,7 @@ export function FullstackShell({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[76px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
             <span className="mt-0.5 select-none text-[8.5px] font-bold tabular-nums" style={{ color: railTint(85) }}>v0.1.20</span>
-            {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">PKT 관리자</p><p className="truncate text-[11px] font-semibold text-text-secondary">관리자</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
+            {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>
         <ContentRefreshProvider value={{ refresh: refreshContent, isRefreshing: isRefreshingContent }}><RailToggleProvider value={{ collapsed: railCollapsed, toggle: toggleRail }}>

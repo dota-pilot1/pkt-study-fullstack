@@ -18,6 +18,8 @@ type SidebarProps = {
   onSelect: (id: string) => void;
   collapsed?: boolean;
   dense?: boolean;
+  /** 테마: 'light' (기본값) 또는 'dark' */
+  theme?: 'light' | 'dark';
   /** nav 랜드마크의 이름. 한 화면에 nav가 둘 이상이면 서로 다르게 준다. */
   label?: string;
 };
@@ -109,6 +111,7 @@ export function Sidebar({
   onSelect,
   collapsed = false,
   dense = false,
+  theme = 'light',
   label = '주 메뉴',
 }: SidebarProps) {
   // 펼침은 순수 UI 상태라 안에서 갖는다. 활성 항목과 달리 주소에 남을 이유가 없다.
@@ -206,7 +209,8 @@ export function Sidebar({
 
   return (
     <nav
-      className={`sb${collapsed ? ' is-collapsed' : ''}${dense ? ' is-dense' : ''}`}
+      className={`sb${collapsed ? ' is-collapsed' : ''}${dense ? ' is-dense' : ''}${theme === 'dark' ? ' is-dark' : ''}`}
+      data-theme={theme}
       aria-label={label}
       onKeyDown={handleKeyDown}
     >

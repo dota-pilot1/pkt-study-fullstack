@@ -17,6 +17,7 @@ import DocumentPane from "./DocumentPane";
 import DocumentContextApiDialog from "./DocumentContextApiDialog";
 import ListColumn from "./ListColumn";
 import LlmApiGuideDialog from "./LlmApiGuideDialog";
+import { useToast } from "../../shared/ui/toast";
 
 // 접힌 헤더에 제목·개수·펼치기 버튼이 나란히 들어갈 만큼은 남긴다. 더 좁히면 내용이 끼어 쪼그라들어 보인다.
 const COLLAPSED_COLUMN_WIDTH = 148;
@@ -100,6 +101,7 @@ function flattenDocuments(documents: PlaybookDocumentSummary[]) {
 
 function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; title: string }) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const tree = usePlaybookTree(domain);
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [topicId, setTopicId] = useState<number | null>(null);
@@ -184,14 +186,15 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
     });
   }, [documents, topicId]);
 
-  const createCategory = useMutation({ mutationFn: (categoryTitle: string) => playbookApi.createCategory(domain, categoryTitle), onSuccess: invalidate });
-  const renameCategory = useMutation({ mutationFn: (value: { id: number; title: string }) => playbookApi.renameCategory(value.id, value.title), onSuccess: invalidate });
-  const deleteCategory = useMutation({ mutationFn: (id: number) => playbookApi.deleteCategory(id), onSuccess: invalidate });
-  const reorderCategories = useMutation({ mutationFn: (ids: number[]) => playbookApi.reorderCategories(ids), onSuccess: invalidate });
-  const createTopic = useMutation({ mutationFn: (value: { categoryId: number; title: string }) => playbookApi.createTopic(value.categoryId, value.title), onSuccess: invalidate });
-  const renameTopic = useMutation({ mutationFn: (value: { id: number; title: string }) => playbookApi.renameTopic(value.id, value.title), onSuccess: invalidate });
-  const deleteTopic = useMutation({ mutationFn: (id: number) => playbookApi.deleteTopic(id), onSuccess: invalidate });
-  const reorderTopics = useMutation({ mutationFn: (value: { categoryId: number; ids: number[] }) => playbookApi.reorderTopics(value.categoryId, value.ids), onSuccess: invalidate });
+  const mutationError = (error: unknown, fallback: string) => showToast(error instanceof Error ? error.message : fallback, "error");
+  const createCategory = useMutation({ mutationFn: (categoryTitle: string) => playbookApi.createCategory(domain, categoryTitle), onSuccess: () => { invalidate(); showToast("1차 메뉴를 추가했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴를 추가하지 못했습니다.") });
+  const renameCategory = useMutation({ mutationFn: (value: { id: number; title: string }) => playbookApi.renameCategory(value.id, value.title), onSuccess: () => { invalidate(); showToast("1차 메뉴 이름을 수정했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴 이름을 수정하지 못했습니다.") });
+  const deleteCategory = useMutation({ mutationFn: (id: number) => playbookApi.deleteCategory(id), onSuccess: () => { invalidate(); showToast("1차 메뉴를 삭제했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴를 삭제하지 못했습니다.") });
+  const reorderCategories = useMutation({ mutationFn: (ids: number[]) => playbookApi.reorderCategories(ids), onSuccess: () => { invalidate(); showToast("1차 메뉴 순서를 저장했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴 순서를 저장하지 못했습니다.") });
+  const createTopic = useMutation({ mutationFn: (value: { categoryId: number; title: string }) => playbookApi.createTopic(value.categoryId, value.title), onSuccess: () => { invalidate(); showToast("2차 메뉴를 추가했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴를 추가하지 못했습니다.") });
+  const renameTopic = useMutation({ mutationFn: (value: { id: number; title: string }) => playbookApi.renameTopic(value.id, value.title), onSuccess: () => { invalidate(); showToast("2차 메뉴 이름을 수정했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴 이름을 수정하지 못했습니다.") });
+  const deleteTopic = useMutation({ mutationFn: (id: number) => playbookApi.deleteTopic(id), onSuccess: () => { invalidate(); showToast("2차 메뉴를 삭제했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴를 삭제하지 못했습니다.") });
+  const reorderTopics = useMutation({ mutationFn: (value: { categoryId: number; ids: number[] }) => playbookApi.reorderTopics(value.categoryId, value.ids), onSuccess: () => { invalidate(); showToast("2차 메뉴 순서를 저장했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴 순서를 저장하지 못했습니다.") });
   const createDocument = useMutation({
     mutationFn: (value: { topicId: number; parentId: number | null }) => playbookApi.createDocument(value.topicId, "새 문서", value.parentId),
     onSuccess: (document) => { invalidate(); setEditingDocumentId(document.id); },

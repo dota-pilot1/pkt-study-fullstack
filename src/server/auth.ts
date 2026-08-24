@@ -14,7 +14,13 @@ export async function createSession(userId: number) {
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_DAYS * 86400000).toISOString();
   await db.insert(sessions).values({ token, userId, expiresAt, createdAt: now.toISOString() });
-  (await cookies()).set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", expires: new Date(expiresAt), path: "/" });
+  (await cookies()).set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" && process.env.PKT_STUDY_DESKTOP !== "1",
+    expires: new Date(expiresAt),
+    path: "/",
+  });
 }
 
 export async function getCurrentUser() {
@@ -50,6 +56,6 @@ export async function requireAdmin() {
 export async function clearSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (token) await db.delete(sessions).where(eq(sessions.token, token));
   cookieStore.delete(SESSION_COOKIE);
+  if (token) await db.delete(sessions).where(eq(sessions.token, token));
 }

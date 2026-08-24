@@ -33,7 +33,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed right-5 top-5 z-[240] flex max-w-[min(90vw,26rem)] flex-col items-end gap-2">
+      <div className="pointer-events-none fixed bottom-5 right-5 z-[240] flex max-w-[min(90vw,26rem)] flex-col items-end gap-2">
         {toasts.map((toast) => {
           const Icon = toast.tone === "success" ? CheckCircle2 : toast.tone === "error" ? AlertCircle : Info;
           const color = toast.tone === "error" ? "text-destructive" : toast.tone === "info" ? "text-text-primary" : "text-brand-primary";
@@ -57,4 +57,3 @@ export function useToast() {
   if (!context) throw new Error("useToast must be used within ToastProvider");
   return context;
 }
-
