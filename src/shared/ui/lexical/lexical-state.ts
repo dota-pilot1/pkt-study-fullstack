@@ -280,8 +280,13 @@ export function normalizeLexicalJson(value: string, promoteStructure = true): st
     const parsed = JSON.parse(value) as { root?: unknown }
     if (!parsed.root || typeof parsed.root !== 'object') return null
     const root = normalizedNode({ ...(parsed.root as Record<string, unknown>), type: 'root' }, 'root')
-    if (!root || !Array.isArray(root.children)) return null
-    return JSON.stringify({ ...parsed, root: promoteStructure ? promoteDocumentStructure(root) : root })
+    if (!root || !Array.isArray(root.children) || root.children.length === 0) return null
+    const normalizedRoot = promoteStructure ? promoteDocumentStructure(root) : root
+    // Lexical cannot mount an editor state whose root has no children. Invalid
+    // or entirely unsupported persisted nodes should fall back to Lexical's
+    // default paragraph instead of being passed through as an empty root.
+    if (!Array.isArray(normalizedRoot.children) || normalizedRoot.children.length === 0) return null
+    return JSON.stringify({ ...parsed, root: normalizedRoot })
   } catch {
     return null
   }
@@ -367,4 +372,3 @@ export function resetLexicalFormatting(value: string): string | null {
     return null
   }
 }
-
