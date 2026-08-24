@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { prepareTauriSidecar } from "./prepare-tauri-sidecar.mjs";
 
@@ -21,6 +21,20 @@ cpSync(staticDir, path.join(standaloneDir, ".next", "static"), { recursive: true
 if (existsSync(publicDir)) {
   rmSync(path.join(standaloneDir, "public"), { recursive: true, force: true });
   cpSync(publicDir, path.join(standaloneDir, "public"), { recursive: true });
+}
+
+// Next traces native packages through a symlink under `.next/node_modules`.
+// Tauri's resource copy does not preserve that traced symlink, so materialize
+// the better-sqlite3 package at every traced package name before packaging.
+const sqlitePackageDir = path.join(standaloneDir, "node_modules", "better-sqlite3");
+const tracedNodeModulesDir = path.join(standaloneDir, ".next", "node_modules");
+if (existsSync(sqlitePackageDir) && existsSync(tracedNodeModulesDir)) {
+  for (const packageName of readdirSync(tracedNodeModulesDir)) {
+    if (!packageName.startsWith("better-sqlite3-")) continue;
+    const tracedPackageDir = path.join(tracedNodeModulesDir, packageName);
+    rmSync(tracedPackageDir, { recursive: true, force: true });
+    cpSync(sqlitePackageDir, tracedPackageDir, { recursive: true, dereference: true });
+  }
 }
 
 // Tauri displays this local page while the bundled Next server starts.

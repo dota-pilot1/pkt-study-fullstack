@@ -1,4 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    fs::OpenOptions,
+    io::Write,
+    sync::{Arc, Mutex},
+};
 
 use tauri::Manager;
 use tauri_plugin_shell::process::CommandChild;
@@ -59,13 +63,54 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         child: Arc::clone(&child),
     });
 
-    tauri::async_runtime::spawn(async move {
-        while events.recv().await.is_some() {}
-    });
-
     let Some(window) = app.get_webview_window("main") else {
         return Ok(());
     };
+    let log_path = std::env::temp_dir().join("pkt-study-fullstack-next.log");
+    let event_window = window.clone();
+    tauri::async_runtime::spawn(async move {
+        let mut log = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .ok();
+        while let Some(event) = events.recv().await {
+            match event {
+                tauri_plugin_shell::process::CommandEvent::Stderr(line) => {
+                    let message = String::from_utf8_lossy(&line);
+                    if let Some(log) = log.as_mut() {
+                        let _ = writeln!(log, "[stderr] {message}");
+                    }
+                    let _ = event_window.eval(
+                        "document.querySelector('.status').textContent = 'Next 서버 오류 로그가 기록되었습니다.'",
+                    );
+                }
+                tauri_plugin_shell::process::CommandEvent::Error(error) => {
+                    if let Some(log) = log.as_mut() {
+                        let _ = writeln!(log, "[error] {error}");
+                    }
+                    let _ = event_window.eval(
+                        "document.querySelector('.status').textContent = 'Next 서버 실행 오류가 발생했습니다.'",
+                    );
+                }
+                tauri_plugin_shell::process::CommandEvent::Terminated(payload) => {
+                    if let Some(log) = log.as_mut() {
+                        let _ = writeln!(log, "[terminated] code={:?} signal={:?}", payload.code, payload.signal);
+                    }
+                    let _ = event_window.eval(
+                        "document.querySelector('.status').textContent = 'Next 서버가 종료되었습니다. 로그를 확인하세요.'",
+                    );
+                    break;
+                }
+                tauri_plugin_shell::process::CommandEvent::Stdout(line) => {
+                    if let Some(log) = log.as_mut() {
+                        let _ = writeln!(log, "[stdout] {}", String::from_utf8_lossy(&line));
+                    }
+                }
+                _ => {}
+            }
+        }
+    });
 
     thread::spawn(move || {
         for _ in 0..120 {
