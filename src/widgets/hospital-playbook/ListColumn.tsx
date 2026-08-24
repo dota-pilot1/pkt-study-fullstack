@@ -140,24 +140,6 @@ function ListColumn({
       >
         {/* 접히는 동안 항목이 찌그러지지 않도록 펼친 폭을 유지한 채 잘려 나가게 한다. */}
         <div className="h-full space-y-2 overflow-y-auto p-2.5" style={{ width: expandedWidth }}>
-        {adding && (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={submit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-              if (e.key === "Escape") {
-                setDraft("");
-                setAdding(false);
-              }
-            }}
-            placeholder={createPlaceholder}
-            className="ui-input"
-          />
-        )}
-
         {items.length === 0 && !adding && (
           <p className="px-1 py-6 text-center text-[13px] font-semibold text-text-muted">{emptyLabel}</p>
         )}
@@ -234,6 +216,24 @@ function ListColumn({
             </div>
           );
         })}
+
+        {adding && (
+          <input
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={submit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submit();
+              if (e.key === "Escape") {
+                setDraft("");
+                setAdding(false);
+              }
+            }}
+            placeholder={createPlaceholder}
+            className="ui-input"
+          />
+        )}
         </div>
       </div>
     </section>
@@ -241,4 +241,3 @@ function ListColumn({
 }
 
 export default ListColumn;
-
