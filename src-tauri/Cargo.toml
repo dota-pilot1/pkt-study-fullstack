@@ -1,6 +1,6 @@
 [package]
 name = "pkt-study-fullstack"
-version = "0.1.8"
+version = "0.1.9"
 description = "PKT Study desktop fullstack app"
 authors = ["CJ"]
 edition = "2021"
