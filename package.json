@@ -1,6 +1,6 @@
 {
   "name": "pkt-study-fullstack",
-  "version": "0.1.24",
+  "version": "0.1.25",
   "private": true,
   "scripts": {
     "dev": "next dev -p 4300",
@@ -56,6 +56,6 @@
     "eslint": "^9.39.2",
     "eslint-config-next": "16.1.4",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "5.9.3"
   }
 }

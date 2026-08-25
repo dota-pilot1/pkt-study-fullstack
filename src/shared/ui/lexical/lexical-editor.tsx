@@ -255,83 +255,57 @@ type PrismRenderToken = {
   content: string | PrismRenderToken | Array<string | PrismRenderToken>
 }
 
-function appendPrismRenderToken(parent: HTMLElement, value: string | PrismRenderToken | Array<string | PrismRenderToken>) {
+type SerializedNode = Record<string, unknown>
+
+/** 읽기 전용 상태는 마운트 전에 토큰 노드로 만들어 Lexical이 DOM을 직접 관리하게 한다. */
+function createSerializedHighlightNodes(
+  value: string | PrismRenderToken | Array<string | PrismRenderToken>,
+  inheritedType?: string,
+): SerializedNode[] {
   if (typeof value === 'string') {
-    parent.appendChild(document.createTextNode(value))
-    return
+    return value ? [{
+      type: 'code-highlight', detail: 0, format: 0, mode: 'normal', style: '',
+      text: value, highlightType: inheritedType, version: 1,
+    }] : []
   }
   if (Array.isArray(value)) {
-    value.forEach((item) => appendPrismRenderToken(parent, item))
-    return
+    return value.flatMap((item) => createSerializedHighlightNodes(item, inheritedType))
   }
-  const span = document.createElement('span')
   const alias = Array.isArray(value.alias) ? value.alias[0] : value.alias
-  span.className = `editor-token-${alias || value.type}`
-  appendPrismRenderToken(span, value.content)
-  parent.appendChild(span)
+  return createSerializedHighlightNodes(value.content, alias || value.type)
 }
 
 /**
- * Lexical's state transformer is authoritative in edit mode. In read-only
- * mode, however, some legacy CodeNode states can be painted after the Prism
- * transform has completed. Render only the visible code DOM as a final,
- * idempotent fallback; the serialized Lexical state is never changed.
+ * 읽기 전용 문서는 Prism 토큰을 초기 Lexical state에 넣는다.
+ * DOM을 직접 replace하면 Lexical의 reconciliation과 충돌하므로 사용하지 않는다.
  */
-function ReadOnlyPrismFallback() {
-  const [editor] = useLexicalComposerContext()
-
-  useEffect(() => {
-    let root: HTMLElement | null = editor.getRootElement()
-    let frame = 0
-
-    const render = () => {
-      frame = 0
-      if (!root) return
-      const selection = window.getSelection()
-      // A legacy block may still be waiting for the final Prism pass. Never
-      // replace its text nodes while the browser is extending a native drag
-      // selection; doing so detaches the range, which is most noticeable on
-      // multiline blocks.
-      if (
-        selection &&
-        !selection.isCollapsed &&
-        root.contains(selection.anchorNode) &&
-        root.contains(selection.focusNode)
-      ) return
-      root.querySelectorAll<HTMLElement>('code').forEach((element) => {
-        if (element.querySelector('[class*="editor-token-"]')) return
-        const source = element.textContent ?? ''
-        if (!source.trim()) return
-        const language = inferCodeLanguage(
-          source,
-          element.getAttribute('data-language') ?? undefined,
-        )
+function addReadOnlyCodeHighlighting(initialState: string | null): string | null {
+  if (!initialState) return null
+  try {
+    const state = JSON.parse(initialState) as { root?: SerializedNode }
+    const visit = (node: SerializedNode) => {
+      if (node.type === 'code' && Array.isArray(node.children)) {
+        const source = node.children.map((child) =>
+          child && typeof child === 'object' && typeof (child as SerializedNode).text === 'string'
+            ? String((child as SerializedNode).text)
+            : '',
+        ).join('')
+        const language = inferCodeLanguage(source, typeof node.language === 'string' ? node.language : undefined)
+        node.language = language
         const tokens = PrismTokenizer.tokenize(source, resolvePrismLanguage(language))
-        element.replaceChildren()
-        appendPrismRenderToken(element, tokens as string | PrismRenderToken | Array<string | PrismRenderToken>)
-      })
+        node.children = createSerializedHighlightNodes(tokens as string | PrismRenderToken | Array<string | PrismRenderToken>)
+      }
+      if (Array.isArray(node.children)) {
+        node.children.forEach((child) => {
+          if (child && typeof child === 'object') visit(child as SerializedNode)
+        })
+      }
     }
-
-    const schedule = () => {
-      if (frame === 0) frame = window.requestAnimationFrame(render)
-    }
-    const unregisterRoot = editor.registerRootListener((nextRoot) => {
-      root = nextRoot
-      schedule()
-    })
-    const unregisterUpdate = editor.registerUpdateListener(schedule)
-    schedule()
-    const timers = [80, 300, 800].map((delay) => window.setTimeout(schedule, delay))
-
-    return () => {
-      unregisterRoot()
-      unregisterUpdate()
-      timers.forEach((timer) => window.clearTimeout(timer))
-      if (frame !== 0) window.cancelAnimationFrame(frame)
-    }
-  }, [editor])
-
-  return null
+    if (state.root) visit(state.root)
+    return JSON.stringify(state)
+  } catch {
+    return initialState
+  }
 }
 
 function CodeCopyButtonPlugin() {
@@ -703,12 +677,19 @@ export function LexicalEditor({
   )
 
   const initialConfig = useMemo(
-    () => ({
+    () => {
+      const normalizedState = initialState
+        ? normalizeLexicalJson(initialState, promoteStructure)
+        : undefined
+      const editorState = readOnly
+        ? addReadOnlyCodeHighlighting(normalizedState ?? null) ?? undefined
+        : normalizedState ?? undefined
+
+      return {
       namespace: 'DocuNoteEditor',
       theme: editorTheme,
       editable: !readOnly,
-      editorState:
-        initialState ? normalizeLexicalJson(initialState, promoteStructure) ?? undefined : undefined,
+      editorState,
       nodes: [
         HeadingNode,
         QuoteNode,
@@ -730,7 +711,8 @@ export function LexicalEditor({
       onError: (error: Error) => {
         console.error('Lexical error:', error)
       },
-    }),
+    }
+    },
     // initialState is only used as the mount seed; block remount churn while typing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [readOnly, promoteStructure],
@@ -774,8 +756,8 @@ export function LexicalEditor({
         <LinkPlugin />
         <HorizontalRulePlugin />
         <TablePlugin hasHorizontalScroll />
-        <CodeHighlightPlugin />
-        {readOnly ? <ReadOnlyPrismFallback /> : null}
+        {/* 읽기 전용 Drawer에서는 Prism 변환이 초기 DOM 동기화와 충돌할 수 있다. */}
+        {!readOnly ? <CodeHighlightPlugin /> : null}
         <CodeCopyButtonPlugin />
         {!readOnly ? <CodeBlockBackspacePlugin /> : null}
         {!readOnly ? <MarkdownCodePastePlugin /> : null}
