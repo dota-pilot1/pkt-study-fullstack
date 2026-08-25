@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 // 참조앱과 동일하게, 네이티브 신호등 대신 공용 헤더에서 창 조작을 제공한다.
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -29,6 +30,12 @@ function WindowControls() {
       setMaximized(value);
     } catch (error) {
       console.error("window_toggle_maximize failed", error);
+      try {
+        await getCurrentWindow().toggleMaximize();
+        setMaximized(await getCurrentWindow().isMaximized());
+      } catch (fallbackError) {
+        console.error("window toggle fallback failed", fallbackError);
+      }
     }
   };
 
@@ -38,6 +45,7 @@ function WindowControls() {
     <div className="flex shrink-0 items-center gap-1" data-no-drag>
       <button
         type="button"
+        onMouseDown={(event) => event.stopPropagation()}
         onClick={() => void invoke("window_minimize").catch((error) => console.error("window_minimize failed", error))}
         title="최소화"
         aria-label="최소화"
@@ -61,6 +69,7 @@ function WindowControls() {
       </button>
       <button
         type="button"
+        onMouseDown={(event) => event.stopPropagation()}
         onClick={() => void invoke("window_close").catch((error) => console.error("window_close failed", error))}
         title="닫기"
         aria-label="닫기"
