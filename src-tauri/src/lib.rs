@@ -121,8 +121,23 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         }
     };
     let next_dir = resource_dir.join("next");
+    let data_dir = app_handle.path().app_data_dir().map_err(|error| {
+        tauri::Error::Anyhow(error.into())
+    })?;
+    std::fs::create_dir_all(&data_dir).map_err(|error| {
+        tauri::Error::Anyhow(error.into())
+    })?;
+    let database_path = data_dir.join("pkt-study.db");
+    let packaged_database_path = next_dir.join(".data").join("pkt-study.db");
+    if !database_path.exists() && packaged_database_path.exists() {
+        std::fs::copy(&packaged_database_path, &database_path).map_err(|error| {
+            tauri::Error::Anyhow(error.into())
+        })?;
+        eprintln!("initialized user SQLite database from packaged local seed: {}", database_path.display());
+    }
     eprintln!("resource directory: {}", resource_dir.display());
     eprintln!("next directory: {}", next_dir.display());
+    eprintln!("SQLite data directory: {}", data_dir.display());
     let sidecar = match app.shell().sidecar("node") {
         Ok(command) => command,
         Err(error) => {
@@ -137,6 +152,7 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         .env("PORT", next_port.to_string())
         .env("NODE_ENV", "production")
         .env("PKT_STUDY_DESKTOP", "1")
+        .env("PKT_STUDY_DATA_DIR", data_dir.to_string_lossy().to_string())
         .spawn()
         .map_err(|error| {
             eprintln!("node sidecar spawn failed: {error}");

@@ -1,5 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import Database from "better-sqlite3";
 import { prepareTauriSidecar } from "./prepare-tauri-sidecar.mjs";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
@@ -13,9 +14,19 @@ if (!existsSync(path.join(standaloneDir, "server.js"))) {
   throw new Error("Next standalone server is missing. Run `next build` first.");
 }
 
-// Next standalone does not copy browser assets itself. It also traces the local
-// SQLite directory because that path is dynamic, so never ship development data.
+// Next standalone does not copy browser assets itself. Keep the local SQLite
+// database as the first-run seed for the installed app. Tauri copies this seed
+// into the per-user app data directory; later updates never overwrite it.
 rmSync(path.join(standaloneDir, ".data"), { recursive: true, force: true });
+const localDatabasePath = path.join(projectRoot, ".data", "pkt-study.db");
+if (existsSync(localDatabasePath)) {
+  const localDatabase = new Database(localDatabasePath);
+  localDatabase.pragma("wal_checkpoint(TRUNCATE)");
+  localDatabase.close();
+  mkdirSync(path.join(standaloneDir, ".data"), { recursive: true });
+  cpSync(localDatabasePath, path.join(standaloneDir, ".data", "pkt-study.db"));
+  console.log(`Packaged local SQLite seed: ${localDatabasePath}`);
+}
 rmSync(path.join(standaloneDir, ".next", "static"), { recursive: true, force: true });
 cpSync(staticDir, path.join(standaloneDir, ".next", "static"), { recursive: true });
 if (existsSync(publicDir)) {
