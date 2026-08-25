@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { Copy, Minus, Square, X } from "lucide-react";
 
 // 참조앱과 동일하게, 네이티브 신호등 대신 공용 헤더에서 창 조작을 제공한다.
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -51,9 +52,7 @@ function WindowControls() {
         aria-label="최소화"
         className={windowControlClass}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4">
-          <line x1="2.5" y1="6" x2="9.5" y2="6" strokeLinecap="round" />
-        </svg>
+        <Minus className="size-[15px]" strokeWidth={1.75} aria-hidden="true" />
       </button>
       <button
         type="button"
@@ -63,9 +62,11 @@ function WindowControls() {
         aria-label="최대화 / 복원"
         className={windowControlClass}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4">
-          {maximized ? <path d="M4 4.5h4.5v4.5M3.5 7.5V3.5H7.5" strokeLinecap="round" strokeLinejoin="round" /> : <rect x="2.5" y="2.5" width="7" height="7" rx="1.5" />}
-        </svg>
+        {maximized ? (
+          <Copy className="size-[14px]" strokeWidth={1.75} aria-hidden="true" />
+        ) : (
+          <Square className="size-[14px]" strokeWidth={1.75} aria-hidden="true" />
+        )}
       </button>
       <button
         type="button"
@@ -75,10 +76,7 @@ function WindowControls() {
         aria-label="닫기"
         className={`${windowControlClass} hover:border-destructive hover:bg-destructive hover:text-destructive-foreground`}
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4">
-          <line x1="3" y1="3" x2="9" y2="9" strokeLinecap="round" />
-          <line x1="9" y1="3" x2="3" y2="9" strokeLinecap="round" />
-        </svg>
+        <X className="size-[15px]" strokeWidth={1.75} aria-hidden="true" />
       </button>
     </div>
   );

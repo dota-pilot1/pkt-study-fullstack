@@ -212,14 +212,20 @@ body {
   /* 블로그형 인용 블록: 기본 왼쪽 세로선 대신 파스텔 배경과 인용 부호로 구분한다. */
   .lexical-editor-input blockquote {
     position: relative;
-    margin: 0 0 0.75rem !important;
-    padding: 0.875rem 1.25rem;
+    margin: 0 0 0.5rem !important;
+    padding: 0.625rem 1.25rem !important;
     border: 1px solid #dbeafe;
     border-left: 1px solid #dbeafe;
     border-radius: 0.75rem;
     background: #eff6ff;
     color: #475569;
     font-style: normal;
+  }
+  /* 편집 화면에서도 quote의 Tailwind my-2 기본 여백보다 작은 고정 간격을 사용한다. */
+  .lexical-editor-frame .lexical-editor-input > blockquote {
+    margin-block-start: 0 !important;
+    margin-block-end: 0.5rem !important;
+    padding-block: 0.625rem !important;
   }
   /* 최상위 섹션은 노드 종류별 기본 margin을 제거하고 동일한 리듬으로 배치한다. */
   .lexical-editor-input > h1,
@@ -255,7 +261,28 @@ body {
   }
   .lexical-editor-input > p:has(+ code[data-language]),
   .lexical-editor-input > p:has(+ code[data-highlight-language]) {
-    margin-block-end: 0.25rem !important;
+    margin-block-start: 0.5rem !important;
+    margin-block-end: 0.5rem !important;
+  }
+  /* 파일:·코드: 라벨은 앞 요소가 quote인지 경로 code인지와 관계없이 같은 리듬을 사용한다. */
+  .drawer-document-content .lexical-editor-input > blockquote + p:has(+ code[data-language]),
+  .drawer-document-content .lexical-editor-input > blockquote + p:has(+ code[data-highlight-language]),
+  .drawer-document-content .lexical-editor-input > code[data-language] + p:has(+ code[data-language]),
+  .drawer-document-content .lexical-editor-input > code[data-language] + p:has(+ code[data-highlight-language]),
+  .drawer-document-content .lexical-editor-input > code[data-highlight-language] + p:has(+ code[data-language]),
+  .drawer-document-content .lexical-editor-input > code[data-highlight-language] + p:has(+ code[data-highlight-language]) {
+    margin-block-start: 1rem !important;
+    margin-block-end: 0.5rem !important;
+  }
+  /* Lexical 버전에 따라 code language data 속성이 달라도 파일·코드 라벨의 리듬을 동일하게 유지한다. */
+  .drawer-document-content .lexical-editor-input > :is(code, pre) + p:has(+ :is(code, pre)),
+  .drawer-document-content .lexical-editor-input > blockquote + p:has(+ :is(code, pre)) {
+    margin-block-start: 0.75rem !important;
+    margin-block-end: 0.5rem !important;
+  }
+  .drawer-document-content .lexical-editor-input > p:has(+ :is(code, pre)) {
+    margin-block-start: 0.5rem !important;
+    margin-block-end: 0.5rem !important;
   }
   .lexical-editor-input > blockquote > p,
   .lexical-editor-input > blockquote > ul,

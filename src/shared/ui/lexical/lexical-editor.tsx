@@ -47,7 +47,7 @@ import { DragDropImagePlugin, ImagePlugin } from './plugins/image-plugin'
 import { YoutubePlugin } from './plugins/youtube-plugin'
 import { TableActionMenuPlugin } from './plugins/table-action-plugin'
 import { uploadImageToS3 } from './utils/upload-image'
-import { inferCodeLanguage, styleAwareCodeTokenizer } from './utils/code-style-tokenizer'
+import { inferCodeLanguage, resolvePrismLanguage, styleAwareCodeTokenizer } from './utils/code-style-tokenizer'
 import { normalizeLexicalJson } from './lexical-state'
 
 type LexicalEditorProps = {
@@ -306,7 +306,7 @@ function ReadOnlyPrismFallback() {
           source,
           element.getAttribute('data-language') ?? undefined,
         )
-        const tokens = PrismTokenizer.tokenize(source, language)
+        const tokens = PrismTokenizer.tokenize(source, resolvePrismLanguage(language))
         element.replaceChildren()
         appendPrismRenderToken(element, tokens as string | PrismRenderToken | Array<string | PrismRenderToken>)
       })
@@ -800,4 +800,3 @@ export function LexicalEditor({
     </LexicalComposer>
   )
 }
-

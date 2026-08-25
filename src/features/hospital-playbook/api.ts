@@ -2,7 +2,7 @@ import { request } from "../../shared/api/client";
 
 export type DocumentStatus = "DRAFT" | "APPROVED" | "ARCHIVED";
 export type PlaybookSearchScope = "all" | "category" | "topic" | "document";
-export type PlaybookDomain = "BACKEND" | "SPRING_BOOT" | "FRONTEND" | "REACT" | "UIUX" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "DB" | "AX" | "TDD" | "RAG" | "SECURITY" | "DEVOPS" | "PKT_FRONT_LEV1";
+export type PlaybookDomain = "BACKEND" | "SPRING_BOOT" | "FRONTEND" | "REACT" | "UIUX" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "DB" | "AX" | "TDD" | "RAG" | "SECURITY" | "DEVOPS" | "PKT_FRONT_LEV1" | "NOTE_SAMPLE";
 export type PlaybookSpace = { id: number; code: string; name: string };
 
 export type PlaybookDocumentSummary = {
@@ -34,6 +34,21 @@ export type PlaybookDocument = PlaybookDocumentSummary & {
   approvedBy: number | null;
   approvedAt: string | null;
   updatedAt: string;
+};
+
+export type PlaybookSampleKey = "API_IMPLEMENTATION" | "FRONTEND_IMPLEMENTATION";
+export type PlaybookSampleChildDocument = {
+  documentId: number;
+  parentId: number | null;
+  title: string;
+  content: string;
+  version: number;
+  updatedAt: string;
+  children: PlaybookSampleChildDocument[];
+};
+export type PlaybookSampleDocument = PlaybookSampleChildDocument & {
+  sampleKey: PlaybookSampleKey;
+  topicId: number;
 };
 
 export type PlaybookDocumentComment = {
@@ -88,6 +103,11 @@ export const playbookApi = {
 
   document: (id: number) =>
     request<PlaybookDocument>(`${BASE}/documents/${id}`, { errorMessage: "문서를 불러오지 못했습니다." }),
+
+  sampleDocument: (sampleKey: PlaybookSampleKey) =>
+    request<PlaybookSampleDocument>(`/api/llm/hospital-playbook/samples/${sampleKey}`, {
+      errorMessage: "구현 노트 샘플을 불러오지 못했습니다.",
+    }),
 
   search: (keyword: string, domain: PlaybookDomain) =>
     request<PlaybookSearchResult[]>(`${BASE}/search?q=${encodeURIComponent(keyword)}&scope=document&spaceCode=${domain}`, {

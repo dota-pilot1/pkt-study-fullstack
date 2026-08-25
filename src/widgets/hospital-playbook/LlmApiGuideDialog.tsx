@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { getApiBase } from "../../shared/api/client";
 import type { PlaybookDomain } from "../../features/hospital-playbook/api";
 import ApiGuideDialogShell from "./ApiGuideDialogShell";
-import LexicalSamplePreview from "./LexicalSamplePreview";
+import ImplementationNoteSamplePreview from "./ImplementationNoteSamplePreview";
+import { SAMPLE_NOTE_REFERENCE_GUIDE } from "./documentApiSamples";
 
 type LlmApiGuideDialogProps = {
   domain: PlaybookDomain;
@@ -29,7 +29,7 @@ const methodClass: Record<NonNullable<GuideSection["method"]>, string> = {
 export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, onClose }: LlmApiGuideDialogProps) {
   const [activeSection, setActiveSection] = useState("workflow");
   const guide = useMemo(() => {
-    const base = `${getApiBase()}/api/llm/hospital-playbook`;
+    const base = "/api/llm/hospital-playbook";
     const sections: GuideSection[] = [
       {
         id: "workflow", label: "작업 순서", summary: "조회부터 시작하고 생성·수정·정렬 후 다시 확인합니다.",
@@ -38,8 +38,8 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
 1. GET ${base}/tree?spaceCode=${domain} 또는 GET ${base}/topics/${topicId ?? "{topicId}"}
 2. 기존 본문 문서와 최신 version 확인
 3. 없으면 POST로 본문 문서 생성
-4. 본문 계획 저장은 PATCH로 수행
-5. TODO마다 POST로 하위 문서 생성
+4. 본문에는 전체 목표와 TODO 1~N 계획을 PATCH로 저장
+5. TODO마다 POST로 하위 문서를 만들고 그 안에 Step 1~N 작성
 6. 필요하면 POST로 하위 문서 순서 정렬
 7. 마지막에 GET으로 저장 결과 재조회
 
@@ -47,10 +47,22 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
 2차 주제 → 본문 문서(전체 TODO 계획) → TODO 하위 문서(TODO 하나의 Step 1~N)
 
 - Step마다 별도 문서를 만들지 않습니다.
+- 본문 문서에는 전체 목표·구현 범위·TODO 계획·의존성·완료 기준을 작성합니다.
+- TODO 하위 문서에는 Route Handler·내부 함수·Drizzle·SQLite·검증의 실제 파일과 코드를 Step 1~N으로 작성합니다.
 - 존재하는 문서를 중복 생성하지 않습니다.
 - 구현 전 실제 파일·API·응답을 조회합니다.
 - 구현 후 실제 파일 경로, 코드, 테스트 결과를 문서에 반영합니다.
 - 409가 나오면 최신 문서를 다시 조회하고 expectedVersion을 갱신합니다.`,
+      },
+      {
+        id: "samples", label: "샘플 조회", method: "GET", summary: "앱 내부 SQLite에서 최신 API·프론트 모범 문서를 조회합니다.",
+        content: `# 샘플 노트 조회 API
+
+GET ${base}/samples
+GET ${base}/samples/API_IMPLEMENTATION
+GET ${base}/samples/FRONTEND_IMPLEMENTATION
+
+API_IMPLEMENTATION 응답은 상위 계획 문서의 content와 TODO 상세 문서 children을 함께 반환합니다. 샘플 문서는 노트 홈 아래의 '샘플 노트' 메뉴에서 편집하며 documentId를 고정하지 않고 sampleKey로 조회합니다.`,
       },
       {
         id: "get", label: "GET 조회", method: "GET", summary: "구조·주제·문서를 조회하고 ID와 version을 확보합니다.",
@@ -64,7 +76,7 @@ GET ${base}/documents/{documentId}
 주제 조회 결과에 기존 본문 문서가 있으면 새로 만들지 않습니다. 수정 전에는 반드시 최신 version을 확인합니다.`,
       },
       {
-        id: "post", label: "POST 생성·정렬", method: "POST", summary: "구조·본문·TODO 문서를 생성하고 하위 문서 순서를 바꿉니다.",
+        id: "post", label: "POST 생성·정렬", method: "POST", summary: "구조·본문·상세 리뷰 문서를 생성하고 하위 문서 순서를 바꿉니다.",
         content: `# 생성·정렬 API
 
 ## 구조 생성
@@ -83,18 +95,18 @@ Content-Type: application/json
 POST ${base}/topics/${topicId ?? "{topicId}"}/documents
 
 {
-  "title": "전체 구현 계획",
+  "title": "앱 내부 조회 API 구현",
   "content": "Lexical JSON 문자열",
   "parentId": null
 }
 
-## TODO 하위 문서 생성
+## 상세 리뷰 하위 문서 생성
 POST ${base}/topics/${topicId ?? "{topicId}"}/children
 
 {
   "parentId": ${parentDocumentId ?? "{parentDocumentId}"},
-  "title": "TODO 1. 구현 단위",
-  "content": "TODO 1의 Step 1~N을 담은 Lexical JSON 문자열"
+  "title": "TODO 1. 샘플 조회 Route Handler 상세 리뷰",
+  "content": "Route Handler부터 내부 조회 함수·Drizzle 스키마·SQLite·검증까지 담은 Lexical JSON 문자열"
 }
 
 ## 하위 문서 정렬
@@ -113,7 +125,7 @@ PATCH ${base}/documents/{documentId}/content
 Content-Type: application/json
 
 {
-  "title": "LOT 조회 페이지네이션 서버 구현 전체 계획",
+  "title": "앱 내부 조회 API 구현",
   "content": "Lexical JSON 문자열",
   "expectedVersion": 3,
   "parentId": null
@@ -137,16 +149,19 @@ DELETE ${base}/documents/{documentId}
 - 최상위 구조는 {"root":{"children":[...]}}입니다.
 - 제목은 heading, 일반 문단은 paragraph, 목록은 list/listitem을 사용합니다.
 - 섹션 설명은 quote 노드로 묶습니다.
+- 각 Step은 heading → quote → '파일:' paragraph → 파일 경로 code → '코드:' paragraph → 실제 코드 code 순서로 작성합니다.
 - 파일 경로와 실제 코드는 quote 밖의 독립 code 블록으로 둡니다.
-- 파일 경로 code의 language는 text, 실제 코드는 java·typescript·tsx·bash·json 등 실제 언어를 사용합니다.
+- 파일 경로 code에는 설명이나 주석 없이 복사 가능한 경로만 넣습니다.
+- 주요 함수·타입·훅·컴포넌트의 역할 주석은 실제 코드 블록 안에서 대상 바로 위에 작성합니다.
+- 파일 경로 code의 language는 text, 실제 코드는 typescript·tsx·bash·json 등 실제 언어를 사용합니다.
 - code 블록의 전체 코드를 code-highlight.text에 넣습니다.
 - 섹션 사이에는 빈 paragraph 2개를 둡니다. 목록 항목 사이에는 넣지 않습니다.
 - 설명용 생략 부호(...) 대신 이해 가능한 실제 함수·훅·컴포넌트·설정 단위 코드를 기록합니다.
 - JSON 문자열 안의 줄바꿈은 JSON 직렬화에 맡깁니다. 수동 이중 escape하지 않습니다.`,
       },
     ];
-    const header = `# PKT Playbook LLM API\n\nbaseUrl: ${base}\nspaceCode: ${domain}\ntopicId: ${topicId ?? "{topicId}"}\n\n`;
-    return { sections, full: header + sections.map((section) => section.content).join("\n\n---\n\n") };
+    const header = `# PKT Playbook LLM API\n\nruntime: Next.js Route Handler\ndatabase: 앱 내부 SQLite\nexternalServer: 사용하지 않음\nbaseUrl: ${base}\nspaceCode: ${domain}\ntopicId: ${topicId ?? "{topicId}"}\n\n`;
+    return { sections, full: header + sections.map((section) => section.content).join("\n\n---\n\n") + `\n\n---\n\n${SAMPLE_NOTE_REFERENCE_GUIDE}` };
   }, [domain, parentDocumentId, topicId]);
 
   const selected = guide.sections.find((section) => section.id === activeSection) ?? guide.sections[0];
@@ -159,11 +174,12 @@ DELETE ${base}/documents/{documentId}
       onClose={onClose}
       ariaLabel="2차 주제 전체 노트 관리 API"
       contentAriaLabel="분류된 LLM API 지침"
-      previewAriaLabel="2차 주제 본문·하위 문서 Lexical 샘플"
-      previewTitle="Lexical 작성 샘플"
-      previewDescription="본문에는 TODO 계획을, 하위 문서에는 TODO 하나의 Step 1~N을 작성합니다."
-      preview={<LexicalSamplePreview />}
-      footer={<p><strong className="text-text-primary">전체 복사</strong>는 모든 분류의 지침을 한 번에 복사하고, 왼쪽 탭에서는 필요한 API 종류만 확인합니다.</p>}
+      previewAriaLabel="API·프론트 구현 노트 모범 예시"
+      previewTitle="구현 노트 모범 예시"
+      previewDescription="같은 앱의 Next.js·SQLite 구현을 실제 파일·코드·주석·검증으로 정리한 예시입니다."
+      preview={<ImplementationNoteSamplePreview />}
+      copyLabel="LLM용 전체 복사"
+      footer={<p><strong className="text-text-primary">LLM용 전체 복사</strong>는 내부 API 사용법, 현재 문서 구조 기준, API·프론트 예시 조회 방법을 한 번에 복사합니다.</p>}
     >
       <div className="flex min-h-full flex-col bg-surface-raised">
         <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-surface-border-soft px-4 py-3" role="tablist" aria-label="API 지침 분류">

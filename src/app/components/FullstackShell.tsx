@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  Boxes, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
+  BookOpenCheck, Boxes, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
   MousePointerClick, Navigation, Settings, SquarePen, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -20,6 +20,7 @@ const railGroups: Array<{ id: RailGroup; label: string | null }> = [
 ];
 const railItems: RailItem[] = [
   { label: "노트 홈", icon: LayoutDashboard, group: "core" },
+  { label: "샘플 노트", icon: BookOpenCheck, group: "core" },
   { label: "스프링 노트", icon: Leaf, group: "backend" },
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
   { label: "리액트 노트", icon: Workflow, group: "frontend" },
@@ -99,14 +100,19 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   const refreshTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
-    setRailCollapsed(window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1");
     const applyHash = () => {
       const value = decodeURIComponent(window.location.hash.slice(1));
       if (value) setActive(value);
     };
-    applyHash();
+    const initialFrame = window.requestAnimationFrame(() => {
+      setRailCollapsed(window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1");
+      applyHash();
+    });
     window.addEventListener("hashchange", applyHash);
-    return () => window.removeEventListener("hashchange", applyHash);
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+      window.removeEventListener("hashchange", applyHash);
+    };
   }, []);
 
   useEffect(() => {
@@ -122,7 +128,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
 
   const selectModule = (label: string) => {
     setActive(label);
-    window.location.hash = encodeURIComponent(label);
+    window.history.replaceState(null, "", `#${encodeURIComponent(label)}`);
   };
   const toggleRail = () => {
     setRailCollapsed((collapsed) => {
@@ -165,7 +171,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
           <div ref={accountRef} className="relative flex min-h-[136px] w-full flex-col items-center gap-2 border-t px-2 py-3" style={{ borderColor: railTint(10) }}>
             <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[76px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
-            <span className="mt-0.5 select-none text-[8.5px] font-bold tabular-nums" style={{ color: railTint(85) }}>v0.1.21</span>
+            <span className="mt-0.5 select-none text-[8.5px] font-bold tabular-nums" style={{ color: railTint(85) }}>v0.1.22</span>
             {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>

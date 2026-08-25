@@ -1,6 +1,7 @@
 import {
   $createCodeHighlightNode,
   $isCodeHighlightNode,
+  getCodeLanguages,
   PrismTokenizer,
   registerCodeHighlighting,
 } from '@lexical/code'
@@ -33,7 +34,12 @@ export function inferCodeLanguage(source: string, declaredLanguage: string | und
     yml: 'yaml',
   }
   const declaredCodeLanguage = normalized ? (aliases[normalized] ?? normalized) : undefined
-  if (declaredCodeLanguage && !['plaintext', 'text', 'plain'].includes(declaredCodeLanguage)) {
+  if (declaredCodeLanguage && ['plaintext', 'text', 'plain'].includes(declaredCodeLanguage)) {
+    // 파일 경로 블록은 확장자가 .ts/.json이어도 코드가 아니다. 저장 시
+    // 명시한 text 언어를 유지해야 Prism이 경로를 소스로 오인하지 않는다.
+    return 'plain'
+  }
+  if (declaredCodeLanguage) {
     // Prism's TSX grammar is loaded through a JSX dependency chain. In the
     // packaged/offline WebView that chain can be incomplete (grammar.rest),
     // while the TypeScript grammar is self-contained and handles this source
@@ -70,6 +76,11 @@ export function inferCodeLanguage(source: string, declaredLanguage: string | und
   if (/^(?:[A-Za-z_][\w.-]*|services|version|networks|volumes):\s*.+/m.test(value) && /:\s*(?:\S+|$)/m.test(value)) return 'yaml'
   if (/^(?:\.|#)[\w-]+\s*\{|--[\w-]+\s*:|\.[\w-]+\s*\{/m.test(value)) return 'css'
   return 'plaintext'
+}
+
+/** Prism에 실제 등록된 문법만 토크나이저에 전달한다. */
+export function resolvePrismLanguage(language: string): string {
+  return getCodeLanguages().includes(language) ? language : 'plain'
 }
 
 // Prism re-tokenizes the whole code block on every change and replaces any node
@@ -155,8 +166,9 @@ function $applyStyleRanges(nodes: LexicalNode[], ranges: StyleRange[]): LexicalN
 export const styleAwareCodeTokenizer: Tokenizer = {
   ...PrismTokenizer,
   $tokenize(codeNode, language) {
-    const nodes = PrismTokenizer.$tokenize(codeNode, inferCodeLanguage(codeNode.getTextContent(), language))
+    const inferredLanguage = inferCodeLanguage(codeNode.getTextContent(), language)
+    const prismLanguage = resolvePrismLanguage(inferredLanguage)
+    const nodes = PrismTokenizer.$tokenize(codeNode, prismLanguage)
     return $applyStyleRanges(nodes, $collectStyleRanges(codeNode))
   },
 }
-

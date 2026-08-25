@@ -115,6 +115,7 @@ export const playbookDocuments = sqliteTable("playbook_documents", {
   aiEditTokenHash: text("ai_edit_token_hash").unique(),
   aiEditTokenExpiresAt: text("ai_edit_token_expires_at"),
   aiEditTokenUsedAt: text("ai_edit_token_used_at"),
+  sampleKey: text("sample_key").unique(),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

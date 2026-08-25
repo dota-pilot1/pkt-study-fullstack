@@ -7,6 +7,11 @@ import os from "node:os";
 import path from "node:path";
 import * as schema from "@/db/schema";
 import bcrypt from "bcryptjs";
+import {
+  API_IMPLEMENTATION_CHILD_SAMPLES,
+  API_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE,
+  FRONTEND_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE,
+} from "@/widgets/hospital-playbook/documentApiSamples";
 
 const configuredDataDirectory = process.env.PKT_STUDY_DATA_DIR;
 const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
@@ -143,6 +148,7 @@ sqlite.exec(`
     ai_edit_token_hash TEXT UNIQUE,
     ai_edit_token_expires_at TEXT,
     ai_edit_token_used_at TEXT,
+    sample_key TEXT UNIQUE,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
@@ -165,6 +171,7 @@ for (const statement of [
   "ALTER TABLE playbook_documents ADD COLUMN ai_edit_token_hash TEXT",
   "ALTER TABLE playbook_documents ADD COLUMN ai_edit_token_expires_at TEXT",
   "ALTER TABLE playbook_documents ADD COLUMN ai_edit_token_used_at TEXT",
+  "ALTER TABLE playbook_documents ADD COLUMN sample_key TEXT",
 ]) {
   try {
     sqlite.exec(statement);
@@ -174,6 +181,7 @@ for (const statement of [
 }
 sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_playbook_documents_share_token ON playbook_documents(share_token)");
 sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_playbook_documents_ai_edit_token_hash ON playbook_documents(ai_edit_token_hash)");
+sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_playbook_documents_sample_key ON playbook_documents(sample_key)");
 
 const now = new Date().toISOString();
 sqlite.prepare(
@@ -230,6 +238,65 @@ for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSee
   if (!existingDocument) {
     const content = JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: documentText }] }] } });
     sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, topicTitle, content, 0, now, now);
+  }
+}
+
+// 구현 노트 모범 예시는 일반 학습 노트와 분리해 편집하고, sample_key로 API에서 안정적으로 조회한다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("NOTE_SAMPLE", "샘플 노트", now, now);
+const sampleSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("NOTE_SAMPLE") as { id: number };
+let sampleCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+  .get(sampleSpace.id, "구현 노트 모범 예시") as { id: number } | undefined;
+if (!sampleCategory) {
+  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(sampleSpace.id, "구현 노트 모범 예시", 0, now, now);
+  sampleCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(sampleSpace.id, "구현 노트 모범 예시") as { id: number };
+}
+const sampleSeeds = [
+  ["API_IMPLEMENTATION", "API 구현 노트 정리 예시", "API 구현 노트 모범 문서", API_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE],
+  ["FRONTEND_IMPLEMENTATION", "프론트 노트 정리 예시", "프론트 구현 노트 모범 문서", FRONTEND_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE],
+] as const;
+for (const [sampleKey, topicTitle, documentTitle, content] of sampleSeeds) {
+  let topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(sampleCategory.id, topicTitle) as { id: number } | undefined;
+  if (!topic) {
+    const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
+      .get(sampleCategory.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run(sampleCategory.id, topicTitle, topicCount.count, now, now);
+    topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1")
+      .get(sampleCategory.id, topicTitle) as { id: number };
+  }
+  const existingSample = sqlite.prepare("SELECT id, version FROM playbook_documents WHERE sample_key = ? LIMIT 1")
+    .get(sampleKey) as { id: number; version: number } | undefined;
+  if (!existingSample) {
+    const documentCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_documents WHERE topic_id = ? AND parent_id IS NULL")
+      .get(topic.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, sample_key, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(topic.id, documentTitle, content, documentCount.count, sampleKey, now, now);
+  } else if (existingSample.version === 1) {
+    // 최초 시드 상태의 샘플만 최신 내장 예시로 동기화한다. 사용자가 저장해
+    // version이 증가한 샘플은 일반 노트처럼 편집한 내용을 그대로 보존한다.
+    sqlite.prepare("UPDATE playbook_documents SET topic_id = ?, title = ?, content = ?, updated_at = ? WHERE id = ?")
+      .run(topic.id, documentTitle, content, now, existingSample.id);
+  }
+}
+
+// API 모범 예시는 상위 계획 문서와 TODO별 상세 하위 문서 구조까지 제공한다.
+const apiSampleParent = sqlite.prepare("SELECT id, topic_id AS topicId FROM playbook_documents WHERE sample_key = ? LIMIT 1")
+  .get("API_IMPLEMENTATION") as { id: number; topicId: number };
+for (const [orderIdx, child] of API_IMPLEMENTATION_CHILD_SAMPLES.entries()) {
+  const existingChild = sqlite.prepare(
+    "SELECT id, version FROM playbook_documents WHERE topic_id = ? AND parent_id = ? AND title = ? LIMIT 1",
+  ).get(apiSampleParent.topicId, apiSampleParent.id, child.title) as { id: number; version: number } | undefined;
+  if (!existingChild) {
+    sqlite.prepare(
+      "INSERT INTO playbook_documents (topic_id, parent_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    ).run(apiSampleParent.topicId, apiSampleParent.id, child.title, child.content, orderIdx, now, now);
+  } else if (existingChild.version === 1) {
+    sqlite.prepare("UPDATE playbook_documents SET content = ?, order_idx = ?, updated_at = ? WHERE id = ?")
+      .run(child.content, orderIdx, now, existingChild.id);
   }
 }
 

@@ -8,7 +8,7 @@ export const editorTheme: EditorThemeClasses = {
     h2: 'mt-5 mb-2 text-xl font-bold text-text-primary',
     h3: 'mt-5 mb-2 text-lg font-semibold text-text-primary',
   },
-  quote: 'text-text-secondary my-2',
+  quote: 'text-text-secondary',
   text: {
     bold: 'font-bold text-text-primary',
     italic: 'italic',
@@ -68,4 +68,3 @@ export const editorTheme: EditorThemeClasses = {
     variable: 'editor-token-variable',
   },
 }
-

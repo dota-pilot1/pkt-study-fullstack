@@ -14,6 +14,7 @@ type ApiGuideDialogShellProps = {
   footer?: ReactNode;
   contentAriaLabel?: string;
   previewAriaLabel?: string;
+  copyLabel?: string;
 };
 
 export default function ApiGuideDialogShell({
@@ -29,6 +30,7 @@ export default function ApiGuideDialogShell({
   footer,
   contentAriaLabel,
   previewAriaLabel,
+  copyLabel = "전체 복사",
 }: ApiGuideDialogShellProps) {
   const [copied, setCopied] = useState(false);
   const hasPreview = preview !== undefined;
@@ -77,7 +79,7 @@ export default function ApiGuideDialogShell({
               className="ui-icon-button-brand h-8 gap-1.5 px-3 text-xs font-black"
             >
               {copied ? <Check className="size-3.5" /> : <Clipboard className="size-3.5" />}
-              {copied ? "복사됨" : "전체 복사"}
+              {copied ? "복사됨" : copyLabel}
             </button>
             <button
               type="button"
@@ -120,4 +122,3 @@ export default function ApiGuideDialogShell({
     </div>
   );
 }
-
