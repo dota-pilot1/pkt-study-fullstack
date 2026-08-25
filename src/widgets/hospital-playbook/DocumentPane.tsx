@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- editor form state synchronizes with fetched document data. */
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, MonitorPlay, NotebookPen, RotateCcw, Save } from "lucide-react";
@@ -38,14 +39,14 @@ function DocumentPane({
     setTitle(document.data.title);
     setContent(document.data.content);
     setEditorRevision((revision) => revision + 1);
-  }, [document.data?.id, document.data?.updatedAt]);
+  }, [document.data]);
 
   // 첫 탭은 문서를 바꿔 열 때만 정한다. updatedAt까지 보면 저장할 때마다
   // 편집 중이던 노트 탭에서 출력 결과로 튕긴다.
   useEffect(() => {
     if (!document.data) return;
     setTab(collectPreviewBlocks(document.data.content).length > 0 ? "preview" : "note");
-  }, [document.data?.id]);
+  }, [document.data]);
 
   const afterWrite = (saved: Awaited<ReturnType<typeof playbookApi.updateDocument>>) => {
     // 같은 문서에서는 id가 바뀌지 않으므로, 성공 응답을 직접 기준값으로 삼아야
@@ -195,4 +196,3 @@ function DocumentPane({
 }
 
 export default DocumentPane;
-

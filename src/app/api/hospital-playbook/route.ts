@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTree, listSpaces } from "@/server/playbook";
+import { getTree, listSpaces } from "@/server/modules/playbook/playbook-service";
 
 export const runtime = "nodejs";
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- controlled demo state mirrors its external preview prop. */
 import { useEffect, useState } from 'react';
 import { Button } from './button';
 import { Modal } from './modal';
@@ -49,4 +50,3 @@ export function ModalDemo({
     </div>
   );
 }
-

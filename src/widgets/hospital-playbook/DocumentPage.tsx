@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- document tree state synchronizes with fetched content. */
 import { DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -138,7 +139,7 @@ export default function DocumentPage({
   // 미리보기가 있는 문서는 출력 결과부터 연다. 문서를 바꿔 열 때만 정한다.
   useEffect(() => {
     setViewTab(collectPreviewBlocks(document.data?.content ?? "").length > 0 ? "preview" : "note");
-  }, [document.data?.id]);
+  }, [document.data?.content, document.data?.id]);
 
   const { rows, children } = useMemo(() => rowsFor(documents, collapsed), [documents, collapsed]);
   const nextCategory = useMemo(() => categories.find((item) => item.id === nextCategoryId), [categories, nextCategoryId]);
@@ -238,7 +239,7 @@ export default function DocumentPage({
             >
               <SortableContext items={rows.map((row) => row.document.id)} strategy={verticalListSortingStrategy}>
                 <div className={`mt-2 space-y-1 ${reordering ? "pointer-events-none opacity-60" : ""}`}>
-                  {rows.map((row) => <SortableDocumentRow key={row.document.id} row={row} activeId={documentId} collapsed={collapsed} children={children} onToggle={toggleCollapsed} onNavigate={onNavigate} dropTarget={overId === row.document.id} />)}
+                  {rows.map((row) => <SortableDocumentRow key={row.document.id} row={row} activeId={documentId} collapsed={collapsed} onToggle={toggleCollapsed} onNavigate={onNavigate} dropTarget={overId === row.document.id}>{children}</SortableDocumentRow>)}
                 </div>
               </SortableContext>
               <DragOverlay dropAnimation={{ duration: 700, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }}>
@@ -287,4 +288,3 @@ export default function DocumentPage({
     </div>
   );
 }
-

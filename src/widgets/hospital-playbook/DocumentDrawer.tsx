@@ -1,5 +1,6 @@
+/* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, ExternalLink, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
 import { lexicalToMarkdown } from "../../features/hospital-playbook/lexicalToMarkdown";
@@ -59,7 +60,7 @@ function DocumentDrawer({
   // 미리보기가 있는 문서는 출력 결과부터 연다. 문서를 바꿔 열 때만 정한다.
   useEffect(() => {
     setViewTab(collectPreviewBlocks(document.content).length > 0 ? "preview" : "note");
-  }, [document.id]);
+  }, [document.content, document.id]);
   const [isClosing, setIsClosing] = useState(false);
   const [drawerSize, setDrawerSize] = useState(storedDrawerSize);
   const { showToast } = useToast();
@@ -85,25 +86,25 @@ function DocumentDrawer({
     setAiEditConnection(null);
   }, [document.id]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setIsClosing(true);
     setTimeout(() => {
       onClose();
     }, 200);
-  };
+  }, [onClose]);
 
-  const closeSearch = () => {
+  const closeSearch = useCallback(() => {
     setSearchOpen(false);
     setSearchQuery("");
     setSearchMatchIndex(0);
     setSearchMatchCount(0);
-  };
+  }, []);
 
-  const openSearch = () => {
+  const openSearch = useCallback(() => {
     if (isEditing || !document.content.trim()) return;
     setSearchOpen(true);
     window.requestAnimationFrame(() => searchInputRef.current?.focus());
-  };
+  }, [document.content, isEditing]);
 
   const selectSearchMatch = (index: number) => {
     if (!searchMatchCount) return;
@@ -219,7 +220,7 @@ function DocumentDrawer({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [document.content, isEditing, searchOpen, onClose]);
+  }, [document.content, isEditing, searchOpen, handleClose, closeSearch, openSearch]);
 
   return (
     <div

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- selection state follows the active category/topic data. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent, type DragOverEvent, type DragStartEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import './header.css';
 
@@ -92,7 +93,7 @@ export function Header({
         본문으로 건너뛰기
       </a>
 
-      <a
+      <Link
         className="hd-brand"
         href="/"
         onClick={(event) => {
@@ -106,7 +107,7 @@ export function Header({
           </svg>
         </span>
         {brand}
-      </a>
+      </Link>
 
       <nav className="hd-nav" aria-label={label}>
         <ul className="hd-list">
@@ -224,4 +225,3 @@ export function Header({
     </header>
   );
 }
-

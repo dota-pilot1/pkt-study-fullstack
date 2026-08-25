@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- controlled search state mirrors the parent value. */
 import { Search, X } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -53,4 +54,3 @@ export default function PageHeaderSearch({
     </form>
   );
 }
-

@@ -21,7 +21,6 @@ export type GalleryEntry = {
   id: string;
   label: string;
   // 갤러리 컴포넌트마다 prop 모양이 달라 여기서는 느슨하게 받는다.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Component: ComponentType<any>;
   defaultProps: Record<string, unknown>;
   controls: GalleryControl[];

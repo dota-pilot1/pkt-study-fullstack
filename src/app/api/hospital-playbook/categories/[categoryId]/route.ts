@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/server/auth";
-import { renameCategory } from "@/server/playbook";
+import { renameCategory } from "@/server/modules/playbook/playbook-service";
 
 export const runtime = "nodejs";
 

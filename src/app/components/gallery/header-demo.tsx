@@ -56,7 +56,7 @@ export function HeaderDemo({
         <p style={{ marginTop: 10, fontWeight: 600, lineHeight: 1.7 }}>
           이 상자 안을 스크롤해 보세요. 고정을 켜면 헤더가 위에 붙습니다.
           <br />
-          Tab을 처음 누르면 "본문으로 건너뛰기"가 먼저 나타납니다. 메뉴를 매번 훑지 않게 하는 장치입니다.
+          Tab을 처음 누르면 &quot;본문으로 건너뛰기&quot;가 먼저 나타납니다. 메뉴를 매번 훑지 않게 하는 장치입니다.
           <br />
           프로필을 열고 Esc를 누르면 초점이 버튼으로 되돌아옵니다.
         </p>
@@ -69,4 +69,3 @@ export function HeaderDemo({
     </div>
   );
 }
-

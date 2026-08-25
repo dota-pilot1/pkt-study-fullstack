@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- editor node state mirrors Lexical node updates. */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection'
@@ -231,6 +232,8 @@ export function ImageComponent({
   return (
     <div style={outerStyle}>
       <div style={innerStyle}>
+        {/* Lexical supports data/blob URLs and user-provided loaders, so next/image is not suitable here. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           ref={imageRef}
           src={src}
@@ -337,4 +340,3 @@ function AlignButton({
     </button>
   )
 }
-

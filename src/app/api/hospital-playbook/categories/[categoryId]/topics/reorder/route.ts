@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/server/auth";
-import { reorderTopics } from "@/server/playbook";
+import { reorderTopics } from "@/server/modules/playbook/playbook-service";
 
 export const runtime = "nodejs";
 

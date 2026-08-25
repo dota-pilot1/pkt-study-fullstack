@@ -1,6 +1,6 @@
 {
   "name": "pkt-study-fullstack",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "private": true,
   "scripts": {
     "dev": "next dev -p 4300",
@@ -8,6 +8,7 @@
     "build:tauri": "npm run build && node scripts/prepare-tauri-release.mjs",
     "start": "next start -p 4300",
     "lint": "eslint",
+    "check:server-architecture": "node scripts/check-server-architecture.mjs",
     "pretauri": "node scripts/prepare-tauri-sidecar.mjs",
     "tauri": "tauri"
   },

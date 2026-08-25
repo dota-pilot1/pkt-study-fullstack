@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect -- animation/layout state follows DOM visibility transitions. */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type TransitionEvent } from 'react';
 import './sidebar.css';
 
@@ -224,4 +225,3 @@ export function Sidebar({
     </nav>
   );
 }
-
