@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use tauri::Manager;
+use tauri::{Manager, WebviewWindow};
 use tauri_plugin_shell::process::CommandChild;
 
 #[cfg(not(debug_assertions))]
@@ -20,6 +20,12 @@ pub fn run() {
 
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            window_minimize,
+            window_toggle_maximize,
+            window_close,
+            window_is_maximized,
+        ])
         .build(tauri::generate_context!())
         .expect("error while running PKT Study Fullstack");
 
@@ -32,6 +38,33 @@ pub fn run() {
             }
         }
     });
+}
+
+#[tauri::command]
+fn window_minimize(window: WebviewWindow) -> Result<(), String> {
+    window.minimize().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn window_toggle_maximize(window: WebviewWindow) -> Result<bool, String> {
+    let maximized = window.is_maximized().map_err(|error| error.to_string())?;
+    if maximized {
+        window.unmaximize().map_err(|error| error.to_string())?;
+        Ok(false)
+    } else {
+        window.maximize().map_err(|error| error.to_string())?;
+        Ok(true)
+    }
+}
+
+#[tauri::command]
+fn window_close(window: WebviewWindow) -> Result<(), String> {
+    window.close().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn window_is_maximized(window: WebviewWindow) -> Result<bool, String> {
+    window.is_maximized().map_err(|error| error.to_string())
 }
 
 struct NextServer {
