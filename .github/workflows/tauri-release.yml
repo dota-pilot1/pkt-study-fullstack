@@ -1,24 +1,19 @@
-name: PKT Study Fullstack Release
+name: PKT Study Fullstack Windows Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Windows 설치 파일을 추가할 기존 Release 태그 (예: v0.1.22)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest
-            args: ""
-          - platform: windows-latest
-            args: ""
-    runs-on: ${{ matrix.platform }}
+  build-and-upload-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -39,27 +34,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Import Apple signing certificate
-        if: matrix.platform == 'macos-latest'
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-
-      - name: Build and publish
+      - name: Build and upload Windows installer
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "PKT Study Fullstack ${{ github.ref_name }}"
-          releaseBody: "자동 빌드된 PKT Study Fullstack 릴리즈입니다."
+          tagName: ${{ inputs.release_tag }}
+          releaseName: "PKT Study Fullstack ${{ inputs.release_tag }}"
+          releaseBody: "macOS는 로컬에서 직접 빌드·공증하고, Windows NSIS 설치 파일은 수동 Actions 작업으로 추가합니다."
           releaseDraft: false
           prerelease: false
-          args: ${{ matrix.args }}
+          args: "--bundles nsis"
