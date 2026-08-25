@@ -1,14 +1,12 @@
 use std::{
     fs::OpenOptions,
     io::Write,
+    net::TcpListener,
     sync::{Arc, Mutex},
 };
 
-use tauri::{Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_plugin_shell::process::CommandChild;
-
-#[cfg(not(debug_assertions))]
-const NEXT_PORT: u16 = 4300;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -30,14 +28,23 @@ pub fn run() {
         .expect("error while running PKT Study Fullstack");
 
     app.run(|app, event| {
-        if let tauri::RunEvent::ExitRequested { .. } = event {
-            if let Some(server) = app.try_state::<NextServer>() {
-                if let Some(child) = server.child.lock().expect("sidecar lock").take() {
-                    let _ = child.kill();
-                }
-            }
+        match event {
+            tauri::RunEvent::ExitRequested { .. }
+            | tauri::RunEvent::WindowEvent {
+                event: tauri::WindowEvent::CloseRequested { .. },
+                ..
+            } => stop_next_server(app),
+            _ => {}
         }
     });
+}
+
+fn stop_next_server<R: tauri::Runtime>(app: &AppHandle<R>) {
+    if let Some(server) = app.try_state::<NextServer>() {
+        if let Some(child) = server.child.lock().expect("sidecar lock").take() {
+            let _ = child.kill();
+        }
+    }
 }
 
 #[tauri::command]
@@ -58,8 +65,11 @@ fn window_toggle_maximize(window: WebviewWindow) -> Result<bool, String> {
 }
 
 #[tauri::command]
-fn window_close(window: WebviewWindow) -> Result<(), String> {
-    window.close().map_err(|error| error.to_string())
+fn window_close(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
+    stop_next_server(&app);
+    window.close().map_err(|error| error.to_string())?;
+    app.exit(0);
+    Ok(())
 }
 
 #[tauri::command]
@@ -77,6 +87,15 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
     use tauri_plugin_shell::ShellExt;
 
     let app: tauri::AppHandle<R> = (*app_handle).clone();
+    let next_port = TcpListener::bind(("127.0.0.1", 0))
+        .and_then(|listener| listener.local_addr())
+        .map(|address| address.port())
+        .map_err(|error| {
+            tauri::Error::Anyhow(std::io::Error::new(
+                std::io::ErrorKind::AddrNotAvailable,
+                format!("failed to allocate Next.js port: {error}"),
+            ).into())
+        })?;
     let resource_dir = match app.path().resource_dir() {
         Ok(path) => path,
         Err(error) => {
@@ -107,7 +126,7 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         .args(["server.js"])
         .current_dir(next_dir)
         .env("HOSTNAME", "127.0.0.1")
-        .env("PORT", NEXT_PORT.to_string())
+        .env("PORT", next_port.to_string())
         .env("NODE_ENV", "production")
         .env("PKT_STUDY_DESKTOP", "1")
         .spawn()
@@ -172,8 +191,8 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
 
     thread::spawn(move || {
         for _ in 0..120 {
-            if std::net::TcpStream::connect(("127.0.0.1", NEXT_PORT)).is_ok() {
-                let _ = window.eval("window.location.replace('http://127.0.0.1:4300')");
+            if std::net::TcpStream::connect(("127.0.0.1", next_port)).is_ok() {
+                let _ = window.eval(&format!("window.location.replace('http://127.0.0.1:{next_port}')"));
                 return;
             }
             thread::sleep(Duration::from_millis(250));
