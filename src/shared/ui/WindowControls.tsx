@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 // 참조앱과 동일하게, 네이티브 신호등 대신 공용 헤더에서 창 조작을 제공한다.
@@ -7,8 +8,33 @@ const windowControlClass =
   "flex size-8 items-center justify-center rounded-md border border-transparent text-text-muted transition-colors hover:border-surface-border-soft hover:bg-surface-muted hover:text-text-primary";
 
 function WindowControls() {
-  if (!isTauri) return null;
-  const win = getCurrentWindow();
+  const win = isTauri ? getCurrentWindow() : null;
+  const [maximized, setMaximized] = useState(false);
+
+  useEffect(() => {
+    if (!win) return;
+    let disposed = false;
+    void win.isMaximized().then((value) => {
+      if (!disposed) setMaximized(value);
+    });
+    return () => {
+      disposed = true;
+    };
+  }, [win]);
+
+  const toggleMaximize = async () => {
+    if (!win) return;
+    const current = await win.isMaximized();
+    if (current) {
+      await win.unmaximize();
+      setMaximized(false);
+    } else {
+      await win.maximize();
+      setMaximized(true);
+    }
+  };
+
+  if (!win) return null;
 
   return (
     <div className="flex shrink-0 items-center gap-1" data-no-drag>
@@ -25,13 +51,14 @@ function WindowControls() {
       </button>
       <button
         type="button"
-        onClick={() => void win.toggleMaximize()}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={() => void toggleMaximize()}
         title="최대화 / 복원"
         aria-label="최대화 / 복원"
         className={windowControlClass}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.4">
-          <rect x="2.5" y="2.5" width="7" height="7" rx="1.5" />
+          {maximized ? <path d="M4 4.5h4.5v4.5M3.5 7.5V3.5H7.5" strokeLinecap="round" strokeLinejoin="round" /> : <rect x="2.5" y="2.5" width="7" height="7" rx="1.5" />}
         </svg>
       </button>
       <button
@@ -51,4 +78,3 @@ function WindowControls() {
 }
 
 export default WindowControls;
-
