@@ -17,8 +17,15 @@ export type AppUpdateState = {
 };
 
 const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
-const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "업데이트 확인에 실패했습니다.";
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string" && error.trim()) return error;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return "업데이트 확인에 실패했습니다.";
+  }
+};
 
 export function useAppUpdate(fallbackVersion: string) {
   const [state, setState] = useState<AppUpdateState>({
