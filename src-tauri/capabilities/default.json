@@ -3,6 +3,9 @@
   "identifier": "default",
   "description": "Default capability for the PKT Study window.",
   "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*"]
+  },
   "permissions": [
     "core:default",
     "core:window:allow-close",
