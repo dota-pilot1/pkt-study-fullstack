@@ -76,6 +76,7 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         .env("HOSTNAME", "127.0.0.1")
         .env("PORT", NEXT_PORT.to_string())
         .env("NODE_ENV", "production")
+        .env("PKT_STUDY_DESKTOP", "1")
         .spawn()
         .map_err(|error| {
             eprintln!("node sidecar spawn failed: {error}");
