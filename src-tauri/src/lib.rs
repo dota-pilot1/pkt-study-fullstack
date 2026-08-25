@@ -44,19 +44,43 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
     use tauri_plugin_shell::ShellExt;
 
     let app: tauri::AppHandle<R> = (*app_handle).clone();
-    let resource_dir = app.path().resource_dir()?;
+    let resource_dir = match app.path().resource_dir() {
+        Ok(path) => path,
+        Err(error) => {
+            let fallback = std::env::current_exe()
+                .ok()
+                .and_then(|path| path.parent().map(|dir| dir.to_path_buf()))
+                .and_then(|macos_dir| macos_dir.parent().map(|dir| dir.join("Resources")));
+            if let Some(path) = fallback.filter(|path| path.is_dir()) {
+                eprintln!("resource directory lookup failed ({error}); using {}", path.display());
+                path
+            } else {
+                eprintln!("resource directory lookup failed: {error}");
+                return Err(error);
+            }
+        }
+    };
     let next_dir = resource_dir.join("next");
-    let (mut events, child) = app
-        .shell()
-        .sidecar("node")
-        .map_err(|error| tauri::Error::Anyhow(error.into()))?
+    eprintln!("resource directory: {}", resource_dir.display());
+    eprintln!("next directory: {}", next_dir.display());
+    let sidecar = match app.shell().sidecar("node") {
+        Ok(command) => command,
+        Err(error) => {
+            eprintln!("node sidecar lookup failed: {error}");
+            return Err(tauri::Error::Anyhow(error.into()));
+        }
+    };
+    let (mut events, child) = sidecar
         .args(["server.js"])
         .current_dir(next_dir)
         .env("HOSTNAME", "127.0.0.1")
         .env("PORT", NEXT_PORT.to_string())
         .env("NODE_ENV", "production")
         .spawn()
-        .map_err(|error| tauri::Error::Anyhow(error.into()))?;
+        .map_err(|error| {
+            eprintln!("node sidecar spawn failed: {error}");
+            tauri::Error::Anyhow(error.into())
+        })?;
 
     let child = Arc::new(Mutex::new(Some(child)));
     app.manage(NextServer {
