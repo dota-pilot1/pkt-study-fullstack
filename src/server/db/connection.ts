@@ -13,6 +13,7 @@ export const dataDirectory = configuredDataDirectory
     ? path.join(os.tmpdir(), `pkt-study-build-${process.pid}`)
     : path.join(process.cwd(), ".data");
 export const databasePath = path.join(dataDirectory, "pkt-study.db");
+export const databaseExistedBeforeOpen = fs.existsSync(databasePath);
 export const pendingRestorePath = path.join(dataDirectory, "pkt-study.restore-pending.db");
 
 fs.mkdirSync(dataDirectory, { recursive: true });

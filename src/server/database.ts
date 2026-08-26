@@ -6,7 +6,7 @@ import fs from "node:fs";
 import * as schema from "@/db/schema";
 import bcrypt from "bcryptjs";
 import { applyMigrations } from "@/server/db/migrations";
-import { databasePath, dataDirectory, pendingRestorePath, sqlite } from "@/server/db/connection";
+import { databaseExistedBeforeOpen, databasePath, dataDirectory, pendingRestorePath, sqlite } from "@/server/db/connection";
 import {
   API_IMPLEMENTATION_CHILD_SAMPLES,
   API_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE,
@@ -121,37 +121,29 @@ if (!defaultSpace) {
   sqlite.prepare("INSERT OR IGNORE INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, "풀스택 전환 시작하기", JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: "Tauri + Next.js + SQLite 전환 노트" }] }] } }), 0, now, now);
 }
 
-// 원본 노트 앱의 모든 메뉴는 DB space/category/topic/document 트리다.
-// 새 로컬 DB에서도 한 모듈만 준비 상태로 남지 않도록 최소 구조를 각 space에 보장한다.
-const noteSpaceSeeds = [
-  ["SPRING_BOOT", "스프링 노트", "스프링 핵심", "Spring Boot 시작하기", "Spring Boot, JPA, DDD 계층과 API 설계 기록"],
-  ["JAVA", "자바 노트", "Java 기초", "객체와 컬렉션", "Java 문법, 객체지향, 컬렉션과 Stream 사용 기록"],
-  ["DB", "DB 테이블 설계", "데이터 모델링", "고정 계층과 무한 계층", "PostgreSQL, ERD, JPA와 데이터 모델 기록"],
-  ["FRONTEND", "리액트 노트", "React 기본", "Next.js 화면 구성", "React, Next.js, FSD와 화면 구현 기록"],
-  ["JS_TS", "JS·TS 노트", "JavaScript·TypeScript 기초", "배열 메서드와 타입", "map·filter·reduce, TypeScript 타입과 React에서의 활용 기록"],
-  ["UIUX", "공통 컴포넌트", "기본 컴포넌트", "Button", "Button 컴포넌트의 variant·size·상태를 정리합니다."],
-  ["UI_NAV", "메뉴·네비게이션", "기본 UI 실습", "Sidebar와 Header", "메뉴와 네비게이션 컴포넌트 구성"],
-  ["UI_FORM", "폼 UI", "인증 폼", "로그인 폼", "로그인 입력과 인증 상태를 연결하는 폼 패턴"],
-  ["UI_LAYOUT", "레이아웃·페이지", "레이아웃 기초", "Grid·Flex", "Grid/Flex와 반응형 페이지 구성"],
-  ["UI_STATE", "인터랙션·상태", "인터랙션 패턴", "Hover", "Hover, Dropdown, Accordion, Animation 인터랙션 패턴"],
-] as const;
-for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSeeds) {
-  sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(code, name, now, now);
-  const space = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get(code) as { id: number };
-  let category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(space.id, categoryTitle) as { id: number } | undefined;
-  if (!category) {
-    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(space.id, categoryTitle, 0, now, now);
-    category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(space.id, categoryTitle) as { id: number };
-  }
-  let topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1").get(category.id, topicTitle) as { id: number } | undefined;
-  if (!topic) {
-    sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(category.id, topicTitle, 0, now, now);
-    topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1").get(category.id, topicTitle) as { id: number };
-  }
-  const existingDocument = sqlite.prepare("SELECT id FROM playbook_documents WHERE topic_id = ? LIMIT 1").get(topic.id) as { id: number } | undefined;
-  if (!existingDocument) {
-    const content = JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: documentText }] }] } });
-    sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, topicTitle, content, 0, now, now);
+// 최초 설치 DB에 필요한 일반 노트의 시작 구조만 만든다. 기존 사용자 DB에는
+// 다시 실행하지 않아 삭제한 메뉴를 복원하지 않는다.
+if (!databaseExistedBeforeOpen) {
+  const initialNoteSeeds = [
+    ["SPRING_BOOT", "스프링 노트", "스프링 핵심", "Spring Boot 시작하기"],
+    ["JAVA", "자바 노트", "Java 기초", "객체와 컬렉션"],
+    ["DB", "DB 테이블 설계", "데이터 모델링", "고정 계층과 무한 계층"],
+    ["FRONTEND", "리액트 노트", "프론트 도메인 분석", "상태·전이 설계"],
+    ["FRONTEND", "리액트 노트", "리액트 노트", "React·Next.js 기술 노트"],
+    ["FRONTEND_DOMAIN", "프론트 도메인 분석", "도메인 분석", "상태·전이 설계"],
+    ["JS_TS", "JS·TS 노트", "JavaScript·TypeScript 기초", "배열 메서드와 타입"],
+    ["UIUX", "공통 컴포넌트", "기본 컴포넌트", "Button"],
+    ["UI_NAV", "메뉴·네비게이션", "기본 UI 실습", "Sidebar와 Header"],
+    ["UI_FORM", "폼 UI", "인증 폼", "로그인 폼"],
+    ["UI_LAYOUT", "레이아웃·페이지", "레이아웃 기초", "Grid·Flex"],
+    ["UI_STATE", "인터랙션·상태", "인터랙션 패턴", "Hover"],
+  ] as const;
+  for (const [code, name, categoryTitle, topicTitle] of initialNoteSeeds) {
+    sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(code, name, now, now);
+    const space = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get(code) as { id: number };
+    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) SELECT ?, ?, 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM playbook_categories WHERE space_id = ? AND title = ?)").run(space.id, categoryTitle, now, now, space.id, categoryTitle);
+    const category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(space.id, categoryTitle) as { id: number };
+    sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) SELECT ?, ?, 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM playbook_topics WHERE category_id = ? AND title = ?)").run(category.id, topicTitle, now, now, category.id, topicTitle);
   }
 }
 

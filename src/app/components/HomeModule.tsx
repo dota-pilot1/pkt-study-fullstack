@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
-  Boxes,
   Check,
   ChevronRight,
   Coffee,
@@ -18,15 +17,11 @@ import {
   FolderGit2,
   GraduationCap,
   LayoutDashboard,
-  LayoutGrid,
   Leaf,
   Layers,
-  MousePointerClick,
-  Navigation,
   Palette,
   Search,
   Sparkles,
-  SquarePen,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -116,51 +111,6 @@ const NOTE_GROUPS: NoteGroup[] = [
         desc: "페이지 단위 레이아웃, 와이어프레임 구조화 및 화면 전환 흐름",
         icon: GraduationCap,
         tags: ["UI Flow", "Wireframe", "UX"],
-      },
-    ],
-  },
-  {
-    id: "design",
-    title: "UI·UX 디자인 시스템",
-    badge: "Design System",
-    badgeClass: "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-400",
-    iconClass: "bg-purple-500/10 text-purple-600 border-purple-500/20",
-    borderClass: "hover:border-purple-500/40",
-    items: [
-      {
-        id: "공통 컴포넌트",
-        title: "공통 컴포넌트",
-        desc: "Button, Input, Badge, Dialog 등 재사용 가능한 아토믹 UI 부품",
-        icon: Boxes,
-        tags: ["Atomic UI", "Radix", "Tailwind"],
-      },
-      {
-        id: "메뉴·네비게이션",
-        title: "메뉴·네비게이션",
-        desc: "Sidebar Rail, Header, Breadcrumb, Tab 네비게이션 패턴",
-        icon: Navigation,
-        tags: ["Navigation", "Rail", "Routing"],
-      },
-      {
-        id: "폼·유효성 검사",
-        title: "폼·유효성 검사",
-        desc: "React Hook Form, Zod 스키마 검증, 필드 에러 상태 바인딩",
-        icon: SquarePen,
-        tags: ["RHF", "Zod", "Validation"],
-      },
-      {
-        id: "레이아웃·페이지",
-        title: "레이아웃·페이지",
-        desc: "Grid & Flexbox 시스템, 반응형 대시보드, Master/Detail 분할",
-        icon: LayoutGrid,
-        tags: ["Dashboard", "Grid", "Responsive"],
-      },
-      {
-        id: "인터랙션·상태",
-        title: "인터랙션·상태",
-        desc: "Loading Skeleton, 비동기 Toast, Hover 피드백 및 Empty State",
-        icon: MousePointerClick,
-        tags: ["Feedback", "Async UX", "Toast"],
       },
     ],
   },
@@ -601,7 +551,6 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   {[
                     { name: "스프링 노트", cat: "백엔드", icon: Leaf },
                     { name: "리액트 노트", cat: "프론트", icon: Workflow },
-                    { name: "공통 컴포넌트", cat: "디자인", icon: Boxes },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (

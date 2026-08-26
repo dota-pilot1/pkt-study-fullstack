@@ -4,7 +4,7 @@ import { DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSe
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Braces, ChevronRight, ExternalLink, FileText, GitBranch, Loader2, LockKeyhole, Plus, RefreshCw } from "lucide-react";
+import { Braces, ChevronRight, ExternalLink, FileText, GitBranch, Loader2, LockKeyhole, Plus, RefreshCw, Trash2 } from "lucide-react";
 import PageHeader from "../../shared/ui/PageHeader";
 import PageHeaderSearch from "../../shared/ui/PageHeaderSearch";
 import { useColumnResize } from "../../shared/lib/useColumnResize";
@@ -26,6 +26,47 @@ const EMPTY_CATEGORIES: PlaybookCategory[] = [];
 const EMPTY_TOPICS: PlaybookCategory["topics"] = [];
 const EMPTY_DOCUMENTS: PlaybookDocumentSummary[] = [];
 const SYSTEM_GALLERY_DOMAINS: PlaybookDomain[] = ["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"];
+
+type DeleteTarget = {
+  kind: "category" | "topic";
+  id: number;
+  title: string;
+  childCount: number;
+};
+
+function StructureDeleteConfirm({ target, deleting, error, onCancel, onConfirm }: {
+  target: DeleteTarget;
+  deleting: boolean;
+  error?: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const isCategory = target.kind === "category";
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/35 p-4" role="dialog" aria-modal="true" aria-label={`${isCategory ? "1차 영역" : "2차 주제"} 삭제 확인`}>
+      <div className="w-full max-w-md rounded-lg border border-surface-border bg-surface-raised p-5 shadow-2xl">
+        <div className="flex items-center gap-2">
+          <Trash2 className="size-5 text-destructive" />
+          <h2 className="text-base font-black text-text-primary">{isCategory ? "1차 영역" : "2차 주제"}을 삭제할까요?</h2>
+        </div>
+        <p className="mt-3 text-sm leading-6 text-text-secondary">
+          <strong className="text-text-primary">{target.title}</strong>
+          {isCategory
+            ? ` 영역과 하위 2차 주제 ${target.childCount}개, 본문 문서를 모두 삭제합니다.`
+            : ` 주제와 본문 문서 ${target.childCount}개를 모두 삭제합니다.`}
+          <br />삭제 후 복구할 수 없습니다.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button type="button" onClick={onCancel} disabled={deleting} className="ui-icon-button h-9 px-3 text-xs font-black disabled:opacity-50">취소</button>
+          <button type="button" onClick={onConfirm} disabled={deleting} className="ui-icon-button-danger h-9 px-3 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50">
+            {deleting ? "삭제 중..." : "확인 후 삭제"}
+          </button>
+        </div>
+        {error && <p className="mt-3 text-xs font-bold text-destructive">{error}</p>}
+      </div>
+    </div>
+  );
+}
 
 function SortableTreeDocumentRow({
   document,
@@ -118,6 +159,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
   const [pendingTopicSelection, setPendingTopicSelection] = useState<number | null>(null);
   const [llmApiGuideOpen, setLlmApiGuideOpen] = useState(false);
   const [contextApiDocument, setContextApiDocument] = useState<PlaybookDocumentSummary | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const expandedTopicId = useRef<number | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const categoryWidth = usePlaybookLayoutStore((state) => state.categoryWidth);
@@ -207,11 +249,11 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
   const mutationError = (error: unknown, fallback: string) => showToast(error instanceof Error ? error.message : fallback, "error");
   const createCategory = useMutation({ mutationFn: (categoryTitle: string) => playbookApi.createCategory(domain, categoryTitle), onSuccess: () => { invalidate(); showToast("1차 메뉴를 추가했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴를 추가하지 못했습니다.") });
   const renameCategory = useMutation({ mutationFn: (value: { id: number; title: string }) => playbookApi.renameCategory(value.id, value.title), onSuccess: () => { invalidate(); showToast("1차 메뉴 이름을 수정했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴 이름을 수정하지 못했습니다.") });
-  const deleteCategory = useMutation({ mutationFn: (id: number) => playbookApi.deleteCategory(id), onSuccess: () => { invalidate(); showToast("1차 메뉴를 삭제했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴를 삭제하지 못했습니다.") });
+  const deleteCategory = useMutation({ mutationFn: (id: number) => playbookApi.deleteCategory(id), onSuccess: () => { setDeleteTarget(null); invalidate(); showToast("1차 메뉴를 삭제했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴를 삭제하지 못했습니다.") });
   const reorderCategories = useMutation({ mutationFn: (ids: number[]) => playbookApi.reorderCategories(ids), onSuccess: () => { invalidate(); showToast("1차 메뉴 순서를 저장했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴 순서를 저장하지 못했습니다.") });
   const createTopic = useMutation({ mutationFn: (value: { categoryId: number; title: string }) => playbookApi.createTopic(value.categoryId, value.title), onSuccess: () => { invalidate(); showToast("2차 메뉴를 추가했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴를 추가하지 못했습니다.") });
   const renameTopic = useMutation({ mutationFn: (value: { id: number; title: string }) => playbookApi.renameTopic(value.id, value.title), onSuccess: () => { invalidate(); showToast("2차 메뉴 이름을 수정했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴 이름을 수정하지 못했습니다.") });
-  const deleteTopic = useMutation({ mutationFn: (id: number) => playbookApi.deleteTopic(id), onSuccess: () => { invalidate(); showToast("2차 메뉴를 삭제했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴를 삭제하지 못했습니다.") });
+  const deleteTopic = useMutation({ mutationFn: (id: number) => playbookApi.deleteTopic(id), onSuccess: () => { setDeleteTarget(null); invalidate(); showToast("2차 메뉴를 삭제했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴를 삭제하지 못했습니다.") });
   const reorderTopics = useMutation({ mutationFn: (value: { categoryId: number; ids: number[] }) => playbookApi.reorderTopics(value.categoryId, value.ids), onSuccess: () => { invalidate(); showToast("2차 메뉴 순서를 저장했습니다."); }, onError: (error) => mutationError(error, "2차 메뉴 순서를 저장하지 못했습니다.") });
   const createDocument = useMutation({
     mutationFn: (value: { topicId: number; parentId: number | null }) => playbookApi.createDocument(value.topicId, "새 문서", value.parentId),
@@ -252,6 +294,12 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
     return true;
   };
   const createNewDocument = (parentId: number | null = null) => { if (topic) createDocument.mutate({ topicId: topic.id, parentId }); };
+  const requestStructureDelete = (target: DeleteTarget) => setDeleteTarget(target);
+  const confirmStructureDelete = () => {
+    if (!deleteTarget) return;
+    if (deleteTarget.kind === "category") deleteCategory.mutate(deleteTarget.id);
+    else deleteTopic.mutate(deleteTarget.id);
+  };
   const refreshTree = async () => {
     if (isRefreshingTree) return;
     setSubmittedSearch("");
@@ -371,9 +419,9 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
       <div className="min-h-0 flex-1 overflow-auto bg-surface-muted p-4">
         {tree.isPending ? <div className="grid h-full place-items-center text-text-muted"><Loader2 className="size-6 animate-spin" /></div> : tree.isError ? <div className="grid h-full place-items-center text-sm font-semibold text-text-muted">노트를 불러오지 못했습니다.</div> : (
           <main className="flex h-full min-h-[640px] min-w-[960px] gap-1">
-            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: categoryCollapsed ? COLLAPSED_COLUMN_WIDTH : categoryWidth }}><ListColumn title="1차 메뉴" items={categories.map((item) => ({ id: item.id, title: item.title, count: item.topics.length }))} selectedId={categoryId} onSelect={setCategoryId} onCreate={(title) => createCategory.mutate(title)} onRename={(id, title) => renameCategory.mutate({ id, title })} onDelete={(id) => deleteCategory.mutate(id)} onReorder={(ids) => reorderCategories.mutate(ids)} emptyLabel="아직 영역이 없습니다." createPlaceholder="영역 이름" expandedWidth={categoryWidth} collapsed={categoryCollapsed} onToggle={toggleCategory} protectedStructure={isSystemGallery} /></div>
+            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: categoryCollapsed ? COLLAPSED_COLUMN_WIDTH : categoryWidth }}><ListColumn title="1차 메뉴" items={categories.map((item) => ({ id: item.id, title: item.title, count: item.topics.length }))} selectedId={categoryId} onSelect={setCategoryId} onCreate={(title) => createCategory.mutate(title)} onRename={(id, title) => renameCategory.mutate({ id, title })} onDelete={(id) => { const item = categories.find((category) => category.id === id); if (item) requestStructureDelete({ kind: "category", id, title: item.title, childCount: item.topics.length }); }} onReorder={(ids) => reorderCategories.mutate(ids)} emptyLabel="아직 영역이 없습니다." createPlaceholder="영역 이름" expandedWidth={categoryWidth} collapsed={categoryCollapsed} onToggle={toggleCategory} protectedStructure={isSystemGallery} /></div>
             <div className={"shrink-0 transition-opacity duration-200 " + (categoryCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onPointerDown={resizeCategory} /></div>
-            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: topicCollapsed ? COLLAPSED_COLUMN_WIDTH : topicWidth }}><ListColumn title="2차 메뉴" items={(category?.topics ?? EMPTY_TOPICS).map((item) => ({ id: item.id, title: item.title, count: item.documents.length, badge: <FileText className="size-4 shrink-0 text-brand-primary" /> }))} selectedId={topicId} onSelect={setTopicId} onCreate={(title) => category && createTopic.mutate({ categoryId: category.id, title })} onRename={(id, title) => renameTopic.mutate({ id, title })} onDelete={(id) => deleteTopic.mutate(id)} onReorder={(ids) => category && reorderTopics.mutate({ categoryId: category.id, ids })} emptyLabel={category ? "아직 주제가 없습니다." : "먼저 선택하세요."} createPlaceholder="주제 이름" disabled={!category} expandedWidth={topicWidth} collapsed={topicCollapsed} onToggle={toggleTopic} protectedStructure={isSystemGallery} /></div>
+            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: topicCollapsed ? COLLAPSED_COLUMN_WIDTH : topicWidth }}><ListColumn title="2차 메뉴" items={(category?.topics ?? EMPTY_TOPICS).map((item) => ({ id: item.id, title: item.title, count: item.documents.length, badge: <FileText className="size-4 shrink-0 text-brand-primary" /> }))} selectedId={topicId} onSelect={setTopicId} onCreate={(title) => category && createTopic.mutate({ categoryId: category.id, title })} onRename={(id, title) => renameTopic.mutate({ id, title })} onDelete={(id) => { const item = category?.topics.find((topic) => topic.id === id); if (item) requestStructureDelete({ kind: "topic", id, title: item.title, childCount: item.documents.length }); }} onReorder={(ids) => category && reorderTopics.mutate({ categoryId: category.id, ids })} emptyLabel={category ? "아직 주제가 없습니다." : "먼저 선택하세요."} createPlaceholder="주제 이름" disabled={!category} expandedWidth={topicWidth} collapsed={topicCollapsed} onToggle={toggleTopic} protectedStructure={isSystemGallery} /></div>
             <div className={"shrink-0 transition-opacity duration-200 " + (topicCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onPointerDown={resizeTopic} /></div>
             <section className="flex min-h-0 min-w-[420px] flex-1 flex-col rounded-lg border border-surface-border bg-surface-raised shadow-sm">
               <header className="flex h-12 min-h-12 shrink-0 items-center justify-between gap-3 border-b border-surface-border-soft px-4 py-0">
@@ -490,6 +538,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
         )}
       </div>
       {detail && <DocumentDrawer document={detail} loading={drawerDocument.isPending} previous={previous ? { ...detail, id: previous.id, title: previous.title } : undefined} next={next ? { ...detail, id: next.id, title: next.title } : undefined} onNavigate={(target) => setDrawerDocumentId(target.id)} onChanged={invalidate} onOpenPage={() => { setDrawerDocumentId(null); setPageDocumentId(detail.id); }} onDelete={() => deleteDocument.mutate(detail.id)} onClose={() => setDrawerDocumentId(null)} deleting={deleteDocument.isPending} deleteError={deleteDocument.isError ? (deleteDocument.error as Error).message : undefined} canDelete={!isSystemGallery || detail.parentId !== null} />}
+      {deleteTarget && <StructureDeleteConfirm target={deleteTarget} deleting={deleteCategory.isPending || deleteTopic.isPending} error={(deleteCategory.error ?? deleteTopic.error) instanceof Error ? (deleteCategory.error ?? deleteTopic.error as Error).message : undefined} onCancel={() => { if (!deleteCategory.isPending && !deleteTopic.isPending) setDeleteTarget(null); }} onConfirm={confirmStructureDelete} />}
       {llmApiGuideOpen && <LlmApiGuideDialog domain={domain} topicId={topicId} parentDocumentId={drawerDocumentId} onClose={() => setLlmApiGuideOpen(false)} />}
       {contextApiDocument && <DocumentContextApiDialog documentId={contextApiDocument.id} documentTitle={contextApiDocument.title} onClose={() => setContextApiDocument(null)} />}
     </div>

@@ -37,12 +37,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => {
           const Icon = toast.tone === "success" ? CheckCircle2 : toast.tone === "error" ? AlertCircle : Info;
           const color = toast.tone === "error" ? "text-destructive" : toast.tone === "info" ? "text-text-primary" : "text-brand-primary";
+          const toneStyle = toast.tone === "error"
+            ? "border-destructive/25 bg-red-50/95"
+            : toast.tone === "info"
+              ? "border-surface-border bg-surface-raised"
+              : "border-brand-border/30 bg-brand-glass/95";
           return (
-            <div key={toast.id} role="status" aria-live="polite" className={`pointer-events-auto flex items-center gap-2 rounded-full border border-surface-border bg-surface-raised px-4 py-2.5 text-[13px] font-black shadow-xl animate-drawer-fade-in ${color}`}>
-              <Icon className="size-4 shrink-0" />
-              <span>{toast.message}</span>
-              <button type="button" aria-label="알림 닫기" onClick={() => dismissToast(toast.id)} className="ml-1 rounded-full p-0.5 text-text-muted hover:bg-surface-muted hover:text-text-primary">
-                <X className="size-3.5" />
+            <div key={toast.id} role="status" aria-live="polite" className={`pointer-events-auto flex min-h-12 items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-black shadow-lg shadow-slate-900/10 animate-drawer-fade-in ${toneStyle} ${color}`}>
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/75">
+                <Icon className="size-[17px]" />
+              </span>
+              <span className="leading-5">{toast.message}</span>
+              <button type="button" aria-label="알림 닫기" onClick={() => dismissToast(toast.id)} className="ml-1 rounded-full p-1 text-text-muted hover:bg-white/70 hover:text-text-primary">
+                <X className="size-4" />
               </button>
             </div>
           );

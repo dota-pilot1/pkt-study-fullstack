@@ -137,14 +137,47 @@ export async function renameTopic(id: number, title: string) {
 export async function deleteTopic(id: number) {
   const [topic] = await db.select().from(playbookTopics).where(eq(playbookTopics.id, id)).limit(1);
   if (!topic) return false;
-  await db.delete(playbookTopics).where(eq(playbookTopics.id, id));
+  const documents = await db.select({ id: playbookDocuments.id })
+    .from(playbookDocuments)
+    .where(eq(playbookDocuments.topicId, id));
+
+  // 문서와 댓글이 topic/category를 참조하므로, 하위 레코드부터 삭제한다.
+  db.transaction((tx) => {
+    const documentIds = documents.map((document) => document.id);
+    if (documentIds.length > 0) {
+      tx.delete(playbookDocumentComments).where(inArray(playbookDocumentComments.documentId, documentIds)).run();
+      tx.delete(playbookDocuments).where(inArray(playbookDocuments.id, documentIds)).run();
+    }
+    tx.delete(playbookTopics).where(eq(playbookTopics.id, id)).run();
+  });
   return true;
 }
 
 export async function deleteCategory(id: number) {
   const [category] = await db.select().from(playbookCategories).where(eq(playbookCategories.id, id)).limit(1);
   if (!category) return false;
-  await db.delete(playbookCategories).where(eq(playbookCategories.id, id));
+  const topics = await db.select({ id: playbookTopics.id })
+    .from(playbookTopics)
+    .where(eq(playbookTopics.categoryId, id));
+  const topicIds = topics.map((topic) => topic.id);
+  const documents = topicIds.length > 0
+    ? await db.select({ id: playbookDocuments.id })
+      .from(playbookDocuments)
+      .where(inArray(playbookDocuments.topicId, topicIds))
+    : [];
+
+  // 영역 삭제는 topic -> document/comment -> category 순으로 정리해야 한다.
+  db.transaction((tx) => {
+    const documentIds = documents.map((document) => document.id);
+    if (documentIds.length > 0) {
+      tx.delete(playbookDocumentComments).where(inArray(playbookDocumentComments.documentId, documentIds)).run();
+      tx.delete(playbookDocuments).where(inArray(playbookDocuments.id, documentIds)).run();
+    }
+    if (topicIds.length > 0) {
+      tx.delete(playbookTopics).where(inArray(playbookTopics.id, topicIds)).run();
+    }
+    tx.delete(playbookCategories).where(eq(playbookCategories.id, id)).run();
+  });
   return true;
 }
 
