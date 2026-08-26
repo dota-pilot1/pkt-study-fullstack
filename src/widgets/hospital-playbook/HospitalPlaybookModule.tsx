@@ -173,19 +173,34 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
   }, [category, topicId, pendingTopicSelection]);
   useEffect(() => {
     const ids = new Set(documents.map((item) => item.id));
-    const parentIds = new Set(documents.filter((item) => item.parentId !== null).map((item) => item.parentId as number));
     setExpandedDocumentIds((current) => {
-      // 주제를 처음 열었을 때는 하위 문서까지 보여줘서 상단의 총 개수와
-      // 실제로 보이는 목록 개수가 어긋나지 않게 한다. 이후 사용자가 접은 상태는 유지한다.
+      // 문서가 많은 주제도 처음에는 상위 문서만 보여 주어 목록의 구조를 먼저 읽게 한다.
+      // 사용자가 펼친 상태는 같은 주제 안에서 유지하고, 주제가 바뀌면 다시 접는다.
       const isNewTopic = expandedTopicId.current !== topicId;
       const next = isNewTopic
-        ? new Set(parentIds)
+        ? new Set<number>()
         : new Set([...current].filter((id) => ids.has(id)));
       expandedTopicId.current = topicId;
       if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
       return next;
     });
   }, [documents, topicId]);
+  useEffect(() => {
+    // 검색·페이지 보기·본문 열기로 하위 문서를 선택하면 부모 경로만 자동으로 펼친다.
+    const activeId = pageDocumentId ?? editingDocumentId ?? drawerDocumentId;
+    if (activeId === null) return;
+    const byId = new Map(documents.map((item) => [item.id, item]));
+    setExpandedDocumentIds((current) => {
+      const next = new Set(current);
+      let parentId = byId.get(activeId)?.parentId ?? null;
+      while (parentId !== null) {
+        next.add(parentId);
+        parentId = byId.get(parentId)?.parentId ?? null;
+      }
+      if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
+      return next;
+    });
+  }, [documents, drawerDocumentId, editingDocumentId, pageDocumentId]);
 
   const mutationError = (error: unknown, fallback: string) => showToast(error instanceof Error ? error.message : fallback, "error");
   const createCategory = useMutation({ mutationFn: (categoryTitle: string) => playbookApi.createCategory(domain, categoryTitle), onSuccess: () => { invalidate(); showToast("1차 메뉴를 추가했습니다."); }, onError: (error) => mutationError(error, "1차 메뉴를 추가하지 못했습니다.") });

@@ -123,7 +123,7 @@ export default function DocumentPage({
   deleting?: boolean;
   reordering?: boolean;
 }) {
-  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(documents.filter((item) => item.parentId !== null).map((item) => item.parentId as number)));
   const [locationOpen, setLocationOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [overId, setOverId] = useState<number | null>(null);

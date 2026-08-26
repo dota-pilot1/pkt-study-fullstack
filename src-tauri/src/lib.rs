@@ -1,8 +1,12 @@
+use std::sync::{Arc, Mutex};
+
+// 배포 빌드에서 실행되는 Next sidecar 초기화에만 필요한 import다.
+// 개발 모드에서는 사용하지 않으므로 조건부로 가져와 Rust warning을 막는다.
+#[cfg(not(debug_assertions))]
 use std::{
     fs::OpenOptions,
     io::Write,
     net::TcpListener,
-    sync::{Arc, Mutex},
 };
 
 use tauri::{AppHandle, Manager, WebviewWindow};
