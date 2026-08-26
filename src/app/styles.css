@@ -352,7 +352,22 @@ body {
   .lexical-mermaid-preview svg { max-width: 100%; height: auto; margin: 0 auto; }
   .lexical-mermaid-preview-error { @apply whitespace-pre-wrap text-destructive; }
   .lexical-html-preview-node { @apply my-5 w-full; }
-  .lexical-tailwind-tsx-preview-node { @apply my-5 w-full; }
+.lexical-tailwind-tsx-preview-node { @apply my-5 w-full; }
+
+.tailwind-tsx-code-panel {
+  height: min(520px, 65vh);
+  min-height: 420px;
+  overflow: hidden;
+}
+
+.tailwind-tsx-code-panel .cm-editor,
+.tailwind-tsx-code-panel .cm-scroller {
+  height: 100%;
+}
+
+.tailwind-tsx-code-panel .cm-scroller {
+  overflow: auto;
+}
   .editor-list-item-checked, .editor-list-item-unchecked { @apply relative list-none pl-6 text-text-primary; }
   .editor-list-item-checked::before, .editor-list-item-unchecked::before { content: ""; @apply absolute left-0 top-[0.25em] size-4 rounded border border-surface-border bg-surface-raised; }
   .lexical-editor-input > code[data-language], .lexical-editor-input > code[data-highlight-language] { position: relative; padding-top: 1rem; }
