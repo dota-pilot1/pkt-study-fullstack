@@ -72,6 +72,14 @@ function mergePackagedPlaybookSeed() {
       }
       });
       merge();
+
+      // 이전 릴리즈에서 생성된 기술 중심 폼 카테고리는 보존하되,
+      // 실제 사용 가능한 폼 시나리오보다 먼저 선택되지 않도록 뒤로 보낸다.
+      if (seedSpace.code === "UI_FORM") {
+        const targetSpaceId = (sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get(seedSpace.code) as { id: number }).id;
+        sqlite.prepare("UPDATE playbook_categories SET order_idx = 999 WHERE space_id = ? AND title IN (?, ?)")
+          .run(targetSpaceId, "폼 구성", "기본 UI 실습");
+      }
     }
   } finally {
     seed.close();
