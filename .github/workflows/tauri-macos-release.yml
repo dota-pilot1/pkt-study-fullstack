@@ -65,4 +65,5 @@ jobs:
           releaseBody: "macOS DMG 및 updater 산출물 추가"
           releaseDraft: false
           prerelease: false
-          args: "--bundles dmg"
+          # DMG는 설치용, app은 Tauri updater용 .app.tar.gz/.sig 생성을 위해 함께 빌드한다.
+          args: "--bundles dmg,app"
