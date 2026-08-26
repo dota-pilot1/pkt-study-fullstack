@@ -20,7 +20,7 @@ export const renameCategory = repository.renameCategory;
 export const renameTopic = repository.renameTopic;
 export const reorderTopics = repository.reorderTopics;
 
-const SYSTEM_GALLERY_SPACES = new Set(["COMPONENT_GALLERY", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
+const SYSTEM_GALLERY_SPACES = new Set(["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
 
 async function isProtectedGalleryTopic(topicId: number) {
   const topic = await repository.findTopicById(topicId);

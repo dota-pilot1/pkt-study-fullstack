@@ -12,12 +12,12 @@ import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
-type RailGroup = "backend" | "frontend" | "gallery" | "design";
+type RailGroup = "backend" | "frontend" | "code" | "design";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
   { id: "backend", label: "백엔드" },
-  { id: "frontend", label: "프론트" }, { id: "gallery", label: "컴포넌트" }, { id: "design", label: "공통 UI" },
+  { id: "frontend", label: "프론트" }, { id: "code", label: "코드 실습" }, { id: "design", label: "공통 UI" },
 ];
 const railItems: RailItem[] = [
   { label: "스프링 노트", icon: Leaf, group: "backend" },
@@ -26,7 +26,7 @@ const railItems: RailItem[] = [
   { label: "리액트 노트", icon: Workflow, group: "frontend" },
   { label: "JS·TS 노트", icon: Code2, group: "frontend" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
-  { label: "컴포넌트 갤러리", icon: Boxes, group: "gallery" },
+  { label: "코드 실습", icon: Code2, group: "code" },
   { label: "공통 컴포넌트", icon: Boxes, group: "design" },
   { label: "메뉴·네비게이션", icon: Navigation, group: "design" },
   { label: "폼 UI", icon: SquarePen, group: "design" },

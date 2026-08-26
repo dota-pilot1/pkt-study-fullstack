@@ -16,7 +16,10 @@ function TailwindTsxNodeView({ nodeKey, block }: { nodeKey: NodeKey; block: Tail
   const update = editor.isEditable()
     ? (next: TailwindTsxBlock) => editor.update(() => { const node = $getNodeByKey(nodeKey); if ($isTailwindTsxPreviewNode(node)) node.setBlock(next) })
     : undefined
-  return <TailwindTsxPreviewCard block={block} onUpdate={update} />
+  const remove = editor.isEditable()
+    ? () => editor.update(() => { const node = $getNodeByKey(nodeKey); if ($isTailwindTsxPreviewNode(node)) node.remove() })
+    : undefined
+  return <TailwindTsxPreviewCard block={block} onUpdate={update} onDelete={remove} />
 }
 
 export class TailwindTsxPreviewNode extends DecoratorNode<ReactElement> {
