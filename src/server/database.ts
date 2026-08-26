@@ -27,15 +27,16 @@ function mergePackagedPlaybookSeed() {
   const seed = new Database(seedPath, { readonly: true });
   const now = new Date().toISOString();
   try {
-    const seedSpace = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code = ?").get("PKT_FRONT_LEV1") as { id: number; code: string; name: string } | undefined;
-    if (!seedSpace) return;
+    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?)").all("UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
+    if (seedSpaces.length === 0) return;
 
     const insertSpace = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)");
     const insertCategory = sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
     const insertTopic = sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
     const insertDocument = sqlite.prepare("INSERT INTO playbook_documents (topic_id, parent_id, title, content, status, use_for_chatbot, order_idx, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-    const merge = sqlite.transaction(() => {
+    for (const seedSpace of seedSpaces) {
+      const merge = sqlite.transaction(() => {
       let targetSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get(seedSpace.code) as { id: number } | undefined;
       if (!targetSpace) {
         const result = insertSpace.run(seedSpace.code, seedSpace.name, now, now);
@@ -69,8 +70,9 @@ function mergePackagedPlaybookSeed() {
           mergeDocuments(null, null);
         }
       }
-    });
-    merge();
+      });
+      merge();
+    }
   } finally {
     seed.close();
   }
