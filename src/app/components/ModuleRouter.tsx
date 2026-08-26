@@ -4,7 +4,7 @@ import { useActiveModule } from "./FullstackShell";
 import HospitalPlaybookModule from "../../widgets/hospital-playbook/HospitalPlaybookModule";
 import SettingsModule from "./SettingsModule";
 
-const modules: Record<string, { domain: "SPRING_BOOT" | "JAVA" | "DB" | "FRONTEND" | "JS_TS" | "PKT_FRONT_LEV1" | "CODE_LAB" | "UIUX" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
+const modules: Record<string, { domain: "SPRING_BOOT" | "JAVA" | "DB" | "FRONTEND" | "JS_TS" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UIUX" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
   "샘플 노트": { domain: "NOTE_SAMPLE", title: "샘플 노트" },
   "스프링 노트": { domain: "SPRING_BOOT", title: "스프링 노트" },
   "자바 노트": { domain: "JAVA", title: "자바 노트" },
@@ -12,7 +12,7 @@ const modules: Record<string, { domain: "SPRING_BOOT" | "JAVA" | "DB" | "FRONTEN
   "리액트 노트": { domain: "FRONTEND", title: "리액트 노트" },
   "JS·TS 노트": { domain: "JS_TS", title: "JS·TS 노트" },
   "기본 화면 설계": { domain: "PKT_FRONT_LEV1", title: "기본 화면 설계" },
-  "코드 실습": { domain: "CODE_LAB", title: "코드 실습" },
+  "컴포넌트 스케치": { domain: "COMPONENT_SKETCH", title: "컴포넌트 스케치" },
   "공통 컴포넌트": { domain: "UIUX", title: "공통 UI · 시스템 갤러리" },
   "메뉴·네비게이션": { domain: "UI_NAV", title: "메뉴·네비게이션" },
   "폼 UI": { domain: "UI_FORM", title: "폼 UI · 시스템 갤러리" },

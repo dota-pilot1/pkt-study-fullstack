@@ -27,7 +27,7 @@ function mergePackagedPlaybookSeed() {
   const seed = new Database(seedPath, { readonly: true });
   const now = new Date().toISOString();
   try {
-    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?)").all("CODE_LAB", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
+    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?)").all("COMPONENT_SKETCH", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
     if (seedSpaces.length === 0) return;
 
     const insertSpace = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)");
@@ -86,35 +86,14 @@ function mergePackagedPlaybookSeed() {
   }
 }
 
-mergePackagedPlaybookSeed();
-
-// 컴포넌트 갤러리는 사용자 문서와 역할이 겹쳤으므로 기존 설치 DB에서도 제거한다.
-// 삭제 대상은 시스템이 생성한 COMPONENT_GALLERY 공간과 그 하위 트리로 한정한다.
 const legacyComponentGallery = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("COMPONENT_GALLERY") as { id: number } | undefined;
-if (legacyComponentGallery) {
-  const legacyCategories = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ?").all(legacyComponentGallery.id) as Array<{ id: number }>;
-  const categoryIds = legacyCategories.map(({ id }) => id);
-  const topicRows = categoryIds.length
-    ? sqlite.prepare(`SELECT id FROM playbook_topics WHERE category_id IN (${categoryIds.map(() => "?").join(",")})`).all(...categoryIds) as Array<{ id: number }>
-    : [];
-  const topicIds = topicRows.map(({ id }) => id);
-  const deleteLegacy = sqlite.transaction(() => {
-    if (topicIds.length) {
-      const placeholders = topicIds.map(() => "?").join(",");
-      const documentIds = sqlite.prepare(`SELECT id FROM playbook_documents WHERE topic_id IN (${placeholders})`).all(...topicIds) as Array<{ id: number }>;
-      const ids = documentIds.map(({ id }) => id);
-      if (ids.length) {
-        const documentPlaceholders = ids.map(() => "?").join(",");
-        sqlite.prepare(`DELETE FROM playbook_document_comments WHERE document_id IN (${documentPlaceholders})`).run(...ids);
-        sqlite.prepare(`DELETE FROM playbook_documents WHERE id IN (${documentPlaceholders})`).run(...ids);
-      }
-      sqlite.prepare(`DELETE FROM playbook_topics WHERE id IN (${placeholders})`).run(...topicIds);
-    }
-    if (categoryIds.length) sqlite.prepare(`DELETE FROM playbook_categories WHERE id IN (${categoryIds.map(() => "?").join(",")})`).run(...categoryIds);
-    sqlite.prepare("DELETE FROM playbook_spaces WHERE id = ?").run(legacyComponentGallery.id);
-  });
-  deleteLegacy();
+const legacyCodeLab = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("CODE_LAB") as { id: number } | undefined;
+const componentSketch = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("COMPONENT_SKETCH") as { id: number } | undefined;
+if (!componentSketch && (legacyComponentGallery || legacyCodeLab)) {
+  sqlite.prepare("UPDATE playbook_spaces SET code = ?, name = ? WHERE id = ?").run("COMPONENT_SKETCH", "컴포넌트 스케치", (legacyComponentGallery ?? legacyCodeLab)!.id);
 }
+
+mergePackagedPlaybookSeed();
 
 const now = new Date().toISOString();
 sqlite.prepare(
@@ -178,8 +157,8 @@ for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSee
 
 // CodeMirror로 작성한 Lexical TSX 문서를 모아 두는 일반 사용자 영역이다.
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
-  .run("CODE_LAB", "코드 실습", now, now);
-const codeLabSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("CODE_LAB") as { id: number };
+  .run("COMPONENT_SKETCH", "컴포넌트 스케치", now, now);
+const codeLabSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("COMPONENT_SKETCH") as { id: number };
 let codeLabCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
   .get(codeLabSpace.id, "TSX 컴포넌트") as { id: number } | undefined;
 if (!codeLabCategory) {
