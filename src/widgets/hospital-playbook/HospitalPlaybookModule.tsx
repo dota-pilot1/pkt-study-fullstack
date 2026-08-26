@@ -4,7 +4,7 @@ import { DndContext, DragOverlay, PointerSensor, closestCenter, useSensor, useSe
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Braces, ChevronRight, ExternalLink, FileText, GitBranch, Loader2, Plus, RefreshCw } from "lucide-react";
+import { Braces, ChevronRight, ExternalLink, FileText, GitBranch, Loader2, LockKeyhole, Plus, RefreshCw } from "lucide-react";
 import PageHeader from "../../shared/ui/PageHeader";
 import PageHeaderSearch from "../../shared/ui/PageHeaderSearch";
 import { useColumnResize } from "../../shared/lib/useColumnResize";
@@ -25,6 +25,7 @@ const COLLAPSED_COLUMN_WIDTH = 148;
 const EMPTY_CATEGORIES: PlaybookCategory[] = [];
 const EMPTY_TOPICS: PlaybookCategory["topics"] = [];
 const EMPTY_DOCUMENTS: PlaybookDocumentSummary[] = [];
+const SYSTEM_GALLERY_DOMAINS: PlaybookDomain[] = ["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"];
 
 function SortableTreeDocumentRow({
   document,
@@ -123,6 +124,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
   const topicWidth = usePlaybookLayoutStore((state) => state.topicWidth);
   const categoryCollapsed = usePlaybookLayoutStore((state) => state.categoryCollapsed);
   const topicCollapsed = usePlaybookLayoutStore((state) => state.topicCollapsed);
+  const isSystemGallery = SYSTEM_GALLERY_DOMAINS.includes(domain);
   const hydrateLayout = usePlaybookLayoutStore((state) => state.hydrate);
   const setCategoryWidth = usePlaybookLayoutStore((state) => state.setCategoryWidth);
   const setTopicWidth = usePlaybookLayoutStore((state) => state.setTopicWidth);
@@ -336,6 +338,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
       onDelete={(id) => { setPageDocumentId(null); setDrawerDocumentId(id); }}
       deleting={deleteDocument.isPending}
       reordering={reorderDocuments.isPending}
+      canDelete={!isSystemGallery || documents.find((item) => item.id === pageDocumentId)?.parentId !== null}
     />;
   }
 
@@ -362,14 +365,15 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
       >
         <FileText className="size-4 text-brand-primary" />
         <span className="text-[14px] font-bold tracking-tight text-text-primary">{title}</span>
+        {isSystemGallery && <span className="inline-flex items-center gap-1 rounded-full border border-brand-border/50 bg-brand-glass px-2 py-1 text-[10px] font-black text-brand-primary" title="실제 컴포넌트 파일과 연결된 고정 갤러리"><LockKeyhole className="size-3" /> 고정 갤러리</span>}
         <button type="button" onClick={() => void refreshTree()} disabled={isRefreshingTree} className="ui-icon-button ml-1 size-7 disabled:opacity-40" title="노트 새로고침"><RefreshCw className={`size-3.5 ${isRefreshingTree ? "refresh-icon-spin" : ""}`} /></button>
       </PageHeader>
       <div className="min-h-0 flex-1 overflow-auto bg-surface-muted p-4">
         {tree.isPending ? <div className="grid h-full place-items-center text-text-muted"><Loader2 className="size-6 animate-spin" /></div> : tree.isError ? <div className="grid h-full place-items-center text-sm font-semibold text-text-muted">노트를 불러오지 못했습니다.</div> : (
           <main className="flex h-full min-h-[640px] min-w-[960px] gap-1">
-            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: categoryCollapsed ? COLLAPSED_COLUMN_WIDTH : categoryWidth }}><ListColumn title="1차 메뉴" items={categories.map((item) => ({ id: item.id, title: item.title, count: item.topics.length }))} selectedId={categoryId} onSelect={setCategoryId} onCreate={(title) => createCategory.mutate(title)} onRename={(id, title) => renameCategory.mutate({ id, title })} onDelete={(id) => deleteCategory.mutate(id)} onReorder={(ids) => reorderCategories.mutate(ids)} emptyLabel="아직 영역이 없습니다." createPlaceholder="영역 이름" expandedWidth={categoryWidth} collapsed={categoryCollapsed} onToggle={toggleCategory} /></div>
+            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: categoryCollapsed ? COLLAPSED_COLUMN_WIDTH : categoryWidth }}><ListColumn title="1차 메뉴" items={categories.map((item) => ({ id: item.id, title: item.title, count: item.topics.length }))} selectedId={categoryId} onSelect={setCategoryId} onCreate={(title) => createCategory.mutate(title)} onRename={(id, title) => renameCategory.mutate({ id, title })} onDelete={(id) => deleteCategory.mutate(id)} onReorder={(ids) => reorderCategories.mutate(ids)} emptyLabel="아직 영역이 없습니다." createPlaceholder="영역 이름" expandedWidth={categoryWidth} collapsed={categoryCollapsed} onToggle={toggleCategory} protectedStructure={isSystemGallery} /></div>
             <div className={"shrink-0 transition-opacity duration-200 " + (categoryCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onPointerDown={resizeCategory} /></div>
-            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: topicCollapsed ? COLLAPSED_COLUMN_WIDTH : topicWidth }}><ListColumn title="2차 메뉴" items={(category?.topics ?? EMPTY_TOPICS).map((item) => ({ id: item.id, title: item.title, count: item.documents.length, badge: <FileText className="size-4 shrink-0 text-brand-primary" /> }))} selectedId={topicId} onSelect={setTopicId} onCreate={(title) => category && createTopic.mutate({ categoryId: category.id, title })} onRename={(id, title) => renameTopic.mutate({ id, title })} onDelete={(id) => deleteTopic.mutate(id)} onReorder={(ids) => category && reorderTopics.mutate({ categoryId: category.id, ids })} emptyLabel={category ? "아직 주제가 없습니다." : "먼저 선택하세요."} createPlaceholder="주제 이름" disabled={!category} expandedWidth={topicWidth} collapsed={topicCollapsed} onToggle={toggleTopic} /></div>
+            <div className="h-full min-h-0 shrink-0 overflow-hidden" style={{ width: topicCollapsed ? COLLAPSED_COLUMN_WIDTH : topicWidth }}><ListColumn title="2차 메뉴" items={(category?.topics ?? EMPTY_TOPICS).map((item) => ({ id: item.id, title: item.title, count: item.documents.length, badge: <FileText className="size-4 shrink-0 text-brand-primary" /> }))} selectedId={topicId} onSelect={setTopicId} onCreate={(title) => category && createTopic.mutate({ categoryId: category.id, title })} onRename={(id, title) => renameTopic.mutate({ id, title })} onDelete={(id) => deleteTopic.mutate(id)} onReorder={(ids) => category && reorderTopics.mutate({ categoryId: category.id, ids })} emptyLabel={category ? "아직 주제가 없습니다." : "먼저 선택하세요."} createPlaceholder="주제 이름" disabled={!category} expandedWidth={topicWidth} collapsed={topicCollapsed} onToggle={toggleTopic} protectedStructure={isSystemGallery} /></div>
             <div className={"shrink-0 transition-opacity duration-200 " + (topicCollapsed ? "pointer-events-none opacity-0" : "opacity-100")}><ColumnResizeHandle onPointerDown={resizeTopic} /></div>
             <section className="flex min-h-0 min-w-[420px] flex-1 flex-col rounded-lg border border-surface-border bg-surface-raised shadow-sm">
               <header className="flex h-12 min-h-12 shrink-0 items-center justify-between gap-3 border-b border-surface-border-soft px-4 py-0">
@@ -485,7 +489,7 @@ function HospitalPlaybookModule({ domain, title }: { domain: PlaybookDomain; tit
           </main>
         )}
       </div>
-      {detail && <DocumentDrawer document={detail} loading={drawerDocument.isPending} previous={previous ? { ...detail, id: previous.id, title: previous.title } : undefined} next={next ? { ...detail, id: next.id, title: next.title } : undefined} onNavigate={(target) => setDrawerDocumentId(target.id)} onChanged={invalidate} onOpenPage={() => { setDrawerDocumentId(null); setPageDocumentId(detail.id); }} onDelete={() => deleteDocument.mutate(detail.id)} onClose={() => setDrawerDocumentId(null)} deleting={deleteDocument.isPending} deleteError={deleteDocument.isError ? (deleteDocument.error as Error).message : undefined} />}
+      {detail && <DocumentDrawer document={detail} loading={drawerDocument.isPending} previous={previous ? { ...detail, id: previous.id, title: previous.title } : undefined} next={next ? { ...detail, id: next.id, title: next.title } : undefined} onNavigate={(target) => setDrawerDocumentId(target.id)} onChanged={invalidate} onOpenPage={() => { setDrawerDocumentId(null); setPageDocumentId(detail.id); }} onDelete={() => deleteDocument.mutate(detail.id)} onClose={() => setDrawerDocumentId(null)} deleting={deleteDocument.isPending} deleteError={deleteDocument.isError ? (deleteDocument.error as Error).message : undefined} canDelete={!isSystemGallery || detail.parentId !== null} />}
       {llmApiGuideOpen && <LlmApiGuideDialog domain={domain} topicId={topicId} parentDocumentId={drawerDocumentId} onClose={() => setLlmApiGuideOpen(false)} />}
       {contextApiDocument && <DocumentContextApiDialog documentId={contextApiDocument.id} documentTitle={contextApiDocument.title} onClose={() => setContextApiDocument(null)} />}
     </div>

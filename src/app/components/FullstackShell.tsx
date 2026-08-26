@@ -17,7 +17,7 @@ type RailItem = { label: string; icon: LucideIcon; group: RailGroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
   { id: "core", label: null }, { id: "backend", label: "백엔드" },
-  { id: "frontend", label: "프론트" }, { id: "design", label: "디자인" },
+  { id: "frontend", label: "프론트" }, { id: "design", label: "공통 UI" },
 ];
 const railItems: RailItem[] = [
   { label: "노트 홈", icon: LayoutDashboard, group: "core" },
@@ -30,7 +30,7 @@ const railItems: RailItem[] = [
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
   { label: "공통 컴포넌트", icon: Boxes, group: "design" },
   { label: "메뉴·네비게이션", icon: Navigation, group: "design" },
-  { label: "폼·유효성 검사", icon: SquarePen, group: "design" },
+  { label: "폼 UI", icon: SquarePen, group: "design" },
   { label: "레이아웃·페이지", icon: LayoutGrid, group: "design" },
   { label: "인터랙션·상태", icon: MousePointerClick, group: "design" },
 ];

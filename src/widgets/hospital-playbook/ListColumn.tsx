@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical, LockKeyhole, Plus, Trash2 } from "lucide-react";
 
 export type ListColumnItem = {
   id: number;
@@ -27,6 +27,7 @@ function ListColumn({
   collapsed = false,
   expandedWidth,
   onToggle,
+  protectedStructure = false,
 }: {
   title: string;
   items: ListColumnItem[];
@@ -43,6 +44,8 @@ function ListColumn({
   /** 펼친 상태의 컬럼 폭. 접히는 동안 목록이 눌리지 않게 안쪽 폭을 이 값으로 고정한다. */
   expandedWidth: number;
   onToggle: () => void;
+  /** 코드 갤러리의 고정 1·2차 구조는 일반 노트처럼 변경하지 않는다. */
+  protectedStructure?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
@@ -103,6 +106,7 @@ function ListColumn({
           }
         >
           <h2 className="min-w-0 truncate text-sm font-black text-text-primary">{title}</h2>
+          {protectedStructure && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-border/50 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black text-brand-primary" title="공통 UI 시스템 갤러리 고정 구조"><LockKeyhole className="size-3" /> 시스템</span>}
           <span className="grid min-w-5 place-items-center rounded-full border border-brand-border/40 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black tabular-nums text-brand-primary" title={`${items.length}개`}>
             {items.length}
           </span>
@@ -121,7 +125,7 @@ function ListColumn({
           <button
             type="button"
             onClick={() => setAdding((v) => !v)}
-            disabled={disabled || collapsed}
+            disabled={disabled || collapsed || protectedStructure}
             tabIndex={collapsed ? -1 : 0}
             title={`${title} 추가`}
             className="ui-icon-button h-7 w-7 shrink-0 border-brand-border bg-brand-glass text-brand-primary disabled:opacity-40"
@@ -150,7 +154,7 @@ function ListColumn({
           return (
             <div
               key={item.id}
-              draggable
+              draggable={!protectedStructure}
               onDragStart={() => setDragId(item.id)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => handleDrop(item.id)}
@@ -187,6 +191,7 @@ function ListColumn({
                 <button
                   type="button"
                   onDoubleClick={(event) => {
+                    if (protectedStructure) return;
                     event.stopPropagation();
                     setEditingId(item.id);
                     setEditingTitle(item.title);
@@ -202,17 +207,7 @@ function ListColumn({
                   {item.count}개
                 </span>
               )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(item.id);
-                }}
-                title="삭제"
-                className="ui-icon-button size-7 shrink-0 text-text-muted hover:border-destructive hover:text-destructive"
-              >
-                <Trash2 className="size-3.5" />
-              </button>
+              {!protectedStructure ? <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} title="삭제" className="ui-icon-button size-7 shrink-0 text-text-muted hover:border-destructive hover:text-destructive"><Trash2 className="size-3.5" /></button> : <span className="grid size-7 shrink-0 place-items-center text-brand-primary" title="시스템 갤러리 구조는 삭제할 수 없습니다."><LockKeyhole className="size-3.5" /></span>}
             </div>
           );
         })}

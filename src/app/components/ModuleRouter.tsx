@@ -12,11 +12,11 @@ const modules: Record<string, { domain: "SPRING_BOOT" | "JAVA" | "DB" | "FRONTEN
   "리액트 노트": { domain: "FRONTEND", title: "리액트 노트" },
   "JS·TS 노트": { domain: "JS_TS", title: "JS·TS 노트" },
   "기본 화면 설계": { domain: "PKT_FRONT_LEV1", title: "기본 화면 설계" },
-  "공통 컴포넌트": { domain: "UIUX", title: "공통 컴포넌트" },
+  "공통 컴포넌트": { domain: "UIUX", title: "공통 UI · 시스템 갤러리" },
   "메뉴·네비게이션": { domain: "UI_NAV", title: "메뉴·네비게이션" },
-  "폼·유효성 검사": { domain: "UI_FORM", title: "폼·유효성 검사" },
-  "레이아웃·페이지": { domain: "UI_LAYOUT", title: "레이아웃·페이지" },
-  "인터랙션·상태": { domain: "UI_STATE", title: "인터랙션·상태" },
+  "폼 UI": { domain: "UI_FORM", title: "폼 UI · 시스템 갤러리" },
+  "레이아웃·페이지": { domain: "UI_LAYOUT", title: "레이아웃·페이지 · 시스템 갤러리" },
+  "인터랙션·상태": { domain: "UI_STATE", title: "인터랙션·상태 · 시스템 갤러리" },
 };
 
 export function ModuleRouter({ children }: { children: React.ReactNode; tree?: unknown }) {

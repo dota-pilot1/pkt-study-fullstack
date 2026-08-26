@@ -104,6 +104,7 @@ export default function DocumentPage({
   onDelete,
   deleting = false,
   reordering = false,
+  canDelete = true,
 }: {
   documentId: number;
   title: string;
@@ -122,6 +123,7 @@ export default function DocumentPage({
   onDelete: (id: number) => void;
   deleting?: boolean;
   reordering?: boolean;
+  canDelete?: boolean;
 }) {
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set(documents.filter((item) => item.parentId !== null).map((item) => item.parentId as number)));
   const [locationOpen, setLocationOpen] = useState(false);
@@ -262,7 +264,7 @@ export default function DocumentPage({
                   <h1 className="mt-1 text-xl font-black text-text-primary">{document.data.title}</h1>
                   <p className="mt-1 text-[11px] font-semibold text-text-muted">최종 수정 {new Date(document.data.updatedAt).toLocaleString("ko-KR")}</p>
                 </div>
-                <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => onEdit(documentId)} className="ui-icon-button-brand size-8" title="수정"><Pencil className="size-3.5" /></button><button type="button" onClick={() => onDelete(documentId)} disabled={deleting} className="ui-icon-button size-8 text-destructive disabled:opacity-40" title="삭제"><Trash2 className="size-3.5" /></button></div>
+                <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => onEdit(documentId)} className="ui-icon-button-brand size-8" title="수정"><Pencil className="size-3.5" /></button>{canDelete ? <button type="button" onClick={() => onDelete(documentId)} disabled={deleting} className="ui-icon-button size-8 text-destructive disabled:opacity-40" title="삭제"><Trash2 className="size-3.5" /></button> : null}</div>
               </header>
               {previewBlocks.length > 0 && (
                 <div className="flex gap-1 border-b border-surface-border px-4" role="tablist" aria-label="본문 보기 방식">

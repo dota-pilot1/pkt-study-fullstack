@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/server/auth";
-import { deleteTopic, renameTopic } from "@/server/modules/playbook/playbook-service";
+import { deleteTopic, PlaybookServiceError, renameTopic } from "@/server/modules/playbook/playbook-service";
 
 export const runtime = "nodejs";
 
@@ -20,6 +20,11 @@ export async function DELETE(_request: Request, context: RouteContext<"/api/hosp
   if (!user) return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
   const id = Number((await context.params).topicId);
   if (!Number.isInteger(id)) return NextResponse.json({ message: "주제 ID가 올바르지 않습니다." }, { status: 400 });
-  const deleted = await deleteTopic(id);
-  return deleted ? new NextResponse(null, { status: 204 }) : NextResponse.json({ message: "주제를 찾을 수 없습니다." }, { status: 404 });
+  try {
+    const deleted = await deleteTopic(id);
+    return deleted ? new NextResponse(null, { status: 204 }) : NextResponse.json({ message: "주제를 찾을 수 없습니다." }, { status: 404 });
+  } catch (error) {
+    if (error instanceof PlaybookServiceError) return NextResponse.json({ message: error.message }, { status: error.status });
+    throw error;
+  }
 }

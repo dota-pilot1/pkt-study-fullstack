@@ -1,12 +1,18 @@
 import type { ComponentType } from "react";
 import { Badge } from "./badge";
+import { BreadcrumbDemo } from "./breadcrumb-demo";
 import { Button } from "./button";
 import { HeaderDemo } from "./header-demo";
+import { FormDemo } from "./form-demo";
+import { LayoutDemo } from "./layout-demo";
+import { StateDemo } from "./state-demo";
 import { Input } from "./input";
 import { ModalDemo } from "./modal-demo";
+import { PaginationDemo } from "./pagination-demo";
 import { Select } from "./select";
 import { SidebarDemo } from "./sidebar-demo";
 import { TableDemo } from "./table-demo";
+import { TabsDemo } from "./tabs-demo";
 import { Toggle } from "./toggle";
 import { GALLERY_SOURCE } from "./source-map";
 
@@ -37,6 +43,30 @@ export function getGallerySource(file: string): string {
 }
 
 export const GALLERY_ENTRIES: GalleryEntry[] = [
+  {
+    id: "state",
+    label: "Interaction · State",
+    Component: StateDemo,
+    defaultProps: { mode: "hover" },
+    controls: [{ name: "mode", type: "select", options: ["hover", "dropdown", "accordion", "animation", "loading", "skeleton", "empty", "error", "toast", "combo"] }],
+    sourceFiles: ["state-demo.tsx", "state-demo.css"],
+  },
+  {
+    id: "layout",
+    label: "Layout Pattern",
+    Component: LayoutDemo,
+    defaultProps: { mode: "grid" },
+    controls: [{ name: "mode", type: "select", options: ["grid", "responsive", "dashboard", "list-detail", "master-detail"] }],
+    sourceFiles: ["layout-demo.tsx", "layout-demo.css"],
+  },
+  {
+    id: "form",
+    label: "Form UI",
+    Component: FormDemo,
+    defaultProps: { mode: "login" },
+    controls: [{ name: "mode", type: "select", options: ["login", "signup", "password", "search", "filter", "date", "lot", "equipment", "edit", "file", "image"] }],
+    sourceFiles: ["form-demo.tsx", "form-demo.css", "input.tsx", "select.tsx", "button.tsx"],
+  },
   {
     id: "button",
     label: "Button",
@@ -117,6 +147,33 @@ export const GALLERY_ENTRIES: GalleryEntry[] = [
       { name: "hover", type: "boolean" },
     ],
     sourceFiles: ["table.tsx", "table.css", "table-demo.tsx"],
+  },
+  {
+    id: "tabs",
+    label: "Tabs",
+    Component: TabsDemo,
+    defaultProps: { variant: "line", dense: false },
+    controls: [
+      { name: "variant", type: "select", options: ["line", "pill"] },
+      { name: "dense", type: "boolean" },
+    ],
+    sourceFiles: ["tabs.tsx", "tabs.css", "tabs-demo.tsx"],
+  },
+  {
+    id: "breadcrumb",
+    label: "Breadcrumb",
+    Component: BreadcrumbDemo,
+    defaultProps: { compact: false },
+    controls: [{ name: "compact", type: "boolean" }],
+    sourceFiles: ["breadcrumb.tsx", "breadcrumb.css", "breadcrumb-demo.tsx"],
+  },
+  {
+    id: "pagination",
+    label: "Pagination",
+    Component: PaginationDemo,
+    defaultProps: { compact: false },
+    controls: [{ name: "compact", type: "boolean" }],
+    sourceFiles: ["pagination.tsx", "pagination.css", "pagination-demo.tsx"],
   },
   {
     id: "modal",

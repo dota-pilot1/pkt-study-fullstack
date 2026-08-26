@@ -40,6 +40,7 @@ function DocumentDrawer({
   deleting = false,
   deleteError,
   loading = false,
+  canDelete = true,
 }: {
   document: PlaybookDocument;
   previous?: PlaybookDocument;
@@ -52,6 +53,7 @@ function DocumentDrawer({
   deleting?: boolean;
   deleteError?: string;
   loading?: boolean;
+  canDelete?: boolean;
 }) {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -326,9 +328,7 @@ function DocumentDrawer({
             </button>
           </div>
           <div className="drawer-action-group drawer-action-group-danger flex shrink-0 items-center gap-1">
-            <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제">
-              <Trash2 className="size-4" />
-            </button>
+            {canDelete ? <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제"><Trash2 className="size-4" /></button> : null}
             <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
               <X className="size-4" />
             </button>

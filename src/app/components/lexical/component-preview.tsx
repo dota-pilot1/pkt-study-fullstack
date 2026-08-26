@@ -140,7 +140,7 @@ export function ComponentPreview({ block, framed = true }: { block: ComponentPre
   }
 
   return (
-    <div className={`gallery-preview ${framed ? "overflow-hidden rounded-lg border border-surface-border-soft bg-surface-raised" : "bg-surface-raised"}`}>
+    <div className={`gallery-preview ${framed ? "overflow-visible rounded-lg border border-surface-border-soft bg-surface-raised" : "bg-surface-raised"}`}>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-surface-border-soft px-4 py-2.5">
         <span className="text-[14px] font-black text-text-primary">{entry.label}</span>
         {entry.controls.map((control) => (

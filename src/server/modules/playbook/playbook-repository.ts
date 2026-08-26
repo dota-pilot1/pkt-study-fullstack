@@ -28,6 +28,11 @@ export async function findSpaceByCode(code: string) {
   return space ?? null;
 }
 
+export async function findSpaceById(id: number) {
+  const [space] = await db.select().from(playbookSpaces).where(eq(playbookSpaces.id, id)).limit(1);
+  return space ?? null;
+}
+
 export async function findCategoryById(id: number) {
   const [category] = await db.select().from(playbookCategories).where(eq(playbookCategories.id, id)).limit(1);
   return category ?? null;
@@ -133,6 +138,13 @@ export async function deleteTopic(id: number) {
   const [topic] = await db.select().from(playbookTopics).where(eq(playbookTopics.id, id)).limit(1);
   if (!topic) return false;
   await db.delete(playbookTopics).where(eq(playbookTopics.id, id));
+  return true;
+}
+
+export async function deleteCategory(id: number) {
+  const [category] = await db.select().from(playbookCategories).where(eq(playbookCategories.id, id)).limit(1);
+  if (!category) return false;
+  await db.delete(playbookCategories).where(eq(playbookCategories.id, id));
   return true;
 }
 

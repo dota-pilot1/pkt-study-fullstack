@@ -114,9 +114,9 @@ const noteSpaceSeeds = [
   ["JS_TS", "JS·TS 노트", "JavaScript·TypeScript 기초", "배열 메서드와 타입", "map·filter·reduce, TypeScript 타입과 React에서의 활용 기록"],
   ["UIUX", "공통 컴포넌트", "기본 컴포넌트", "Button", "Button 컴포넌트의 variant·size·상태를 정리합니다."],
   ["UI_NAV", "메뉴·네비게이션", "기본 UI 실습", "Sidebar와 Header", "메뉴와 네비게이션 컴포넌트 구성"],
-  ["UI_FORM", "폼·유효성 검사", "기본 UI 실습", "Form 상태와 검증", "React Hook Form과 Zod 입력 검증"],
-  ["UI_LAYOUT", "레이아웃·페이지", "기본 UI 실습", "List와 Detail", "Grid/Flex와 반응형 페이지 구성"],
-  ["UI_STATE", "인터랙션·상태", "기본 UI 실습", "Loading과 Empty", "Hover, Dropdown, Loading, Skeleton, Empty, Toast"],
+  ["UI_FORM", "폼 UI", "인증 폼", "로그인 폼", "로그인 입력과 인증 상태를 연결하는 폼 패턴"],
+  ["UI_LAYOUT", "레이아웃·페이지", "레이아웃 기초", "Grid·Flex", "Grid/Flex와 반응형 페이지 구성"],
+  ["UI_STATE", "인터랙션·상태", "인터랙션 패턴", "Hover", "Hover, Dropdown, Accordion, Animation 인터랙션 패턴"],
 ] as const;
 for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSeeds) {
   sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(code, name, now, now);
@@ -135,6 +135,72 @@ for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSee
   if (!existingDocument) {
     const content = JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: documentText }] }] } });
     sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, topicTitle, content, 0, now, now);
+  }
+}
+
+// 폼 UI는 기술 목록이 아니라 바로 조합해 쓰는 화면 패턴으로 유지한다.
+const uiFormSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("UI_FORM") as { id: number };
+const uiFormCategories = [
+  ["인증 폼", ["로그인 폼", "회원가입 폼", "비밀번호 변경 폼"]],
+  ["조회 폼", ["검색 폼", "필터 폼", "날짜 범위 폼"]],
+  ["등록·수정 폼", ["LOT 등록 폼", "설비 등록 폼", "공통 수정 폼"]],
+  ["업로드 폼", ["파일 업로드 폼", "이미지 업로드 폼"]],
+] as const;
+for (const [categoryTitle, topicTitles] of uiFormCategories) {
+  let category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(uiFormSpace.id, categoryTitle) as { id: number } | undefined;
+  if (!category) {
+    const count = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?").get(uiFormSpace.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(uiFormSpace.id, categoryTitle, count.count, now, now);
+    category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(uiFormSpace.id, categoryTitle) as { id: number };
+  }
+  for (const topicTitle of topicTitles) {
+    const exists = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1").get(category.id, topicTitle);
+    if (!exists) {
+      const count = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?").get(category.id) as { count: number };
+      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(category.id, topicTitle, count.count, now, now);
+    }
+  }
+}
+
+const uiLayoutSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("UI_LAYOUT") as { id: number };
+const uiLayoutCategories = [
+  ["레이아웃 기초", ["Grid·Flex", "반응형"]],
+  ["화면 패턴", ["Dashboard", "List·Detail", "Master-Detail"]],
+] as const;
+for (const [categoryTitle, topicTitles] of uiLayoutCategories) {
+  let category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(uiLayoutSpace.id, categoryTitle) as { id: number } | undefined;
+  if (!category) {
+    const count = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?").get(uiLayoutSpace.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(uiLayoutSpace.id, categoryTitle, count.count, now, now);
+    category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(uiLayoutSpace.id, categoryTitle) as { id: number };
+  }
+  for (const topicTitle of topicTitles) {
+    const exists = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1").get(category.id, topicTitle);
+    if (!exists) {
+      const count = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?").get(category.id) as { count: number };
+      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(category.id, topicTitle, count.count, now, now);
+    }
+  }
+}
+
+const uiStateSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("UI_STATE") as { id: number };
+const uiStateCategories = [
+  ["인터랙션 패턴", ["Hover", "Dropdown", "Accordion", "Animation"]],
+  ["상태·피드백", ["Loading", "Skeleton", "Empty", "페이지 에러", "Toast", "상태 조합"]],
+] as const;
+for (const [categoryTitle, topicTitles] of uiStateCategories) {
+  let category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(uiStateSpace.id, categoryTitle) as { id: number } | undefined;
+  if (!category) {
+    const count = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?").get(uiStateSpace.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(uiStateSpace.id, categoryTitle, count.count, now, now);
+    category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(uiStateSpace.id, categoryTitle) as { id: number };
+  }
+  for (const topicTitle of topicTitles) {
+    const exists = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1").get(category.id, topicTitle);
+    if (!exists) {
+      const count = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?").get(category.id) as { count: number };
+      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(category.id, topicTitle, count.count, now, now);
+    }
   }
 }
 

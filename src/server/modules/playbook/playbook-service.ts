@@ -18,8 +18,31 @@ export const getTree = repository.getTree;
 export const createTopic = repository.createTopic;
 export const renameCategory = repository.renameCategory;
 export const renameTopic = repository.renameTopic;
-export const deleteTopic = repository.deleteTopic;
 export const reorderTopics = repository.reorderTopics;
+
+const SYSTEM_GALLERY_SPACES = new Set(["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
+
+async function isProtectedGalleryTopic(topicId: number) {
+  const topic = await repository.findTopicById(topicId);
+  if (!topic) return false;
+  const category = await repository.findCategoryById(topic.categoryId);
+  if (!category) return false;
+  const space = await repository.findSpaceById(category.spaceId);
+  return Boolean(space && SYSTEM_GALLERY_SPACES.has(space.code));
+}
+
+export async function deleteCategory(id: number) {
+  const category = await repository.findCategoryById(id);
+  if (!category) return false;
+  const space = await repository.findSpaceById(category.spaceId);
+  if (space && SYSTEM_GALLERY_SPACES.has(space.code)) throw new PlaybookServiceError(403, "공통 UI 시스템 갤러리의 영역은 삭제할 수 없습니다.");
+  return repository.deleteCategory(id);
+}
+
+export async function deleteTopic(id: number) {
+  if (await isProtectedGalleryTopic(id)) throw new PlaybookServiceError(403, "공통 UI 시스템 갤러리의 주제는 삭제할 수 없습니다.");
+  return repository.deleteTopic(id);
+}
 
 export async function createDocument(topicId: number, title: string, parentId: number | null, createdBy: number) {
   return repository.createDocument(topicId, title, parentId, createdBy);
@@ -36,6 +59,10 @@ export async function updateDocument(id: number, title: string | undefined, cont
 }
 
 export async function deleteDocumentTree(id: number) {
+  const document = await repository.findDocument(id);
+  if (document?.parentId === null && await isProtectedGalleryTopic(document.topicId)) {
+    throw new PlaybookServiceError(403, "공통 UI 시스템 갤러리의 대표 문서는 삭제할 수 없습니다.");
+  }
   const ids = await repository.findDocumentTreeIds(id);
   if (!ids) throw new PlaybookServiceError(404, "문서를 찾을 수 없습니다.");
   await repository.deleteDocumentTree(ids);

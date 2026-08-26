@@ -7,7 +7,7 @@ export default function PreviewGallery({ blocks }: { blocks: PreviewBlock[] }) {
   return (
     <div className="flex flex-col gap-3">
       {blocks.map((block, index) => (
-        <div key={index} className="overflow-hidden rounded-lg border border-surface-border-soft bg-surface-raised">
+        <div key={index} className="overflow-visible rounded-lg border border-surface-border-soft bg-surface-raised">
           <div className="flex items-center gap-2 border-b border-surface-border-soft px-4 py-2.5">
             <span className="text-[14px] font-black text-text-primary">
               {block.label || `미리보기 ${index + 1}`}
@@ -26,4 +26,3 @@ export default function PreviewGallery({ blocks }: { blocks: PreviewBlock[] }) {
     </div>
   );
 }
-
