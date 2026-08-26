@@ -1,6 +1,8 @@
 import "server-only";
 
 import { drizzle } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
+import fs from "node:fs";
 import * as schema from "@/db/schema";
 import bcrypt from "bcryptjs";
 import { applyMigrations } from "@/server/db/migrations";
@@ -12,6 +14,69 @@ import {
 } from "@/server/db/seed-content";
 
 applyMigrations(sqlite);
+
+/**
+ * 업데이트된 설치 시드에만 있는 플레이북 구조를 기존 사용자 DB에 병합한다.
+ * 기존 문서의 본문·수정 이력은 덮어쓰지 않고, 같은 부모 아래 같은 제목이
+ * 없는 항목만 추가해 신규 메뉴가 업데이트 이후에도 보이게 한다.
+ */
+function mergePackagedPlaybookSeed() {
+  const seedPath = process.env.PKT_STUDY_SEED_DB;
+  if (!seedPath || seedPath === databasePath || !fs.existsSync(seedPath)) return;
+
+  const seed = new Database(seedPath, { readonly: true });
+  const now = new Date().toISOString();
+  try {
+    const seedSpace = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code = ?").get("PKT_FRONT_LEV1") as { id: number; code: string; name: string } | undefined;
+    if (!seedSpace) return;
+
+    const insertSpace = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)");
+    const insertCategory = sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
+    const insertTopic = sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)");
+    const insertDocument = sqlite.prepare("INSERT INTO playbook_documents (topic_id, parent_id, title, content, status, use_for_chatbot, order_idx, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+    const merge = sqlite.transaction(() => {
+      let targetSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get(seedSpace.code) as { id: number } | undefined;
+      if (!targetSpace) {
+        const result = insertSpace.run(seedSpace.code, seedSpace.name, now, now);
+        targetSpace = { id: Number(result.lastInsertRowid) };
+      }
+
+      const categories = seed.prepare("SELECT id, title, order_idx FROM playbook_categories WHERE space_id = ? ORDER BY order_idx, id").all(seedSpace.id) as Array<{ id: number; title: string; order_idx: number }>;
+      for (const seedCategory of categories) {
+        let targetCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(targetSpace.id, seedCategory.title) as { id: number } | undefined;
+        if (!targetCategory) {
+          const result = insertCategory.run(targetSpace.id, seedCategory.title, seedCategory.order_idx, now, now);
+          targetCategory = { id: Number(result.lastInsertRowid) };
+        }
+
+        const topics = seed.prepare("SELECT id, title, order_idx FROM playbook_topics WHERE category_id = ? ORDER BY order_idx, id").all(seedCategory.id) as Array<{ id: number; title: string; order_idx: number }>;
+        for (const seedTopic of topics) {
+          let targetTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1").get(targetCategory.id, seedTopic.title) as { id: number } | undefined;
+          if (!targetTopic) {
+            const result = insertTopic.run(targetCategory.id, seedTopic.title, seedTopic.order_idx, now, now);
+            targetTopic = { id: Number(result.lastInsertRowid) };
+          }
+
+          const mergeDocuments = (seedParentId: number | null, targetParentId: number | null) => {
+            const documents = seed.prepare("SELECT id, title, content, status, use_for_chatbot, order_idx, version FROM playbook_documents WHERE topic_id = ? AND parent_id IS ? ORDER BY order_idx, id").all(seedTopic.id, seedParentId) as Array<{ id: number; title: string; content: string; status: string; use_for_chatbot: number; order_idx: number; version: number }>;
+            for (const document of documents) {
+              const existing = sqlite.prepare("SELECT id FROM playbook_documents WHERE topic_id = ? AND parent_id IS ? AND title = ? LIMIT 1").get(targetTopic.id, targetParentId, document.title) as { id: number } | undefined;
+              const targetDocumentId = existing?.id ?? Number(insertDocument.run(targetTopic.id, targetParentId, document.title, document.content, document.status, document.use_for_chatbot, document.order_idx, document.version, now, now).lastInsertRowid);
+              mergeDocuments(document.id, targetDocumentId);
+            }
+          };
+          mergeDocuments(null, null);
+        }
+      }
+    });
+    merge();
+  } finally {
+    seed.close();
+  }
+}
+
+mergePackagedPlaybookSeed();
 
 const now = new Date().toISOString();
 sqlite.prepare(

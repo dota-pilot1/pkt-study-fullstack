@@ -157,6 +157,7 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         .env("NODE_ENV", "production")
         .env("PKT_STUDY_DESKTOP", "1")
         .env("PKT_STUDY_DATA_DIR", data_dir.to_string_lossy().to_string())
+        .env("PKT_STUDY_SEED_DB", packaged_database_path.to_string_lossy().to_string())
         .spawn()
         .map_err(|error| {
             eprintln!("node sidecar spawn failed: {error}");
