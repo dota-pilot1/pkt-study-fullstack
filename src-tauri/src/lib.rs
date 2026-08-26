@@ -133,11 +133,21 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
     })?;
     let database_path = data_dir.join("pkt-study.db");
     let packaged_database_path = next_dir.join(".data").join("pkt-study.db");
-    if !database_path.exists() && packaged_database_path.exists() {
+    let seed_version_path = data_dir.join("pkt-study-seed-version");
+    let seed_version = env!("CARGO_PKG_VERSION");
+    let installed_seed_version = std::fs::read_to_string(&seed_version_path).unwrap_or_default();
+    if packaged_database_path.exists() && (!database_path.exists() || installed_seed_version.trim() != seed_version) {
+        if database_path.exists() {
+            let backup_path = data_dir.join("pkt-study.db.before-seed-sync");
+            let _ = std::fs::copy(&database_path, backup_path);
+        }
         std::fs::copy(&packaged_database_path, &database_path).map_err(|error| {
             tauri::Error::Anyhow(error.into())
         })?;
-        eprintln!("initialized user SQLite database from packaged local seed: {}", database_path.display());
+        std::fs::write(&seed_version_path, seed_version).map_err(|error| {
+            tauri::Error::Anyhow(error.into())
+        })?;
+        eprintln!("synchronized user SQLite database with packaged local seed v{seed_version}: {}", database_path.display());
     }
     eprintln!("resource directory: {}", resource_dir.display());
     eprintln!("next directory: {}", next_dir.display());
