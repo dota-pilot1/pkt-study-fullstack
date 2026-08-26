@@ -35,21 +35,26 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
         id: "workflow", label: "작업 순서", summary: "조회부터 시작하고 생성·수정·정렬 후 다시 확인합니다.",
         content: `# 기본 작업 순서
 
-1. GET ${base}/tree?spaceCode=${domain} 또는 GET ${base}/topics/${topicId ?? "{topicId}"}
+1. GET ${base}/tree?spaceCode=${domain} 또는 GET ${base}/topics/${topicId ?? "{topicId}"}로 화면의 선택 위치와 현재 ID를 확인
 2. 기존 본문 문서와 최신 version 확인
-3. 없으면 POST로 본문 문서 생성
-4. 본문에는 전체 목표와 TODO 1~N 계획을 PATCH로 저장
-5. TODO마다 POST로 하위 문서를 만들고 그 안에 Step 1~N 작성
+3. 같은 위치에 본문 문서가 없을 때만 POST로 생성
+4. TODO 하나를 하나의 본문 문서로 POST하고 목표·범위·선행 조건·완료 기준을 저장
+5. TODO가 길면 API 구현·Front 구현 하위 문서를 POST하고 각 문서 안에 Step 1~N 작성
 6. 필요하면 POST로 하위 문서 순서 정렬
 7. 마지막에 GET으로 저장 결과 재조회
 
 ## 문서 구조
-2차 주제 → 본문 문서(전체 TODO 계획) → TODO 하위 문서(TODO 하나의 Step 1~N)
+2차 주제 → TODO 본문 문서(TODO 하나) → API 구현·Front 구현 하위 문서
 
 - Step마다 별도 문서를 만들지 않습니다.
-- 본문 문서에는 전체 목표·구현 범위·TODO 계획·의존성·완료 기준을 작성합니다.
-- TODO 하위 문서에는 Route Handler·내부 함수·Drizzle·SQLite·검증의 실제 파일과 코드를 Step 1~N으로 작성합니다.
+- TODO 본문 문서에는 해당 기능 하나의 목표·범위·선행 조건·완료 기준을 작성합니다.
+- TODO 본문 문서 아래에는 필요할 때 API 구현과 Front 구현 하위 문서를 나눠 만듭니다.
+- API·Front 하위 문서에는 실제 파일·함수·훅·컴포넌트·검증을 Step 1~N으로 작성합니다.
+- API가 없는 프론트 전용 작업은 API 하위 문서를 억지로 만들지 않습니다.
 - 존재하는 문서를 중복 생성하지 않습니다.
+- 한 기능이 길어지면 하나의 긴 문서에 API와 Front를 섞지 않고 하위 문서로 분리합니다.
+- 문서 ID·topicId·카테고리 제목을 예시에서 복사하지 않고 현재 조회 응답을 사용합니다.
+- 구조 생성은 기존 tree에 같은 1차·2차 메뉴가 없을 때만 호출합니다.
 - 구현 전 실제 파일·API·응답을 조회합니다.
 - 구현 후 실제 파일 경로, 코드, 테스트 결과를 문서에 반영합니다.
 - 409가 나오면 최신 문서를 다시 조회하고 expectedVersion을 갱신합니다.`,
@@ -62,7 +67,7 @@ GET ${base}/samples
 GET ${base}/samples/API_IMPLEMENTATION
 GET ${base}/samples/FRONTEND_IMPLEMENTATION
 
-API_IMPLEMENTATION 응답은 상위 계획 문서의 content와 TODO 상세 문서 children을 함께 반환합니다. 샘플 문서는 노트 홈 아래의 '샘플 노트' 메뉴에서 편집하며 documentId를 고정하지 않고 sampleKey로 조회합니다.`,
+API_IMPLEMENTATION 응답은 샘플 본문 content와 TODO 상세 문서 children을 함께 반환합니다. 샘플 문서는 노트 홈 아래의 '샘플 노트' 메뉴에서 편집하며 documentId를 고정하지 않고 sampleKey로 조회합니다.`,
       },
       {
         id: "get", label: "GET 조회", method: "GET", summary: "구조·주제·문서를 조회하고 ID와 version을 확보합니다.",
@@ -73,7 +78,7 @@ GET ${base}/categories/{categoryId}
 GET ${base}/topics/${topicId ?? "{topicId}"}
 GET ${base}/documents/{documentId}
 
-주제 조회 결과에 기존 본문 문서가 있으면 새로 만들지 않습니다. 수정 전에는 반드시 최신 version을 확인합니다.`,
+주제 조회 결과에 같은 TODO 본문 문서가 있으면 새로 만들지 않습니다. 수정 전에는 반드시 최신 version을 확인합니다.`,
       },
       {
         id: "post", label: "POST 생성·정렬", method: "POST", summary: "구조·본문·상세 리뷰 문서를 생성하고 하위 문서 순서를 바꿉니다.",
@@ -85,17 +90,17 @@ Content-Type: application/json
 
 {
   "spaceCode": "${domain}",
-  "categoryTitle": "기본 UI 실습",
-  "topicTitles": ["기본 테이블", "컴포넌트 만들기"]
+  "categoryTitle": "tree에 없는 새 1차 영역",
+  "topicTitles": ["tree에 없는 새 2차 주제"]
 }
 
-구조 생성 전 GET으로 중복 여부를 확인합니다.
+구조 생성 전 GET으로 중복 여부를 확인합니다. 화면에 이미 존재하는 위치라면 구조 생성 없이 조회한 topicId를 사용합니다.
 
-## 본문 문서 생성
+## TODO 본문 문서 생성
 POST ${base}/topics/${topicId ?? "{topicId}"}/documents
 
 {
-  "title": "앱 내부 조회 API 구현",
+  "title": "TODO 1. 앱 내부 조회 API 구현",
   "content": "Lexical JSON 문자열",
   "parentId": null
 }

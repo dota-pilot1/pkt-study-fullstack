@@ -43,8 +43,10 @@ if (!defaultSpace) {
 // 새 로컬 DB에서도 한 모듈만 준비 상태로 남지 않도록 최소 구조를 각 space에 보장한다.
 const noteSpaceSeeds = [
   ["SPRING_BOOT", "스프링 노트", "스프링 핵심", "Spring Boot 시작하기", "Spring Boot, JPA, DDD 계층과 API 설계 기록"],
+  ["JAVA", "자바 노트", "Java 기초", "객체와 컬렉션", "Java 문법, 객체지향, 컬렉션과 Stream 사용 기록"],
   ["DB", "DB 테이블 설계", "데이터 모델링", "고정 계층과 무한 계층", "PostgreSQL, ERD, JPA와 데이터 모델 기록"],
   ["FRONTEND", "리액트 노트", "React 기본", "Next.js 화면 구성", "React, Next.js, FSD와 화면 구현 기록"],
+  ["JS_TS", "JS·TS 노트", "JavaScript·TypeScript 기초", "배열 메서드와 타입", "map·filter·reduce, TypeScript 타입과 React에서의 활용 기록"],
   ["UIUX", "공통 컴포넌트", "기본 컴포넌트", "Button", "Button 컴포넌트의 variant·size·상태를 정리합니다."],
   ["UI_NAV", "메뉴·네비게이션", "기본 UI 실습", "Sidebar와 Header", "메뉴와 네비게이션 컴포넌트 구성"],
   ["UI_FORM", "폼·유효성 검사", "기본 UI 실습", "Form 상태와 검증", "React Hook Form과 Zod 입력 검증"],

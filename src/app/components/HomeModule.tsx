@@ -9,6 +9,7 @@ import {
   Boxes,
   Check,
   ChevronRight,
+  Coffee,
   Code2,
   Copy,
   Cpu,
@@ -73,6 +74,13 @@ const NOTE_GROUPS: NoteGroup[] = [
         tags: ["Spring Boot", "JPA", "DDD"],
       },
       {
+        id: "자바 노트",
+        title: "자바 노트",
+        desc: "Java 문법, 객체지향, 컬렉션과 Stream API를 스프링 코드와 연결해 정리",
+        icon: Coffee,
+        tags: ["Java", "OOP", "Collection"],
+      },
+      {
         id: "DB 테이블 설계",
         title: "DB 테이블 설계",
         desc: "PostgreSQL 스키마, ERD 모델링, 인덱스 최적화 및 쿼리 설계",
@@ -95,6 +103,13 @@ const NOTE_GROUPS: NoteGroup[] = [
         desc: "React 19, Next.js 16 App Router, Feature-Sliced Design 아키텍처",
         icon: Workflow,
         tags: ["React 19", "Next.js", "FSD"],
+      },
+      {
+        id: "JS·TS 노트",
+        title: "JS·TS 노트",
+        desc: "map·filter·reduce부터 TypeScript 타입과 React 코드 읽기까지",
+        icon: Code2,
+        tags: ["JavaScript", "TypeScript", "Array"],
       },
       {
         id: "기본 화면 설계",

@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpenCheck, Boxes, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
+  BookOpenCheck, Boxes, Code2, Coffee, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
   MousePointerClick, Navigation, Settings, SquarePen, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -23,8 +23,10 @@ const railItems: RailItem[] = [
   { label: "노트 홈", icon: LayoutDashboard, group: "core" },
   { label: "샘플 노트", icon: BookOpenCheck, group: "core" },
   { label: "스프링 노트", icon: Leaf, group: "backend" },
+  { label: "자바 노트", icon: Coffee, group: "backend" },
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
   { label: "리액트 노트", icon: Workflow, group: "frontend" },
+  { label: "JS·TS 노트", icon: Code2, group: "frontend" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
   { label: "공통 컴포넌트", icon: Boxes, group: "design" },
   { label: "메뉴·네비게이션", icon: Navigation, group: "design" },

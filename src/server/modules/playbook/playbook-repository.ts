@@ -192,10 +192,9 @@ export async function findDocumentTreeIds(id: number) {
 }
 
 export async function deleteDocumentTree(ids: number[]) {
-  db.transaction((tx) => {
-    tx.delete(playbookDocumentComments).where(inArray(playbookDocumentComments.documentId, ids));
-    tx.delete(playbookDocuments).where(inArray(playbookDocuments.id, ids));
-  });
+  // 하위 문서 삭제 전에 연결된 댓글을 먼저 지워 외래 키 충돌을 방지한다.
+  await db.delete(playbookDocumentComments).where(inArray(playbookDocumentComments.documentId, ids));
+  await db.delete(playbookDocuments).where(inArray(playbookDocuments.id, ids));
 }
 
 export async function listComments(documentId: number) {
