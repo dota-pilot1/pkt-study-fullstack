@@ -306,7 +306,7 @@ GET /api/llm/hospital-playbook/samples/FRONTEND_IMPLEMENTATION
 - API_IMPLEMENTATION의 content는 전체 TODO 계획이며 children 각 항목은 TODO 하나의 Step 1~N 상세 문서입니다.
 - API 샘플의 children을 순서대로 모두 읽어 parentId·파일·코드·검증 구조까지 함께 따릅니다.
 - 프론트 구현 노트는 FRONTEND_IMPLEMENTATION 샘플을 기준으로 합니다.
-- 샘플 문서는 노트 홈 아래의 '샘플 노트' 메뉴에서 편집합니다.
+- 샘플 문서는 일반 메뉴에 노출하지 않는 내부 기준 데이터입니다.
 - 샘플 documentId를 코드나 요청문에 고정하지 말고 sampleKey로 조회합니다.
 - 샘플을 수정하면 API 가이드 미리보기와 이후 LLM 조회에 즉시 반영됩니다.
 

@@ -80,7 +80,9 @@ import { MermaidPreview } from './mermaid-preview'
 import { $createMermaidNode } from './nodes/mermaid-node'
 import { $createHtmlPreviewNode } from './nodes/html-preview-node'
 import { $createComponentPreviewNode } from './nodes/component-preview-node'
+import { $createTailwindTsxPreviewNode } from './nodes/tailwind-tsx-preview-node'
 import { ComponentPreview } from './component-preview'
+import { TailwindTsxWorkbenchDialog, type TailwindTsxBlock } from './tailwind-tsx-preview'
 import { GALLERY_ENTRIES } from '../gallery/registry'
 import { HtmlPreview } from './html-preview'
 
@@ -402,6 +404,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
         <MermaidInsertButton />
         <HtmlPreviewInsertButton />
         <ComponentPreviewInsertButton />
+        <TailwindTsxPreviewInsertButton />
         <LinkInsertButton />
       </div>
     )
@@ -489,6 +492,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
       <MermaidInsertButton />
       <HtmlPreviewInsertButton />
       <ComponentPreviewInsertButton />
+      <TailwindTsxPreviewInsertButton />
 
       <Divider />
 
@@ -727,6 +731,31 @@ function ComponentPreviewInsertButton() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+    </>
+  )
+}
+
+/** 자유 Tailwind TSX 샘플은 코드 문자열 자체를 새 Lexical 노드에 저장한다. */
+function TailwindTsxPreviewInsertButton() {
+  const [editor] = useLexicalComposerContext()
+  const [open, setOpen] = useState(false)
+
+  const handleInsert = (block: TailwindTsxBlock) => {
+    editor.focus()
+    editor.update(() => {
+      const node = $createTailwindTsxPreviewNode(block)
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) selection.insertNodes([node])
+      else $getRoot().append(node)
+    })
+  }
+
+  return (
+    <>
+      <ToolbarButton onClick={() => setOpen(true)} title="Tailwind TSX 컴포넌트 삽입">
+        <span className="font-mono text-[10px] font-black">TW</span>
+      </ToolbarButton>
+      <TailwindTsxWorkbenchDialog open={open} onOpenChange={setOpen} onSave={handleInsert} />
     </>
   )
 }
@@ -1295,4 +1324,3 @@ function ToolbarButton({
 function Divider() {
   return <span className="mx-1.5 h-6 w-px shrink-0 bg-surface-border-soft" />
 }
-

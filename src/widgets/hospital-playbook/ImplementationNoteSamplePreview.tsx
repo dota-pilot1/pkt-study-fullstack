@@ -32,7 +32,7 @@ export default function ImplementationNoteSamplePreview({ minHeight = "620px" }:
         {sample.isLoading ? (
           <div className="grid min-h-[320px] place-items-center rounded-lg border border-surface-border-soft bg-surface-muted text-sm font-bold text-text-muted">샘플 노트를 불러오는 중입니다.</div>
         ) : sample.isError || !sample.data ? (
-          <div role="alert" className="grid min-h-[320px] place-items-center rounded-lg border border-destructive/30 bg-destructive/5 px-6 text-center text-sm font-bold text-destructive">샘플 노트를 불러오지 못했습니다. 샘플 노트 메뉴에서 문서를 확인해 주세요.</div>
+          <div role="alert" className="grid min-h-[320px] place-items-center rounded-lg border border-destructive/30 bg-destructive/5 px-6 text-center text-sm font-bold text-destructive">구현 노트 기준 샘플을 불러오지 못했습니다. 내부 샘플 데이터를 확인해 주세요.</div>
         ) : (
           <LexicalEditor key={`${sampleKey}-${sample.data.version}`} initialState={sample.data.content} onChange={() => undefined} readOnly minHeight={minHeight} scrollable />
         )}

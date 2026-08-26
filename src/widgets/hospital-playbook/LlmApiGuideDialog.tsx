@@ -67,7 +67,7 @@ GET ${base}/samples
 GET ${base}/samples/API_IMPLEMENTATION
 GET ${base}/samples/FRONTEND_IMPLEMENTATION
 
-API_IMPLEMENTATION 응답은 샘플 본문 content와 TODO 상세 문서 children을 함께 반환합니다. 샘플 문서는 노트 홈 아래의 '샘플 노트' 메뉴에서 편집하며 documentId를 고정하지 않고 sampleKey로 조회합니다.`,
+API_IMPLEMENTATION 응답은 샘플 본문 content와 TODO 상세 문서 children을 함께 반환합니다. 샘플 문서는 내부 기준 데이터이며 documentId를 고정하지 않고 sampleKey로 조회합니다.`,
       },
       {
         id: "get", label: "GET 조회", method: "GET", summary: "구조·주제·문서를 조회하고 ID와 version을 확보합니다.",

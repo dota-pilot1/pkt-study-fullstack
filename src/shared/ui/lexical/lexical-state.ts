@@ -3,7 +3,7 @@
 const REGISTERED_NODE_TYPES = new Set([
   'root', 'paragraph', 'text', 'linebreak', 'heading', 'quote', 'list', 'listitem',
   'code', 'code-highlight', 'link', 'autolink', 'horizontalrule', 'table', 'tablerow',
-  'tablecell', 'image', 'youtube', 'mermaid', 'html-preview', 'component-preview',
+  'tablecell', 'image', 'youtube', 'mermaid', 'html-preview', 'component-preview', 'tailwind-tsx-preview',
 ])
 
 function nodeText(node: Record<string, unknown>): string {

@@ -352,6 +352,7 @@ body {
   .lexical-mermaid-preview svg { max-width: 100%; height: auto; margin: 0 auto; }
   .lexical-mermaid-preview-error { @apply whitespace-pre-wrap text-destructive; }
   .lexical-html-preview-node { @apply my-5 w-full; }
+  .lexical-tailwind-tsx-preview-node { @apply my-5 w-full; }
   .editor-list-item-checked, .editor-list-item-unchecked { @apply relative list-none pl-6 text-text-primary; }
   .editor-list-item-checked::before, .editor-list-item-unchecked::before { content: ""; @apply absolute left-0 top-[0.25em] size-4 rounded border border-surface-border bg-surface-raised; }
   .lexical-editor-input > code[data-language], .lexical-editor-input > code[data-highlight-language] { position: relative; padding-top: 1rem; }
@@ -397,4 +398,25 @@ body {
 }
 .animate-sub-doc-fade-in {
   animation: subDocFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes tailwind-tsx-view-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tailwind-tsx-view-enter {
+  animation: tailwind-tsx-view-enter 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tailwind-tsx-view-enter {
+    animation: none;
+  }
 }

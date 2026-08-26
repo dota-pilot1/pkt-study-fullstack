@@ -25,7 +25,7 @@ const COLLAPSED_COLUMN_WIDTH = 148;
 const EMPTY_CATEGORIES: PlaybookCategory[] = [];
 const EMPTY_TOPICS: PlaybookCategory["topics"] = [];
 const EMPTY_DOCUMENTS: PlaybookDocumentSummary[] = [];
-const SYSTEM_GALLERY_DOMAINS: PlaybookDomain[] = ["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"];
+const SYSTEM_GALLERY_DOMAINS: PlaybookDomain[] = ["COMPONENT_GALLERY", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"];
 
 function SortableTreeDocumentRow({
   document,

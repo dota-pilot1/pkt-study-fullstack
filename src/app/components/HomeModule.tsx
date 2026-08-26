@@ -5,7 +5,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
-  BookOpenCheck,
   Boxes,
   Check,
   ChevronRight,
@@ -162,23 +161,6 @@ const NOTE_GROUPS: NoteGroup[] = [
         desc: "Loading Skeleton, 비동기 Toast, Hover 피드백 및 Empty State",
         icon: MousePointerClick,
         tags: ["Feedback", "Async UX", "Toast"],
-      },
-    ],
-  },
-  {
-    id: "guide",
-    title: "학습 가이드 & 문서 템플릿",
-    badge: "Docs & Template",
-    badgeClass: "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-400",
-    iconClass: "bg-sky-500/10 text-sky-600 border-sky-500/20",
-    borderClass: "hover:border-sky-500/40",
-    items: [
-      {
-        id: "샘플 노트",
-        title: "샘플 노트",
-        desc: "Lexical 에디터 마크다운 작성법, 코드 블록 가이드 및 문서 템플릿",
-        icon: BookOpenCheck,
-        tags: ["Lexical", "Markdown", "Guidelines"],
       },
     ],
   },
@@ -620,7 +602,6 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                     { name: "스프링 노트", cat: "백엔드", icon: Leaf },
                     { name: "리액트 노트", cat: "프론트", icon: Workflow },
                     { name: "공통 컴포넌트", cat: "디자인", icon: Boxes },
-                    { name: "샘플 노트", cat: "가이드", icon: BookOpenCheck },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (

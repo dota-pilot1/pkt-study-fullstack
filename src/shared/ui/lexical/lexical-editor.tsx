@@ -43,6 +43,7 @@ import { YoutubeNode } from './nodes/youtube-node'
 import { MermaidNode, $createMermaidNode } from './nodes/mermaid-node'
 import { HtmlPreviewNode } from './nodes/html-preview-node'
 import { ComponentPreviewNode } from './nodes/component-preview-node'
+import { TailwindTsxPreviewNode, TAILWIND_TSX_NODE_RUNTIME_KEY } from './nodes/tailwind-tsx-preview-node'
 import { DragDropImagePlugin, ImagePlugin } from './plugins/image-plugin'
 import { YoutubePlugin } from './plugins/youtube-plugin'
 import { TableActionMenuPlugin } from './plugins/table-action-plugin'
@@ -707,6 +708,7 @@ export function LexicalEditor({
         MermaidNode,
         HtmlPreviewNode,
         ComponentPreviewNode,
+        TailwindTsxPreviewNode,
       ],
       onError: (error: Error) => {
         console.error('Lexical error:', error)
@@ -715,11 +717,11 @@ export function LexicalEditor({
     },
     // initialState is only used as the mount seed; block remount churn while typing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [readOnly, promoteStructure],
+    [readOnly, promoteStructure, TailwindTsxPreviewNode],
   )
 
   return (
-    <LexicalComposer initialConfig={initialConfig}>
+    <LexicalComposer key={TAILWIND_TSX_NODE_RUNTIME_KEY} initialConfig={initialConfig}>
       <div
         className={`lexical-editor flex min-h-0 flex-1 flex-col bg-surface-raised ${readOnly ? 'lexical-editor-readonly' : ''}`}
         style={height ? { height } : undefined}

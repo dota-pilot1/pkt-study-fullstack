@@ -6,6 +6,10 @@ type LexicalNode = {
   css?: string;
   componentId?: string;
   props?: Record<string, unknown>;
+  title?: string;
+  source?: string;
+  viewport?: "mobile" | "tablet" | "desktop" | "responsive";
+  theme?: "light" | "dark";
   children?: LexicalNode[];
 };
 
@@ -15,7 +19,8 @@ type LexicalNode = {
  */
 export type PreviewBlock =
   | { kind: "html"; label: string; html: string; css: string }
-  | { kind: "component"; label: string; componentId: string; props: Record<string, unknown> };
+  | { kind: "component"; label: string; componentId: string; props: Record<string, unknown> }
+  | { kind: "tailwind-tsx"; label: string; title: string; source: string; viewport: "mobile" | "tablet" | "desktop" | "responsive"; theme: "light" | "dark" };
 
 function inlineText(node: LexicalNode): string {
   if (typeof node.text === "string") return node.text;
@@ -56,6 +61,17 @@ export function collectPreviewBlocks(serialized: string): PreviewBlock[] {
       });
       return;
     }
+    if (node.type === "tailwind-tsx-preview" && node.source) {
+      blocks.push({
+        kind: "tailwind-tsx",
+        label: lastHeading,
+        title: node.title ?? "Tailwind TSX 컴포넌트",
+        source: node.source,
+        viewport: node.viewport ?? "desktop",
+        theme: node.theme ?? "light",
+      });
+      return;
+    }
     (node.children ?? []).forEach(walk);
   };
 
@@ -63,4 +79,3 @@ export function collectPreviewBlocks(serialized: string): PreviewBlock[] {
   (root.children ?? []).forEach(walk);
   return blocks;
 }
-

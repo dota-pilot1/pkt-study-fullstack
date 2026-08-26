@@ -27,7 +27,7 @@ function mergePackagedPlaybookSeed() {
   const seed = new Database(seedPath, { readonly: true });
   const now = new Date().toISOString();
   try {
-    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?)").all("UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
+    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?)").all("COMPONENT_GALLERY", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
     if (seedSpaces.length === 0) return;
 
     const insertSpace = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)");
@@ -145,6 +145,77 @@ for (const [code, name, categoryTitle, topicTitle, documentText] of noteSpaceSee
   if (!existingDocument) {
     const content = JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: documentText }] }] } });
     sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, topicTitle, content, 0, now, now);
+  }
+}
+
+// 컴포넌트 갤러리는 설명용 학습 노트가 아니라, 실행 가능한 TSX 샘플만 모아 보는 독립 공간이다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("COMPONENT_GALLERY", "컴포넌트 갤러리", now, now);
+const componentGallerySpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?")
+  .get("COMPONENT_GALLERY") as { id: number };
+
+const componentSampleState = (title: string, source: string) => JSON.stringify({
+  root: {
+    children: [{ type: "tailwind-tsx-preview", version: 1, title, source, viewport: "desktop", theme: "light" }],
+    direction: null,
+    format: "",
+    indent: 0,
+    type: "root",
+    version: 1,
+  },
+});
+
+const componentGallerySeeds = [
+  ["기본", "Button", "Primary Button", `export default function Preview() {
+  return (
+    <button
+      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+      type="button"
+    >
+      저장
+    </button>
+  )
+}`],
+  ["기본", "ViewModeToggle", "미리보기·코드 토글", `export default function Preview() {
+  return (
+    <div className="inline-grid grid-cols-2 overflow-hidden rounded-md bg-slate-100 text-sm font-semibold">
+      <button className="border border-blue-200 bg-blue-50 px-4 py-2 text-blue-700" type="button">미리보기</button>
+      <button className="px-4 py-2 text-slate-500" type="button">코드</button>
+    </div>
+  )
+}`],
+] as const;
+
+for (const [categoryTitle, topicTitle, documentTitle, source] of componentGallerySeeds) {
+  let category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(componentGallerySpace.id, categoryTitle) as { id: number } | undefined;
+  if (!category) {
+    const categoryCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?")
+      .get(componentGallerySpace.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run(componentGallerySpace.id, categoryTitle, categoryCount.count, now, now);
+    category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+      .get(componentGallerySpace.id, categoryTitle) as { id: number };
+  }
+
+  let topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(category.id, topicTitle) as { id: number } | undefined;
+  if (!topic) {
+    const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
+      .get(category.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run(category.id, topicTitle, topicCount.count, now, now);
+    topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1")
+      .get(category.id, topicTitle) as { id: number };
+  }
+
+  const existingDocument = sqlite.prepare("SELECT id FROM playbook_documents WHERE topic_id = ? AND parent_id IS NULL AND title = ? LIMIT 1")
+    .get(topic.id, documentTitle) as { id: number } | undefined;
+  if (!existingDocument) {
+    const documentCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_documents WHERE topic_id = ? AND parent_id IS NULL")
+      .get(topic.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
+      .run(topic.id, documentTitle, componentSampleState(documentTitle, source), documentCount.count, now, now);
   }
 }
 

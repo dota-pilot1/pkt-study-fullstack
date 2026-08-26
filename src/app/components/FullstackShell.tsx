@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpenCheck, Boxes, Code2, Coffee, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
+  Boxes, Code2, Coffee, Database, Factory, GraduationCap, LayoutDashboard, LayoutGrid, Leaf, LogOut,
   MousePointerClick, Navigation, Settings, SquarePen, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -12,32 +12,27 @@ import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
-type RailGroup = "core" | "backend" | "frontend" | "design";
+type RailGroup = "backend" | "frontend" | "gallery" | "design";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
-  { id: "core", label: null }, { id: "backend", label: "백엔드" },
-  { id: "frontend", label: "프론트" }, { id: "design", label: "공통 UI" },
+  { id: "backend", label: "백엔드" },
+  { id: "frontend", label: "프론트" }, { id: "gallery", label: "컴포넌트" }, { id: "design", label: "공통 UI" },
 ];
 const railItems: RailItem[] = [
-  { label: "노트 홈", icon: LayoutDashboard, group: "core" },
-  { label: "샘플 노트", icon: BookOpenCheck, group: "core" },
   { label: "스프링 노트", icon: Leaf, group: "backend" },
   { label: "자바 노트", icon: Coffee, group: "backend" },
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
   { label: "리액트 노트", icon: Workflow, group: "frontend" },
   { label: "JS·TS 노트", icon: Code2, group: "frontend" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
+  { label: "컴포넌트 갤러리", icon: Boxes, group: "gallery" },
   { label: "공통 컴포넌트", icon: Boxes, group: "design" },
   { label: "메뉴·네비게이션", icon: Navigation, group: "design" },
   { label: "폼 UI", icon: SquarePen, group: "design" },
   { label: "레이아웃·페이지", icon: LayoutGrid, group: "design" },
   { label: "인터랙션·상태", icon: MousePointerClick, group: "design" },
 ];
-const groupBand: Record<RailGroup, string | undefined> = {
-  core: undefined, backend: "#b45309", frontend: "#059669", design: "#7c3aed",
-};
-
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 const RAIL_COLLAPSED_KEY = "pkt.study.railCollapsed.v2";
@@ -161,9 +156,9 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}>
       <div className="relative flex h-screen overflow-hidden">
         <nav aria-hidden={railCollapsed} className={"relative z-50 flex shrink-0 flex-col items-center text-text-on-brand transition-[width] duration-200 ease-in-out " + (railCollapsed ? "pointer-events-none w-0 overflow-hidden" : "w-[92px] overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
-          <div className="flex h-12 w-full shrink-0 items-center justify-center border-b" style={{ borderColor: railTint(10) }}><Factory className="h-[28px] w-[28px] shrink-0" strokeWidth={2.2} /><span className="sr-only">PKT 프로젝트</span></div>
+          <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}><Factory className="h-[28px] w-[28px] shrink-0" strokeWidth={2.2} /><span className="sr-only">PKT 프로젝트 (홈으로 가기)</span></button>
           <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto py-2">
-            {railGroups.map((group) => <div key={group.id} className="flex w-[84px] shrink-0 flex-col items-center gap-1 rounded-[18px] pb-2 pt-1.5" style={{ backgroundColor: groupBand[group.id] }}>
+            {railGroups.map((group, index) => <div key={group.id} className={"flex w-[84px] shrink-0 flex-col items-center gap-1 pb-2 pt-1.5" + (index > 0 ? " border-t border-white/10 mt-1 pt-3" : "")}>
               {group.label && <span className="pb-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-text-on-brand/65">{group.label}</span>}
               {railItems.filter((item) => item.group === group.id).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;

@@ -3,6 +3,8 @@ type LexicalNode = {
   tag?: string;
   text?: string;
   language?: string;
+  title?: string;
+  source?: string;
   children?: LexicalNode[];
 };
 
@@ -18,6 +20,9 @@ function renderNode(node: LexicalNode): string {
   if (node.type === "code") {
     const code = children.map(inlineText).join("").replace(/\n{3,}/g, "\n\n").trim();
     return `\n\n\`\`\`${node.language ?? ""}\n${code}\n\`\`\`\n\n`;
+  }
+  if (node.type === "tailwind-tsx-preview") {
+    return `\n\n## ${node.title ?? "Tailwind TSX 컴포넌트"}\n\n\`\`\`tsx\n${node.source ?? ""}\n\`\`\`\n\n`;
   }
   if (node.type === "heading") return `\n\n${"#".repeat(Number(node.tag?.replace("h", "")) || 2)} ${content.trim()}\n\n`;
   if (node.type === "quote") return `\n\n${content.trim().split("\n").map((line) => `> ${line}`).join("\n")}\n\n`;
@@ -44,4 +49,3 @@ export function lexicalToMarkdown(serialized: string): string {
     return serialized.trim();
   }
 }
-

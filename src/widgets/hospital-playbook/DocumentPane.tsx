@@ -1,10 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect -- editor form state synchronizes with fetched document data. */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MonitorPlay, NotebookPen, RotateCcw, Save } from "lucide-react";
+import { Loader2, RotateCcw, Save } from "lucide-react";
 import { playbookApi } from "../../features/hospital-playbook/api";
-import { collectPreviewBlocks } from "../../features/hospital-playbook/previewBlocks";
-import PreviewGallery from "./PreviewGallery";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
 
@@ -30,7 +28,6 @@ function DocumentPane({
   const [content, setContent] = useState("");
   const [editorRevision, setEditorRevision] = useState(0);
   const [saveMessage, setSaveMessage] = useState("");
-  const [tab, setTab] = useState<"preview" | "note">("note");
   // 상세 조회가 비동기로 끝난 뒤 Lexical 편집기도 서버 본문으로 초기화한다.
   // LexicalEditor의 initialState는 마운트 시 한 번만 사용되므로, 문서 데이터가
   // 준비되면 editorRevision을 증가시켜 빈 편집기가 남지 않게 한다.
@@ -39,13 +36,6 @@ function DocumentPane({
     setTitle(document.data.title);
     setContent(document.data.content);
     setEditorRevision((revision) => revision + 1);
-  }, [document.data]);
-
-  // 첫 탭은 문서를 바꿔 열 때만 정한다. updatedAt까지 보면 저장할 때마다
-  // 편집 중이던 노트 탭에서 출력 결과로 튕긴다.
-  useEffect(() => {
-    if (!document.data) return;
-    setTab(collectPreviewBlocks(document.data.content).length > 0 ? "preview" : "note");
   }, [document.data]);
 
   const afterWrite = (saved: Awaited<ReturnType<typeof playbookApi.updateDocument>>) => {
@@ -68,10 +58,6 @@ function DocumentPane({
       showToast(error instanceof Error ? error.message : "문서를 저장하지 못했습니다.", "error");
     },
   });
-  // 저장 전에도 출력 결과가 갱신되도록 편집 중인 본문에서 직접 뽑는다.
-  // 훅이라 조기 반환보다 위에 있어야 한다.
-  const previewBlocks = useMemo(() => collectPreviewBlocks(content), [content]);
-
   if (document.isPending) {
     return (
       <div className="mt-3 grid place-items-center rounded-lg border border-surface-border-soft bg-surface-muted py-10 text-text-muted">
@@ -116,45 +102,7 @@ function DocumentPane({
         className="ui-input mt-3 font-black"
       />
 
-      {previewBlocks.length > 0 && (
-        <div className="mt-2 flex gap-1 border-b border-surface-border-soft" role="tablist" aria-label="본문 보기 방식">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "preview"}
-            onClick={() => setTab("preview")}
-            className={
-              "flex items-center gap-1.5 border-b-2 px-3 pb-2 pt-1 text-[12px] font-black " +
-              (tab === "preview" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")
-            }
-          >
-            <MonitorPlay className="size-3.5" />
-            출력 결과 ({previewBlocks.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "note"}
-            onClick={() => setTab("note")}
-            className={
-              "flex items-center gap-1.5 border-b-2 px-3 pb-2 pt-1 text-[12px] font-black " +
-              (tab === "note" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")
-            }
-          >
-            <NotebookPen className="size-3.5" />
-            노트 정리
-          </button>
-        </div>
-      )}
-
-      {previewBlocks.length > 0 && tab === "preview" && (
-        <div className="mt-2">
-          <PreviewGallery blocks={previewBlocks} />
-        </div>
-      )}
-
-      {/* 편집기는 탭을 옮겨도 언마운트하지 않아야 작성 중인 상태가 남는다. */}
-      <div className={"lexical-editor-frame mt-2" + (previewBlocks.length > 0 && tab === "preview" ? " hidden" : "")}>
+      <div className="lexical-editor-frame mt-2">
         <LexicalEditor
           key={`${documentId}-${editorRevision}`}
           initialState={content}

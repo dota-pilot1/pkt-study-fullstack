@@ -8,8 +8,6 @@ import { useEffect, useMemo, useState } from "react";
 import { playbookApi, type PlaybookCategory, type PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import PageHeader from "../../shared/ui/PageHeader";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
-import { collectPreviewBlocks } from "../../features/hospital-playbook/previewBlocks";
-import PreviewGallery from "./PreviewGallery";
 
 type DocumentRow = { document: PlaybookDocumentSummary; depth: number; indexPath: number[]; visible: boolean };
 
@@ -133,15 +131,6 @@ export default function DocumentPage({
   const [nextTopicId, setNextTopicId] = useState(topicId);
   const document = useQuery({ queryKey: ["hospital-playbook", "document", documentId], queryFn: () => playbookApi.document(documentId) });
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
-  const [viewTab, setViewTab] = useState<"preview" | "note">("note");
-  const previewBlocks = useMemo(
-    () => collectPreviewBlocks(document.data?.content ?? ""),
-    [document.data?.content],
-  );
-  // 미리보기가 있는 문서는 출력 결과부터 연다. 문서를 바꿔 열 때만 정한다.
-  useEffect(() => {
-    setViewTab(collectPreviewBlocks(document.data?.content ?? "").length > 0 ? "preview" : "note");
-  }, [document.data?.content, document.data?.id]);
 
   const { rows, children } = useMemo(() => rowsFor(documents, collapsed), [documents, collapsed]);
   const nextCategory = useMemo(() => categories.find((item) => item.id === nextCategoryId), [categories, nextCategoryId]);
@@ -266,13 +255,7 @@ export default function DocumentPage({
                 </div>
                 <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => onEdit(documentId)} className="ui-icon-button-brand size-8" title="수정"><Pencil className="size-3.5" /></button>{canDelete ? <button type="button" onClick={() => onDelete(documentId)} disabled={deleting} className="ui-icon-button size-8 text-destructive disabled:opacity-40" title="삭제"><Trash2 className="size-3.5" /></button> : null}</div>
               </header>
-              {previewBlocks.length > 0 && (
-                <div className="flex gap-1 border-b border-surface-border px-4" role="tablist" aria-label="본문 보기 방식">
-                  <button type="button" role="tab" aria-selected={viewTab === "preview"} onClick={() => setViewTab("preview")} className={"border-b-2 px-3 pb-2 pt-2 text-[12px] font-black " + (viewTab === "preview" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")}>출력 결과 ({previewBlocks.length})</button>
-                  <button type="button" role="tab" aria-selected={viewTab === "note"} onClick={() => setViewTab("note")} className={"border-b-2 px-3 pb-2 pt-2 text-[12px] font-black " + (viewTab === "note" ? "border-brand-primary text-brand-primary" : "border-transparent text-text-muted")}>노트 정리</button>
-                </div>
-              )}
-              <div className="p-4">{previewBlocks.length > 0 && viewTab === "preview" ? <PreviewGallery blocks={previewBlocks} /> : document.data.content.trim() ? <LexicalEditor key={document.data.id} initialState={document.data.content} onChange={() => undefined} readOnly minHeight="620px" /> : <div className="grid min-h-[620px] place-items-center rounded-md border border-dashed border-surface-border bg-surface-muted text-center"><div><p className="font-black text-text-primary">아직 작성된 내용이 없습니다.</p><button type="button" onClick={() => onEdit(documentId)} className="mt-2 text-sm font-black text-brand-primary hover:underline">지금 작성하기</button></div></div>}</div>
+              <div className="p-4">{document.data.content.trim() ? <LexicalEditor key={document.data.id} initialState={document.data.content} onChange={() => undefined} readOnly minHeight="620px" /> : <div className="grid min-h-[620px] place-items-center rounded-md border border-dashed border-surface-border bg-surface-muted text-center"><div><p className="font-black text-text-primary">아직 작성된 내용이 없습니다.</p><button type="button" onClick={() => onEdit(documentId)} className="mt-2 text-sm font-black text-brand-primary hover:underline">지금 작성하기</button></div></div>}</div>
             </>}
           </section>
         </main>
