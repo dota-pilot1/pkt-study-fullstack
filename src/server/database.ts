@@ -24,7 +24,13 @@ function mergePackagedPlaybookSeed() {
   const seedPath = process.env.PKT_STUDY_SEED_DB;
   if (!seedPath || seedPath === databasePath || !fs.existsSync(seedPath)) return;
 
-  const seed = new Database(seedPath, { readonly: true });
+  let seed: Database.Database;
+  try {
+    seed = new Database(seedPath, { readonly: true });
+  } catch (error) {
+    console.warn(`패키징 시드 DB를 열 수 없어 선택적 플레이북 병합을 건너뜁니다: ${seedPath}`, error);
+    return;
+  }
   const now = new Date().toISOString();
   try {
     const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?)").all("COMPONENT_SKETCH", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
