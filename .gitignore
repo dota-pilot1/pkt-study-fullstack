@@ -19,6 +19,10 @@ target/
 *.sqlite
 *.sqlite3
 
+# The packaged seed database is release input and must remain tracked.
+!.data/
+!.data/pkt-study.db
+
 # Environment and local tooling
 .env
 .env.*
