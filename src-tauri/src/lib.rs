@@ -2,12 +2,14 @@ use std::sync::{Arc, Mutex};
 
 // 배포 빌드에서 실행되는 Next sidecar 초기화에만 필요한 import다.
 // 개발 모드에서는 사용하지 않으므로 조건부로 가져와 Rust warning을 막는다.
-#[cfg(not(debug_assertions))]
+#[cfg(any(not(debug_assertions), test))]
 use std::{
-    fs::OpenOptions,
-    io::Write,
-    net::TcpListener,
+    fs,
+    path::{Path, PathBuf},
 };
+
+#[cfg(not(debug_assertions))]
+use std::{fs::OpenOptions, io::Write, net::TcpListener};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_plugin_shell::process::CommandChild;
@@ -39,15 +41,13 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while running PKT Study Fullstack");
 
-    app.run(|app, event| {
-        match event {
-            tauri::RunEvent::ExitRequested { .. }
-            | tauri::RunEvent::WindowEvent {
-                event: tauri::WindowEvent::CloseRequested { .. },
-                ..
-            } => stop_next_server(app),
-            _ => {}
-        }
+    app.run(|app, event| match event {
+        tauri::RunEvent::ExitRequested { .. }
+        | tauri::RunEvent::WindowEvent {
+            event: tauri::WindowEvent::CloseRequested { .. },
+            ..
+        } => stop_next_server(app),
+        _ => {}
     });
 }
 
@@ -93,6 +93,52 @@ struct NextServer {
     child: Arc<Mutex<Option<CommandChild>>>,
 }
 
+#[cfg(any(not(debug_assertions), test))]
+fn sqlite_sidecar_path(database_path: &Path, suffix: &str) -> PathBuf {
+    let file_name = database_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("pkt-study.db");
+    database_path.with_file_name(format!("{file_name}{suffix}"))
+}
+
+#[cfg(any(not(debug_assertions), test))]
+fn replace_database_with_packaged_seed(
+    data_dir: &Path,
+    database_path: &Path,
+    packaged_database_path: &Path,
+) -> std::io::Result<()> {
+    let staged_database_path = data_dir.join("pkt-study.db.seed-sync");
+    if staged_database_path.exists() {
+        fs::remove_file(&staged_database_path)?;
+    }
+    fs::copy(packaged_database_path, &staged_database_path)?;
+
+    if database_path.exists() {
+        fs::copy(
+            database_path,
+            data_dir.join("pkt-study.db.before-seed-sync"),
+        )?;
+    }
+
+    for suffix in ["-wal", "-shm"] {
+        let sidecar_path = sqlite_sidecar_path(database_path, suffix);
+        if sidecar_path.exists() {
+            fs::copy(
+                &sidecar_path,
+                data_dir.join(format!("pkt-study.db{suffix}.before-seed-sync")),
+            )?;
+            fs::remove_file(sidecar_path)?;
+        }
+    }
+
+    if database_path.exists() {
+        fs::remove_file(database_path)?;
+    }
+    fs::rename(staged_database_path, database_path)?;
+    Ok(())
+}
+
 #[cfg(not(debug_assertions))]
 fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> tauri::Result<()> {
     use std::{thread, time::Duration};
@@ -103,10 +149,13 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         .and_then(|listener| listener.local_addr())
         .map(|address| address.port())
         .map_err(|error| {
-            tauri::Error::Anyhow(std::io::Error::new(
-                std::io::ErrorKind::AddrNotAvailable,
-                format!("failed to allocate Next.js port: {error}"),
-            ).into())
+            tauri::Error::Anyhow(
+                std::io::Error::new(
+                    std::io::ErrorKind::AddrNotAvailable,
+                    format!("failed to allocate Next.js port: {error}"),
+                )
+                .into(),
+            )
         })?;
     let resource_dir = match app.path().resource_dir() {
         Ok(path) => path,
@@ -116,7 +165,10 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
                 .and_then(|path| path.parent().map(|dir| dir.to_path_buf()))
                 .and_then(|macos_dir| macos_dir.parent().map(|dir| dir.join("Resources")));
             if let Some(path) = fallback.filter(|path| path.is_dir()) {
-                eprintln!("resource directory lookup failed ({error}); using {}", path.display());
+                eprintln!(
+                    "resource directory lookup failed ({error}); using {}",
+                    path.display()
+                );
                 path
             } else {
                 eprintln!("resource directory lookup failed: {error}");
@@ -125,29 +177,27 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         }
     };
     let next_dir = resource_dir.join("next");
-    let data_dir = app_handle.path().app_data_dir().map_err(|error| {
-        tauri::Error::Anyhow(error.into())
-    })?;
-    std::fs::create_dir_all(&data_dir).map_err(|error| {
-        tauri::Error::Anyhow(error.into())
-    })?;
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|error| tauri::Error::Anyhow(error.into()))?;
+    std::fs::create_dir_all(&data_dir).map_err(|error| tauri::Error::Anyhow(error.into()))?;
     let database_path = data_dir.join("pkt-study.db");
     let packaged_database_path = next_dir.join(".data").join("pkt-study.db");
     let seed_version_path = data_dir.join("pkt-study-seed-version");
     let seed_version = env!("CARGO_PKG_VERSION");
     let installed_seed_version = std::fs::read_to_string(&seed_version_path).unwrap_or_default();
-    if packaged_database_path.exists() && (!database_path.exists() || installed_seed_version.trim() != seed_version) {
-        if database_path.exists() {
-            let backup_path = data_dir.join("pkt-study.db.before-seed-sync");
-            let _ = std::fs::copy(&database_path, backup_path);
-        }
-        std::fs::copy(&packaged_database_path, &database_path).map_err(|error| {
-            tauri::Error::Anyhow(error.into())
-        })?;
-        std::fs::write(&seed_version_path, seed_version).map_err(|error| {
-            tauri::Error::Anyhow(error.into())
-        })?;
-        eprintln!("synchronized user SQLite database with packaged local seed v{seed_version}: {}", database_path.display());
+    if packaged_database_path.exists()
+        && (!database_path.exists() || installed_seed_version.trim() != seed_version)
+    {
+        replace_database_with_packaged_seed(&data_dir, &database_path, &packaged_database_path)
+            .map_err(|error| tauri::Error::Anyhow(error.into()))?;
+        std::fs::write(&seed_version_path, seed_version)
+            .map_err(|error| tauri::Error::Anyhow(error.into()))?;
+        eprintln!(
+            "synchronized user SQLite database with packaged local seed v{seed_version}: {}",
+            database_path.display()
+        );
     }
     eprintln!("resource directory: {}", resource_dir.display());
     eprintln!("next directory: {}", next_dir.display());
@@ -167,7 +217,10 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
         .env("NODE_ENV", "production")
         .env("PKT_STUDY_DESKTOP", "1")
         .env("PKT_STUDY_DATA_DIR", data_dir.to_string_lossy().to_string())
-        .env("PKT_STUDY_SEED_DB", packaged_database_path.to_string_lossy().to_string())
+        .env(
+            "PKT_STUDY_SEED_DB",
+            packaged_database_path.to_string_lossy().to_string(),
+        )
         .spawn()
         .map_err(|error| {
             eprintln!("node sidecar spawn failed: {error}");
@@ -211,7 +264,11 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
                 }
                 tauri_plugin_shell::process::CommandEvent::Terminated(payload) => {
                     if let Some(log) = log.as_mut() {
-                        let _ = writeln!(log, "[terminated] code={:?} signal={:?}", payload.code, payload.signal);
+                        let _ = writeln!(
+                            log,
+                            "[terminated] code={:?} signal={:?}",
+                            payload.code, payload.signal
+                        );
                     }
                     let _ = event_window.eval(
                         "document.querySelector('.status').textContent = 'Next 서버가 종료되었습니다. 로그를 확인하세요.'",
@@ -231,13 +288,66 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
     thread::spawn(move || {
         for _ in 0..120 {
             if std::net::TcpStream::connect(("127.0.0.1", next_port)).is_ok() {
-                let _ = window.eval(&format!("window.location.replace('http://127.0.0.1:{next_port}')"));
+                let _ = window.eval(&format!(
+                    "window.location.replace('http://127.0.0.1:{next_port}')"
+                ));
                 return;
             }
             thread::sleep(Duration::from_millis(250));
         }
-        let _ = window.eval("document.querySelector('.status').textContent = '서버를 시작하지 못했습니다.'");
+        let _ = window
+            .eval("document.querySelector('.status').textContent = '서버를 시작하지 못했습니다.'");
     });
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::replace_database_with_packaged_seed;
+    use std::{
+        fs,
+        time::{SystemTime, UNIX_EPOCH},
+    };
+
+    #[test]
+    fn seed_sync_replaces_database_and_removes_stale_sidecars() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock should be after epoch")
+            .as_nanos();
+        let test_dir = std::env::temp_dir().join(format!(
+            "pkt-study-seed-sync-{}-{unique}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&test_dir).expect("test directory should be created");
+
+        let database_path = test_dir.join("pkt-study.db");
+        let packaged_database_path = test_dir.join("packaged.db");
+        fs::write(&database_path, b"old-database").expect("old database should be written");
+        fs::write(test_dir.join("pkt-study.db-wal"), b"old-wal").expect("wal should be written");
+        fs::write(test_dir.join("pkt-study.db-shm"), b"old-shm").expect("shm should be written");
+        fs::write(&packaged_database_path, b"new-database").expect("seed should be written");
+
+        replace_database_with_packaged_seed(&test_dir, &database_path, &packaged_database_path)
+            .expect("seed sync should succeed");
+
+        assert_eq!(fs::read(&database_path).unwrap(), b"new-database");
+        assert_eq!(
+            fs::read(test_dir.join("pkt-study.db.before-seed-sync")).unwrap(),
+            b"old-database"
+        );
+        assert_eq!(
+            fs::read(test_dir.join("pkt-study.db-wal.before-seed-sync")).unwrap(),
+            b"old-wal"
+        );
+        assert_eq!(
+            fs::read(test_dir.join("pkt-study.db-shm.before-seed-sync")).unwrap(),
+            b"old-shm"
+        );
+        assert!(!test_dir.join("pkt-study.db-wal").exists());
+        assert!(!test_dir.join("pkt-study.db-shm").exists());
+
+        fs::remove_dir_all(test_dir).expect("test directory should be removed");
+    }
 }
