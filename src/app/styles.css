@@ -175,22 +175,22 @@ body {
   }
   .lexical-editor-input:focus { box-shadow: none; }
 
-  /* 읽기 드로워는 제목·문단·코드 사이를 편집기보다 여유 있게 분리한다. */
+  /* 읽기 드로워도 편집기와 같은 문서 리듬을 사용한다. */
   .drawer-document-content .lexical-editor-input {
-    padding: 1.75rem 2rem 2.5rem !important;
+    padding: 1.5rem !important;
     font-size: 15px;
-    line-height: 1.9;
+    line-height: 1.75;
   }
   .drawer-document-content .lexical-editor-input p {
-    margin: 0 0 1.6rem;
-    line-height: 1.9;
+    margin: 0 0 0.75rem;
+    line-height: 1.75;
   }
   .drawer-document-content .lexical-editor-input h1,
   .drawer-document-content .lexical-editor-input h2,
   .drawer-document-content .lexical-editor-input h3 {
-    margin-top: 4rem !important;
-    margin-bottom: 1.15rem !important;
-    padding-top: 0.5rem;
+    margin-top: 2rem !important;
+    margin-bottom: 0.5rem !important;
+    padding-top: 0;
     line-height: 1.35;
   }
   .drawer-document-content .lexical-editor-input h1:first-child,
@@ -203,8 +203,8 @@ body {
     line-height: 1.65;
   }
   .drawer-document-content .lexical-editor-input pre {
-    margin-top: 1.5rem;
-    margin-bottom: 2.2rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.75rem;
   }
   .drawer-document-scroll > section {
     margin-top: 2rem;
