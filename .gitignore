@@ -21,6 +21,7 @@ target/
 
 # The packaged seed database is release input and must remain tracked.
 !.data/
+.data/*
 !.data/pkt-study.db
 
 # Environment and local tooling
