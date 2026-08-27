@@ -61,8 +61,8 @@ const NOTE_GROUPS: NoteGroup[] = [
     borderClass: "hover:border-amber-500/40",
     items: [
       {
-        id: "스프링 노트",
-        title: "스프링 노트",
+        id: "스프링 부트",
+        title: "스프링 부트",
         desc: "Spring Boot 3, JPA, DDD 계층 구조 및 RESTful API 엔드포인트 설계",
         icon: Leaf,
         tags: ["Spring Boot", "JPA", "DDD"],
@@ -549,7 +549,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                 </div>
                 <div className="mt-2.5 space-y-1">
                   {[
-                    { name: "스프링 노트", cat: "백엔드", icon: Leaf },
+                    { name: "스프링 부트", cat: "백엔드", icon: Leaf },
                     { name: "리액트 노트", cat: "프론트", icon: Workflow },
                   ].map((item) => {
                     const Icon = item.icon;

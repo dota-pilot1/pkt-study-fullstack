@@ -255,7 +255,7 @@ export default function DocumentPage({
                 </div>
                 <div className="flex shrink-0 gap-1.5"><button type="button" onClick={() => onEdit(documentId)} className="ui-icon-button-brand size-8" title="수정"><Pencil className="size-3.5" /></button>{canDelete ? <button type="button" onClick={() => onDelete(documentId)} disabled={deleting} className="ui-icon-button size-8 text-destructive disabled:opacity-40" title="삭제"><Trash2 className="size-3.5" /></button> : null}</div>
               </header>
-              <div className="p-4">{document.data.content.trim() ? <LexicalEditor key={document.data.id} initialState={document.data.content} onChange={() => undefined} readOnly minHeight="620px" /> : <div className="grid min-h-[620px] place-items-center rounded-md border border-dashed border-surface-border bg-surface-muted text-center"><div><p className="font-black text-text-primary">아직 작성된 내용이 없습니다.</p><button type="button" onClick={() => onEdit(documentId)} className="mt-2 text-sm font-black text-brand-primary hover:underline">지금 작성하기</button></div></div>}</div>
+              <div className="p-4">{document.data.content.trim() ? <LexicalEditor key={`${document.data.id}-${document.data.version}`} initialState={document.data.content} onChange={() => undefined} readOnly minHeight="620px" /> : <div className="grid min-h-[620px] place-items-center rounded-md border border-dashed border-surface-border bg-surface-muted text-center"><div><p className="font-black text-text-primary">아직 작성된 내용이 없습니다.</p><button type="button" onClick={() => onEdit(documentId)} className="mt-2 text-sm font-black text-brand-primary hover:underline">지금 작성하기</button></div></div>}</div>
             </>}
           </section>
         </main>

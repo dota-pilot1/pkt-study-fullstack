@@ -365,7 +365,7 @@ function DocumentDrawer({
           ) : document.content.trim() ? (
             <div className="drawer-document-content overflow-hidden rounded-lg border border-surface-border-soft bg-white">
               <LexicalEditor
-                key={document.id}
+                key={`${document.id}-${document.version}`}
                 initialState={document.content}
                 onChange={() => undefined}
                 readOnly

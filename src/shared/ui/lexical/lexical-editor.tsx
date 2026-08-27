@@ -264,10 +264,16 @@ function createSerializedHighlightNodes(
   inheritedType?: string,
 ): SerializedNode[] {
   if (typeof value === 'string') {
-    return value ? [{
-      type: 'code-highlight', detail: 0, format: 0, mode: 'normal', style: '',
-      text: value, highlightType: inheritedType, version: 1,
-    }] : []
+    const lines = value.split(/\r?\n/)
+    return lines.flatMap((line, index) => {
+      const textNode = line ? [{
+        type: 'code-highlight', detail: 0, format: 0, mode: 'normal', style: '',
+        text: line, highlightType: inheritedType, version: 1,
+      }] : []
+      return index < lines.length - 1
+        ? [...textNode, { type: 'linebreak', version: 1 }]
+        : textNode
+    })
   }
   if (Array.isArray(value)) {
     return value.flatMap((item) => createSerializedHighlightNodes(item, inheritedType))
@@ -287,8 +293,12 @@ function addReadOnlyCodeHighlighting(initialState: string | null): string | null
     const visit = (node: SerializedNode) => {
       if (node.type === 'code' && Array.isArray(node.children)) {
         const source = node.children.map((child) =>
-          child && typeof child === 'object' && typeof (child as SerializedNode).text === 'string'
-            ? String((child as SerializedNode).text)
+          child && typeof child === 'object'
+            ? (child as SerializedNode).type === 'linebreak'
+              ? '\n'
+              : typeof (child as SerializedNode).text === 'string'
+                ? String((child as SerializedNode).text)
+                : ''
             : '',
         ).join('')
         const language = inferCodeLanguage(source, typeof node.language === 'string' ? node.language : undefined)

@@ -147,6 +147,195 @@ if (!databaseExistedBeforeOpen) {
   }
 }
 
+// 기존 스프링 노트에 Spring Security 학습 주제를 업데이트로 추가한다.
+// 같은 카테고리·제목이 이미 있으면 기존 순서와 문서를 보존한다.
+const springSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("SPRING_BOOT") as { id: number } | undefined;
+if (springSpace) {
+  sqlite.prepare("UPDATE playbook_spaces SET name = ?, updated_at = ? WHERE id = ? AND name = ?")
+    .run("스프링 부트", now, springSpace.id, "스프링 노트");
+}
+if (springSpace) {
+  const springCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(springSpace.id, "스프링 핵심") as { id: number } | undefined;
+  if (springCategory) {
+    const securityTopic = sqlite.prepare("SELECT id, title FROM playbook_topics WHERE category_id = ? AND title IN (?, ?) ORDER BY CASE title WHEN ? THEN 0 ELSE 1 END LIMIT 1")
+      .get(springCategory.id, "스프링 시큐리티", "인증·인가", "스프링 시큐리티") as { id: number; title: string } | undefined;
+    if (!securityTopic) {
+      const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
+        .get(springCategory.id) as { count: number };
+      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .run(springCategory.id, "스프링 시큐리티", topicCount.count, now, now);
+    } else if (securityTopic.title === "인증·인가") {
+      sqlite.prepare("UPDATE playbook_topics SET title = ?, updated_at = ? WHERE id = ?")
+        .run("스프링 시큐리티", now, securityTopic.id);
+    }
+    // 이전 실행에서 생긴 중복 옛 이름은 문서가 없을 때만 제거한다.
+    sqlite.prepare("DELETE FROM playbook_topics WHERE category_id = ? AND title = ? AND NOT EXISTS (SELECT 1 FROM playbook_documents WHERE topic_id = playbook_topics.id) AND EXISTS (SELECT 1 FROM playbook_topics AS target WHERE target.category_id = playbook_topics.category_id AND target.title = ?)")
+      .run(springCategory.id, "인증·인가", "스프링 시큐리티");
+  }
+}
+
+// API 설계는 스프링 노트와 같은 백엔드 레일에 두되, 독립 플레이북 공간으로 관리한다.
+// 이전 버전에서 스프링 핵심 아래에 생성된 주제는 새 공간으로 이동하고 문서는 보존한다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("SPRING_API", "API 설계 및 문서화", now, now);
+const apiSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("SPRING_API") as { id: number };
+let apiCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+  .get(apiSpace.id, "API 설계 및 문서화") as { id: number } | undefined;
+if (!apiCategory) {
+  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(apiSpace.id, "API 설계 및 문서화", 0, now, now);
+  apiCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(apiSpace.id, "API 설계 및 문서화") as { id: number };
+}
+const legacyApiTopic = springSpace
+  ? sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ? LIMIT 1")
+    .get(springSpace.id, "스프링 핵심", "API 설계 및 문서화") as { id: number } | undefined
+  : undefined;
+const apiTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
+  .get(apiCategory.id, "API 설계 및 문서화") as { id: number } | undefined;
+if (!apiTopic && legacyApiTopic) {
+  sqlite.prepare("UPDATE playbook_topics SET category_id = ?, order_idx = 0, updated_at = ? WHERE id = ?")
+    .run(apiCategory.id, now, legacyApiTopic.id);
+} else if (!apiTopic) {
+  sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(apiCategory.id, "API 설계 및 문서화", 0, now, now);
+}
+if (springSpace) {
+  sqlite.prepare("UPDATE playbook_topics SET order_idx = 1, updated_at = ? WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ?")
+    .run(now, springSpace.id, "스프링 핵심", "스프링 시큐리티");
+}
+
+// 스프링 시큐리티를 백엔드 레일의 독립 메뉴로 분리한다.
+// 기존 스프링 핵심 아래의 주제와 문서는 새 공간으로 이동해 내용을 보존한다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("SPRING_SECURITY", "스프링 시큐리티", now, now);
+const securitySpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("SPRING_SECURITY") as { id: number };
+let securityCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+  .get(securitySpace.id, "스프링 시큐리티") as { id: number } | undefined;
+if (!securityCategory) {
+  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(securitySpace.id, "스프링 시큐리티", 0, now, now);
+  securityCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(securitySpace.id, "스프링 시큐리티") as { id: number };
+}
+const existingSecurityTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
+  .get(securityCategory.id, "스프링 시큐리티") as { id: number } | undefined;
+const legacySecurityTopic = springSpace
+  ? sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ? LIMIT 1")
+    .get(springSpace.id, "스프링 핵심", "스프링 시큐리티") as { id: number } | undefined
+  : undefined;
+if (!existingSecurityTopic && legacySecurityTopic) {
+  sqlite.prepare("UPDATE playbook_topics SET category_id = ?, order_idx = 0, updated_at = ? WHERE id = ?")
+    .run(securityCategory.id, now, legacySecurityTopic.id);
+} else if (!existingSecurityTopic) {
+  sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(securityCategory.id, "스프링 시큐리티", 0, now, now);
+}
+if (springSpace) {
+  // 분리 전에 생성된 옛 공간의 빈 중복만 제거하고, 문서가 있으면 보존한다.
+  sqlite.prepare("DELETE FROM playbook_topics WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ? AND NOT EXISTS (SELECT 1 FROM playbook_documents WHERE topic_id = playbook_topics.id)")
+    .run(springSpace.id, "스프링 핵심", "스프링 시큐리티");
+}
+
+// 사내 지식 검색과 업무 자동화에 사용하는 Spring AI를 독립 백엔드 메뉴로 추가한다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("SPRING_AI", "스프링 AI", now, now);
+const aiSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("SPRING_AI") as { id: number };
+let aiCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+  .get(aiSpace.id, "스프링 AI 핵심") as { id: number } | undefined;
+if (!aiCategory) {
+  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(aiSpace.id, "스프링 AI 핵심", 0, now, now);
+  aiCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(aiSpace.id, "스프링 AI 핵심") as { id: number };
+}
+const aiTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
+  .get(aiCategory.id, "Spring AI 시작하기") as { id: number } | undefined;
+if (!aiTopic) {
+  sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(aiCategory.id, "Spring AI 시작하기", 0, now, now);
+}
+
+// React 노트와 분리된 독립 플레이북 공간으로 라이브러리 메뉴를 만든다.
+// 기존 버전에서 FRONTEND에 잘못 들어간 카테고리는 문서를 보존한 채 이 공간으로 이동한다.
+const frontendSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("FRONTEND") as { id: number } | undefined;
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("FRONTEND_LIBRARY", "라이브러리 활용", now, now);
+const frontendLibrarySpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("FRONTEND_LIBRARY") as { id: number };
+if (frontendLibrarySpace) {
+  const frontendLibraryTopics = [
+    "TanStack Query",
+    "Zustand",
+    "React Hook Form·Zod",
+    "TanStack Table",
+    "MSW·Vitest",
+  ] as const;
+  let libraryCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(frontendLibrarySpace.id, "라이브러리 활용") as { id: number } | undefined;
+  if (!libraryCategory && frontendSpace) {
+    const legacyCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+      .get(frontendSpace.id, "라이브러리 활용") as { id: number } | undefined;
+    if (legacyCategory) {
+      sqlite.prepare("UPDATE playbook_categories SET space_id = ?, updated_at = ? WHERE id = ?")
+        .run(frontendLibrarySpace.id, now, legacyCategory.id);
+      libraryCategory = legacyCategory;
+    }
+  }
+  if (!libraryCategory) {
+    const categoryCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?")
+      .get(frontendLibrarySpace.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run(frontendLibrarySpace.id, "라이브러리 활용", categoryCount.count, now, now);
+    libraryCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+      .get(frontendLibrarySpace.id, "라이브러리 활용") as { id: number };
+  }
+  for (const topicTitle of frontendLibraryTopics) {
+    const exists = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
+      .get(libraryCategory.id, topicTitle);
+    if (!exists) {
+      const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
+        .get(libraryCategory.id) as { count: number };
+      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .run(libraryCategory.id, topicTitle, topicCount.count, now, now);
+    }
+  }
+}
+
+// 리액트 기본 영역에 컴포넌트 설계 학습 주제를 추가한다.
+// 왼쪽 레일이나 별도 플레이북을 만들지 않고, 리액트 노트의 기존 1차 영역을 사용한다.
+const reactSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("FRONTEND") as { id: number } | undefined;
+if (reactSpace) {
+  const reactCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(reactSpace.id, "리액트 기본") as { id: number } | undefined;
+  if (reactCategory) {
+    const componentDesignTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
+      .get(reactCategory.id, "컴포넌트 설계와 렌더링") as { id: number } | undefined;
+    if (!componentDesignTopic) {
+      const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
+        .get(reactCategory.id) as { count: number };
+      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+        .run(reactCategory.id, "컴포넌트 설계와 렌더링", topicCount.count, now, now);
+    }
+  }
+}
+
+// 리액트 기본 흐름 다음에 프로젝트 구조를 다루는 FSD 주제를 추가한다.
+const fsdTopicExists = reactSpace
+  ? sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ? LIMIT 1")
+    .get(reactSpace.id, "리액트 기본", "FSD 레이어 설계") as { id: number } | undefined
+  : undefined;
+if (reactSpace && !fsdTopicExists) {
+  const reactCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(reactSpace.id, "리액트 기본") as { id: number } | undefined;
+  if (reactCategory) {
+    const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
+      .get(reactCategory.id) as { count: number };
+    sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+      .run(reactCategory.id, "FSD 레이어 설계", topicCount.count, now, now);
+  }
+}
+
 // CodeMirror로 작성한 Lexical TSX 문서를 모아 두는 일반 사용자 영역이다.
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
   .run("COMPONENT_SKETCH", "컴포넌트 스케치", now, now);

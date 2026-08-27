@@ -211,6 +211,12 @@ function normalizedNode(value: unknown, parentType: string): Record<string, unkn
       children: [{ type: 'text', detail: 0, format: 0, mode: 'normal', style: '', text: source.text, version: 1 }],
     }
   }
+  if (type === 'linebreak') {
+    return {
+      type: 'linebreak',
+      version: typeof source.version === 'number' ? source.version : 1,
+    }
+  }
   if (type === 'text' || type === 'code-highlight') {
     return {
       ...source,
@@ -248,9 +254,22 @@ function normalizedNode(value: unknown, parentType: string): Record<string, unkn
         // valid serialized data, but the runtime Prism transform starts from
         // ordinary TextNodes. Convert only the in-memory editor state; the
         // saved/API format remains unchanged.
-        .map((child) => child.type === 'code-highlight'
-          ? { ...child, type: 'text', format: 0 }
-          : child)
+        .flatMap((child) => {
+          if (child.type === 'linebreak') return [child]
+
+          const lines = String(child.text ?? '').split(/\r?\n/)
+          return lines.flatMap((line, index) => {
+            const textNode = {
+              ...child,
+              type: 'text',
+              format: 0,
+              text: line,
+            }
+            return index < lines.length - 1
+              ? [textNode, { type: 'linebreak', version: 1 }]
+              : [textNode]
+          })
+        })
       const sourceText = nodeText(source)
       const language = resolveCodeLanguage(sourceText, source.language)
       const formattedText = restoreJavaCodeLayout(sourceText)
