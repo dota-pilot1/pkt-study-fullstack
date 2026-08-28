@@ -1,9 +1,9 @@
 {
-  "name": "pkt-study-fullstack",
-  "version": "0.1.49",
+  "name": "design-playbook-tauri",
+  "version": "0.1.50",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 4300",
+    "dev": "next dev -p 4301",
     "build": "next build",
     "build:tauri": "npm run build && node scripts/prepare-tauri-release.mjs",
     "start": "next start -p 4300",

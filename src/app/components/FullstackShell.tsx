@@ -4,34 +4,23 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpen, Boxes, Code2, Coffee, Database, Factory, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Sparkles,
-  Settings, User, Workflow, type LucideIcon,
+  Boxes, Factory, LayoutGrid, LogOut, MousePointerClick, Navigation, Settings, SquarePen, User, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
 import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
-type RailGroup = "backend" | "frontend" | "gallery";
+type RailGroup = "design";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup };
 
-const railGroups: Array<{ id: RailGroup; label: string | null }> = [
-  { id: "backend", label: "백엔드" },
-  { id: "frontend", label: "프론트" }, { id: "gallery", label: "컴포넌트 스케치" },
-];
+const railGroups: Array<{ id: RailGroup; label: string | null }> = [{ id: "design", label: "공통 UI" }];
 const railItems: RailItem[] = [
-  { label: "스프링 부트", icon: Leaf, group: "backend" },
-  { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend" },
-  { label: "스프링 AI", icon: Sparkles, group: "backend" },
-  { label: "API 설계 및 문서화", icon: BookOpen, group: "backend" },
-  { label: "자바 노트", icon: Coffee, group: "backend" },
-  { label: "DB 테이블 설계", icon: Database, group: "backend" },
-  { label: "리액트 노트", icon: Workflow, group: "frontend" },
-  { label: "라이브러리 활용", icon: Library, group: "frontend" },
-  { label: "도메인 분석", icon: Workflow, group: "frontend" },
-  { label: "JS·TS 노트", icon: Code2, group: "frontend" },
-  { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
-  { label: "컴포넌트 스케치", icon: Boxes, group: "gallery" },
+  { label: "공통 컴포넌트", icon: Boxes, group: "design" },
+  { label: "메뉴·네비게이션", icon: Navigation, group: "design" },
+  { label: "폼 UI", icon: SquarePen, group: "design" },
+  { label: "레이아웃·페이지", icon: LayoutGrid, group: "design" },
+  { label: "인터랙션·상태", icon: MousePointerClick, group: "design" },
 ];
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -89,7 +78,7 @@ function WindowResizeHandles() {
 export function useActiveModule() { return useContext(ActiveModuleContext); }
 
 export function FullstackShell({ children, user }: { children: ReactNode; user: ShellUser }) {
-  const [active, setActive] = useState("노트 홈");
+  const [active, setActive] = useState("공통 컴포넌트");
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [contentRefreshKey, setContentRefreshKey] = useState(0);
