@@ -162,7 +162,18 @@ function LexicalSearchPlugin({
     if (query.trim()) setRevision((value) => value + 1)
   }), [editor, query])
 
-  return null
+  return (
+    <style dangerouslySetInnerHTML={{ __html: `
+      ::highlight(pkt-document-search) {
+        background-color: #fef08a; /* yellow-200 */
+        color: #1e293b; /* slate-800 */
+      }
+      ::highlight(pkt-document-search-active) {
+        background-color: #f97316; /* orange-500 */
+        color: white;
+      }
+    ` }} />
+  )
 }
 
 // Number prefixes such as `1. ` remain plain text while typing.
