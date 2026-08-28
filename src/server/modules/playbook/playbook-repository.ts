@@ -188,7 +188,7 @@ export async function reorderTopics(categoryId: number, ids: number[]) {
   const now = new Date().toISOString();
   db.transaction((tx) => {
     for (const [index, id] of ids.entries()) {
-      tx.update(playbookTopics).set({ orderIdx: index, updatedAt: now }).where(eq(playbookTopics.id, id));
+      tx.update(playbookTopics).set({ orderIdx: index, updatedAt: now }).where(eq(playbookTopics.id, id)).run();
     }
   });
   return true;

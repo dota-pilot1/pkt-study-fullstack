@@ -271,11 +271,15 @@ sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, u
 const frontendLibrarySpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("FRONTEND_LIBRARY") as { id: number };
 if (frontendLibrarySpace) {
   const frontendLibraryTopics = [
-    "TanStack Query",
+    "React Hook Form",
+    "Zod",
     "Zustand",
-    "React Hook Form·Zod",
-    "TanStack Table",
+    "TanStack Query",
     "MSW·Vitest",
+    "dnd-kit",
+    "TanStack Table",
+    "date-fns",
+    "Axios 또는 fetch 래퍼",
   ] as const;
   let libraryCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
     .get(frontendLibrarySpace.id, "라이브러리 활용") as { id: number } | undefined;
