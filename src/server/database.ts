@@ -33,7 +33,7 @@ function mergePackagedPlaybookSeed() {
   }
   const now = new Date().toISOString();
   try {
-    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?)").all("COMPONENT_SKETCH", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE") as Array<{ id: number; code: string; name: string }>;
+    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?, ?)").all("COMPONENT_SKETCH", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE", "FRONTEND_LIBRARY") as Array<{ id: number; code: string; name: string }>;
     if (seedSpaces.length === 0) return;
 
     const insertSpace = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)");
