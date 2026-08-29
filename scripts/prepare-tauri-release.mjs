@@ -10,23 +10,70 @@ const publicDir = path.join(projectRoot, "public");
 const distDir = path.join(projectRoot, "dist");
 const loadingIllustration = path.join(projectRoot, "src-tauri", "assets", "next-loading.png");
 
+function readSeedSummary(database, label) {
+  const summary = database
+    .prepare(
+      `SELECT
+        (SELECT COUNT(*) FROM playbook_spaces) AS spaces,
+        (SELECT COUNT(*) FROM playbook_categories) AS categories,
+        (SELECT COUNT(*) FROM playbook_topics) AS topics,
+        (SELECT COUNT(*) FROM playbook_documents) AS documents,
+        (SELECT COUNT(*) FROM playbook_documents WHERE TRIM(content) <> '') AS documentsWithContent`,
+    )
+    .get();
+
+  if (
+    summary.spaces === 0 ||
+    summary.categories === 0 ||
+    summary.topics === 0 ||
+    summary.documents === 0 ||
+    summary.documentsWithContent === 0
+  ) {
+    throw new Error(
+      `${label} is missing playbook data: ${JSON.stringify(summary)}`,
+    );
+  }
+
+  return summary;
+}
+
 if (!existsSync(path.join(standaloneDir, "server.js"))) {
   throw new Error("Next standalone server is missing. Run `next build` first.");
 }
 
-// Next standalone does not copy browser assets itself. Keep the local SQLite
-// database as the first-run seed for the installed app. Tauri copies this seed
-// into the per-user app data directory; later updates never overwrite it.
+// Next standalone does not copy browser assets itself. The tracked local SQLite
+// database is the required seed for the installed app. On each release-version
+// change, Tauri synchronizes this seed into the user database after backing it up.
 rmSync(path.join(standaloneDir, ".data"), { recursive: true, force: true });
 const localDatabasePath = path.join(projectRoot, ".data", "pkt-study.db");
-if (existsSync(localDatabasePath)) {
-  const localDatabase = new Database(localDatabasePath);
-  localDatabase.pragma("wal_checkpoint(TRUNCATE)");
-  localDatabase.close();
-  mkdirSync(path.join(standaloneDir, ".data"), { recursive: true });
-  cpSync(localDatabasePath, path.join(standaloneDir, ".data", "pkt-study.db"));
-  console.log(`Packaged local SQLite seed: ${localDatabasePath}`);
+if (!existsSync(localDatabasePath)) {
+  throw new Error(
+    `Required packaged SQLite seed is missing: ${localDatabasePath}`,
+  );
 }
+const localDatabase = new Database(localDatabasePath);
+const localSeedSummary = readSeedSummary(localDatabase, "Local SQLite seed");
+localDatabase.pragma("wal_checkpoint(TRUNCATE)");
+localDatabase.close();
+
+const packagedDatabasePath = path.join(standaloneDir, ".data", "pkt-study.db");
+mkdirSync(path.join(standaloneDir, ".data"), { recursive: true });
+cpSync(localDatabasePath, packagedDatabasePath);
+const packagedDatabase = new Database(packagedDatabasePath, { readonly: true });
+const packagedSeedSummary = readSeedSummary(
+  packagedDatabase,
+  "Packaged SQLite seed",
+);
+packagedDatabase.close();
+
+if (JSON.stringify(localSeedSummary) !== JSON.stringify(packagedSeedSummary)) {
+  throw new Error(
+    `Packaged SQLite seed summary differs from local seed: ${JSON.stringify({ localSeedSummary, packagedSeedSummary })}`,
+  );
+}
+console.log(
+  `Packaged local SQLite seed: ${localDatabasePath} ${JSON.stringify(packagedSeedSummary)}`,
+);
 rmSync(path.join(standaloneDir, ".next", "static"), { recursive: true, force: true });
 cpSync(staticDir, path.join(standaloneDir, ".next", "static"), { recursive: true });
 if (existsSync(publicDir)) {
