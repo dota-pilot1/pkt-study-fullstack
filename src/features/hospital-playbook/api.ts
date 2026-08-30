@@ -120,12 +120,6 @@ export const playbookApi = {
       errorMessage: "공유 링크를 만들지 못했습니다.",
     }),
 
-  issueAiEditToken: (id: number) =>
-    request<{ token: string; documentId: number; expectedVersion: number; expiresAt: string }>(`${BASE}/documents/${id}/ai-edit-token`, {
-      method: "POST",
-      errorMessage: "AI 편집 토큰을 만들지 못했습니다. 작성자 또는 관리자만 발급할 수 있습니다.",
-    }),
-
   createCategory: (domain: PlaybookDomain, title: string) =>
     request<PlaybookCategory>(`${BASE}/categories?spaceCode=${domain}`, {
       method: "POST",

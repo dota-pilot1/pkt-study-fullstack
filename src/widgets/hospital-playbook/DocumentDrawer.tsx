@@ -59,7 +59,6 @@ function DocumentDrawer({
   const [drawerSize, setDrawerSize] = useState(storedDrawerSize);
   const { showToast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
-  const [isIssuingAiToken, setIsIssuingAiToken] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [aiContentCopied, setAiContentCopied] = useState(false);
   const [aiEditConnection, setAiEditConnection] = useState<string | null>(null);
@@ -126,35 +125,34 @@ function DocumentDrawer({
     }
   };
 
-  const copyAiEditConnection = async () => {
-    if (isIssuingAiToken) return;
-    setIsIssuingAiToken(true);
-    try {
-      const issued = await playbookApi.issueAiEditToken(document.id);
-      const apiBase = getApiBase();
-      const endpoint = `${apiBase}/api/public/hospital-playbook/ai-edit/documents/${issued.documentId}`;
-      const documentRole = document.parentId === null ? "2차 주제 본문 문서(전체 TODO 계획)" : "TODO 하위 문서(이 TODO의 Step 1~N)";
-      const connection = [
+  const copyAiEditConnection = () => {
+    const apiBase = getApiBase();
+    const base = `${apiBase}/api/llm/hospital-playbook`;
+    const documentEndpoint = `${base}/documents/${document.id}`;
+    const contentEndpoint = `${documentEndpoint}/content`;
+    const documentRole = document.parentId === null ? "2차 주제 본문 문서(전체 TODO 계획)" : "TODO 하위 문서(이 TODO의 Step 1~N)";
+    const connection = [
         "PKT 2차 주제 개별 문서 편집 API FOR LLM",
-        `documentId: ${issued.documentId}`,
+        "이 앱은 로컬 학습용이므로 별도 Bearer 토큰 없이 문서를 조회·수정합니다.",
+        `topicId: ${document.topicId}`,
+        `documentId: ${document.id}`,
         `documentTitle: ${document.title}`,
         `documentRole: ${documentRole}`,
         `parentId: ${document.parentId ?? "null"}`,
-        `expectedVersion: ${issued.expectedVersion}`,
-        `expiresAt: ${issued.expiresAt}`,
+        `expectedVersion: ${document.version}`,
         "",
-        "이 토큰은 현재 documentId 하나만 조회·수정합니다.",
-        "다른 문서 생성·삭제·정렬은 2차 주제 전체 노트 관리 API를 사용합니다.",
+        "같은 2차 주제의 문서 생성·삭제·정렬도 아래 LLM API에서 토큰 없이 처리합니다.",
         document.parentId === null
           ? "현재 문서는 본문 문서입니다. 전체 목표와 TODO 1~N 계획만 작성하고 Step 상세는 하위 문서로 분리합니다."
           : "현재 문서는 TODO 하위 문서입니다. 이 문서 안에서 해당 TODO의 Step 1~N을 순서대로 작성합니다.",
         "",
-        `GET ${endpoint}`,
-        `PATCH ${endpoint}`,
-        "Authorization: Bearer <TOKEN>",
-        `TOKEN: ${issued.token}`,
+        `GET ${documentEndpoint}`,
+        `PATCH ${contentEndpoint}`,
         "",
         'PATCH body: {"title":"수정 제목","content":"수정 본문","expectedVersion":<CURRENT_VERSION>}',
+        "",
+        `하위 문서 생성: POST ${base}/topics/${document.topicId}/children`,
+        `하위 문서 생성 body: {"parentId":${document.parentId ?? document.id},"title":"TODO 제목","content":"Lexical JSON 문자열"}`,
         "",
         "CONTENT FORMAT:",
         "content는 Markdown·HTML이 아닌 Lexical EditorState를 JSON.stringify한 문자열입니다.",
@@ -164,14 +162,8 @@ function DocumentDrawer({
         "code 노드 children에는 type: code-highlight를 두고 실제 원문을 child text에 넣습니다.",
         "섹션 사이에는 children: []인 빈 paragraph 2개를 두고 목록 항목 사이에는 빈 paragraph를 넣지 않습니다.",
         "content에 일반 텍스트·Markdown·HTML을 직접 넣지 말고, 수정 전 최신 version을 expectedVersion에 사용합니다.",
-        "이 토큰은 해당 문서에 한 번 저장한 뒤 폐기됩니다.",
       ].join("\n");
-      setAiEditConnection(connection);
-    } catch (error) {
-      showToast(error instanceof ApiError ? `AI 편집 토큰 발급 실패: ${error.message}` : "AI 편집 정보를 클립보드에 복사하지 못했습니다.", "error");
-    } finally {
-      setIsIssuingAiToken(false);
-    }
+    setAiEditConnection(connection);
   };
 
   const copyAiContent = async () => {
@@ -315,7 +307,7 @@ function DocumentDrawer({
             <button type="button" className="ui-icon-button size-8" onClick={() => void copyAiContent()} disabled={isSharing} title="AI용 Markdown 내용 복사">
               {aiContentCopied ? <Check className="size-4" /> : <Clipboard className="size-4" />}
             </button>
-            <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyAiEditConnection()} disabled={isIssuingAiToken} title="개별 문서 편집 API for LLM 복사">
+            <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={copyAiEditConnection} title="토큰 없는 개별 문서 편집 API for LLM 복사">
               <span className="font-mono text-xs font-black leading-none">{"{}"}</span>
             </button>
           </div>
