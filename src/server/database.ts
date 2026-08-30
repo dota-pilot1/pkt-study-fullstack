@@ -263,54 +263,12 @@ if (!aiTopic) {
     .run(aiCategory.id, "Spring AI 시작하기", 0, now, now);
 }
 
-// React 노트와 분리된 독립 플레이북 공간으로 라이브러리 메뉴를 만든다.
-// 기존 버전에서 FRONTEND에 잘못 들어간 카테고리는 문서를 보존한 채 이 공간으로 이동한다.
-const frontendSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("FRONTEND") as { id: number } | undefined;
+// FRONTEND_LIBRARY는 사용자가 구성하는 학습 공간이다. 이전 릴리즈는 이 위치에
+// "라이브러리 활용"과 하위 주제를 매 시작마다 보충했지만, 삭제한 메뉴까지 다시
+// 만들어 사용자의 트리 편집을 무효화했다. 공간만 보장하고 메뉴 구조는 시드와 UI/API
+// 작업으로만 변경한다.
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
   .run("FRONTEND_LIBRARY", "라이브러리 활용", now, now);
-const frontendLibrarySpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("FRONTEND_LIBRARY") as { id: number };
-if (frontendLibrarySpace) {
-  const frontendLibraryTopics = [
-    "React Hook Form",
-    "Zod",
-    "Zustand",
-    "TanStack Query",
-    "MSW·Vitest",
-    "dnd-kit",
-    "TanStack Table",
-    "date-fns",
-    "Axios 또는 fetch 래퍼",
-  ] as const;
-  let libraryCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
-    .get(frontendLibrarySpace.id, "라이브러리 활용") as { id: number } | undefined;
-  if (!libraryCategory && frontendSpace) {
-    const legacyCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
-      .get(frontendSpace.id, "라이브러리 활용") as { id: number } | undefined;
-    if (legacyCategory) {
-      sqlite.prepare("UPDATE playbook_categories SET space_id = ?, updated_at = ? WHERE id = ?")
-        .run(frontendLibrarySpace.id, now, legacyCategory.id);
-      libraryCategory = legacyCategory;
-    }
-  }
-  if (!libraryCategory) {
-    const categoryCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_categories WHERE space_id = ?")
-      .get(frontendLibrarySpace.id) as { count: number };
-    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-      .run(frontendLibrarySpace.id, "라이브러리 활용", categoryCount.count, now, now);
-    libraryCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
-      .get(frontendLibrarySpace.id, "라이브러리 활용") as { id: number };
-  }
-  for (const topicTitle of frontendLibraryTopics) {
-    const exists = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
-      .get(libraryCategory.id, topicTitle);
-    if (!exists) {
-      const topicCount = sqlite.prepare("SELECT COUNT(*) AS count FROM playbook_topics WHERE category_id = ?")
-        .get(libraryCategory.id) as { count: number };
-      sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-        .run(libraryCategory.id, topicTitle, topicCount.count, now, now);
-    }
-  }
-}
 
 // 리액트 기본 영역에 컴포넌트 설계 학습 주제를 추가한다.
 // 왼쪽 레일이나 별도 플레이북을 만들지 않고, 리액트 노트의 기존 1차 영역을 사용한다.

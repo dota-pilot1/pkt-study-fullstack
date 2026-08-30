@@ -124,6 +124,13 @@ export async function createTopic(categoryId: number, title: string) {
   return topic;
 }
 
+export async function createCategory(spaceCode: string, title: string) {
+  const [space] = await db.select().from(playbookSpaces).where(eq(playbookSpaces.code, spaceCode)).limit(1);
+  if (!space) return null;
+  const categories = await listCategoriesBySpace(space.id);
+  return insertCategory(space.id, title, categories.length);
+}
+
 export async function renameCategory(id: number, title: string) {
   const [category] = await db.update(playbookCategories).set({ title, updatedAt: new Date().toISOString() }).where(eq(playbookCategories.id, id)).returning();
   return category ?? null;
@@ -189,6 +196,24 @@ export async function reorderTopics(categoryId: number, ids: number[]) {
   db.transaction((tx) => {
     for (const [index, id] of ids.entries()) {
       tx.update(playbookTopics).set({ orderIdx: index, updatedAt: now }).where(eq(playbookTopics.id, id)).run();
+    }
+  });
+  return true;
+}
+
+export async function reorderCategories(ids: number[]) {
+  if (ids.length === 0) return false;
+  const categories = await db.select().from(playbookCategories).where(inArray(playbookCategories.id, ids));
+  if (categories.length !== ids.length) return false;
+  const spaceId = categories[0]?.spaceId;
+  if (spaceId === undefined || categories.some((category) => category.spaceId !== spaceId)) return false;
+  const allCategories = await listCategoriesBySpace(spaceId);
+  const categoryIds = new Set(allCategories.map((category) => category.id));
+  if (ids.length !== allCategories.length || ids.some((id) => !categoryIds.has(id))) return false;
+  const now = new Date().toISOString();
+  db.transaction((tx) => {
+    for (const [index, id] of ids.entries()) {
+      tx.update(playbookCategories).set({ orderIdx: index, updatedAt: now }).where(eq(playbookCategories.id, id)).run();
     }
   });
   return true;

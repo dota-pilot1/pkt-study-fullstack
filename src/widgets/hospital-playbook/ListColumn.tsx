@@ -1,5 +1,15 @@
 import { useState, type ReactNode } from "react";
-import { ChevronLeft, ChevronRight, GripVertical, LockKeyhole, Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  LockKeyhole,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import { move } from "@dnd-kit/helpers";
+import { DragDropProvider } from "@dnd-kit/react";
+import { useSortable } from "@dnd-kit/react/sortable";
 
 export type ListColumnItem = {
   id: number;
@@ -7,6 +17,26 @@ export type ListColumnItem = {
   badge?: ReactNode;
   count?: number;
 };
+
+function SortableColumnItem({
+  id,
+  index,
+  disabled,
+  children,
+}: {
+  id: number;
+  index: number;
+  disabled: boolean;
+  children: (sortable: ReturnType<typeof useSortable>) => ReactNode;
+}) {
+  const sortable = useSortable({
+    id,
+    index,
+    type: "playbook-list-item",
+    disabled,
+  });
+  return children(sortable);
+}
 
 /**
  * MES 학습 노트 좌측 2개 컬럼(1차 영역 / 2차 주제)의 공통 골격.
@@ -49,7 +79,6 @@ function ListColumn({
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
-  const [dragId, setDragId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
 
@@ -58,17 +87,6 @@ function ListColumn({
     if (value) onCreate(value);
     setDraft("");
     setAdding(false);
-  };
-
-  const handleDrop = (targetId: number) => {
-    if (dragId === null || dragId === targetId) return;
-    const ids = items.map((item) => item.id);
-    const from = ids.indexOf(dragId);
-    const to = ids.indexOf(targetId);
-    if (from < 0 || to < 0) return;
-    ids.splice(to, 0, ...ids.splice(from, 1));
-    onReorder(ids);
-    setDragId(null);
   };
 
   return (
@@ -82,8 +100,13 @@ function ListColumn({
             (collapsed ? "opacity-100" : "pointer-events-none opacity-0")
           }
         >
-          <span className="whitespace-nowrap text-xs font-black text-text-primary">{title}</span>
-          <span className="grid min-w-5 place-items-center rounded-full border border-brand-border/40 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black tabular-nums text-brand-primary" title={`${items.length}개`}>
+          <span className="whitespace-nowrap text-xs font-black text-text-primary">
+            {title}
+          </span>
+          <span
+            className="grid min-w-5 place-items-center rounded-full border border-brand-border/40 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black tabular-nums text-brand-primary"
+            title={`${items.length}개`}
+          >
             {items.length}
           </span>
           <button
@@ -105,9 +128,21 @@ function ListColumn({
             (collapsed ? "pointer-events-none opacity-0" : "opacity-100")
           }
         >
-          <h2 className="min-w-0 truncate text-sm font-black text-text-primary">{title}</h2>
-          {protectedStructure && <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-border/50 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black text-brand-primary" title="공통 UI 시스템 갤러리 고정 구조"><LockKeyhole className="size-3" /> 시스템</span>}
-          <span className="grid min-w-5 place-items-center rounded-full border border-brand-border/40 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black tabular-nums text-brand-primary" title={`${items.length}개`}>
+          <h2 className="min-w-0 truncate text-sm font-black text-text-primary">
+            {title}
+          </h2>
+          {protectedStructure && (
+            <span
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-border/50 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black text-brand-primary"
+              title="공통 UI 시스템 갤러리 고정 구조"
+            >
+              <LockKeyhole className="size-3" /> 시스템
+            </span>
+          )}
+          <span
+            className="grid min-w-5 place-items-center rounded-full border border-brand-border/40 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black tabular-nums text-brand-primary"
+            title={`${items.length}개`}
+          >
             {items.length}
           </span>
           <span className="flex-1" />
@@ -143,93 +178,158 @@ function ListColumn({
         }
       >
         {/* 접히는 동안 항목이 찌그러지지 않도록 펼친 폭을 유지한 채 잘려 나가게 한다. */}
-        <div className="h-full space-y-2 overflow-y-auto p-2.5" style={{ width: expandedWidth }}>
-        {items.length === 0 && !adding && (
-          <p className="px-1 py-6 text-center text-[13px] font-semibold text-text-muted">{emptyLabel}</p>
-        )}
+        <DragDropProvider
+          onDragEnd={(event) => {
+            if (event.canceled) return;
+            const reordered = move(items, event);
+            const ids = reordered.map((item) => item.id);
+            if (!ids.every((id, index) => id === items[index]?.id))
+              onReorder(ids);
+          }}
+        >
+          <div
+          className="grid h-full auto-rows-min content-start gap-2 overflow-y-auto p-2.5"
+            style={{ width: expandedWidth }}
+          >
+            {items.length === 0 && !adding && (
+              <p className="px-1 py-6 text-center text-[13px] font-semibold text-text-muted">
+                {emptyLabel}
+              </p>
+            )}
 
-        {items.map((item) => {
-          const isActive = item.id === selectedId;
-          const editing = editingId === item.id;
-          return (
-            <div
-              key={item.id}
-              draggable={!protectedStructure}
-              onDragStart={() => setDragId(item.id)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => handleDrop(item.id)}
-              onClick={() => !editing && onSelect(item.id)}
-              className={
-                "flex min-h-12 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition " +
-                (isActive
-                  ? "border-brand-border bg-brand-glass"
-                  : "border-surface-border-soft bg-surface-muted hover:border-brand-border")
-              }
-            >
-              <GripVertical className="size-4 shrink-0 cursor-grab text-text-muted" />
-              {item.badge}
-              {editing ? (
-                <input
-                  autoFocus
-                  value={editingTitle}
-                  onClick={(event) => event.stopPropagation()}
-                  onChange={(event) => setEditingTitle(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && editingTitle.trim()) {
-                      onRename(item.id, editingTitle.trim());
-                      setEditingId(null);
-                    }
-                    if (event.key === "Escape") setEditingId(null);
-                  }}
-                  onBlur={() => {
-                    if (editingTitle.trim() && editingTitle.trim() !== item.title) onRename(item.id, editingTitle.trim());
-                    setEditingId(null);
-                  }}
-                  className="ui-input h-8 min-w-0 flex-1 px-2 text-sm font-bold"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onDoubleClick={(event) => {
-                    if (protectedStructure) return;
-                    event.stopPropagation();
-                    setEditingId(item.id);
-                    setEditingTitle(item.title);
-                  }}
-                  className={"min-w-0 flex-1 truncate text-left text-sm font-black " + (isActive ? "text-text-primary" : "text-text-secondary")}
-                  title="더블클릭하여 이름 수정"
+            {items.map((item, index) => {
+              const isActive = item.id === selectedId;
+              const editing = editingId === item.id;
+              return (
+                <SortableColumnItem
+                  key={item.id}
+                  id={item.id}
+                  index={index}
+                  disabled={protectedStructure}
                 >
-                  {item.title}
-                </button>
-              )}
-              {item.count !== undefined && (
-                <span className="shrink-0 rounded-full bg-surface-raised px-2 py-1 text-[10px] font-black tabular-nums text-text-muted" title={`${item.count}개`}>
-                  {item.count}개
-                </span>
-              )}
-              {!protectedStructure ? <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(item.id); }} title="삭제" className="ui-icon-button size-7 shrink-0 text-text-muted hover:border-destructive hover:text-destructive"><Trash2 className="size-3.5" /></button> : <span className="grid size-7 shrink-0 place-items-center text-brand-primary" title="시스템 갤러리 구조는 삭제할 수 없습니다."><LockKeyhole className="size-3.5" /></span>}
-            </div>
-          );
-        })}
+                  {({ ref, handleRef, isDragSource, isDropTarget }) => (
+                    <div
+                      ref={ref}
+                      onClick={() => !editing && onSelect(item.id)}
+                      className={
+                        "flex min-h-12 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition-all duration-150 " +
+                        (isDragSource
+                          ? "opacity-40"
+                          : isDropTarget
+                            ? "border-brand-primary bg-brand-glass ring-1 ring-brand-primary/30"
+                            : isActive
+                              ? "border-brand-border bg-brand-glass"
+                              : "border-surface-border-soft bg-surface-muted hover:border-brand-border")
+                      }
+                    >
+                      <button
+                        ref={handleRef}
+                        type="button"
+                        onClick={(event) => event.stopPropagation()}
+                        className="grid size-6 shrink-0 cursor-grab place-items-center text-text-muted active:cursor-grabbing"
+                        aria-label={`${item.title} 순서 변경`}
+                      >
+                        <GripVertical className="size-4 shrink-0 cursor-grab text-text-muted" />
+                      </button>
+                      {item.badge}
+                      {editing ? (
+                        <input
+                          autoFocus
+                          value={editingTitle}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) =>
+                            setEditingTitle(event.target.value)
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" && editingTitle.trim()) {
+                              onRename(item.id, editingTitle.trim());
+                              setEditingId(null);
+                            }
+                            if (event.key === "Escape") setEditingId(null);
+                          }}
+                          onBlur={() => {
+                            if (
+                              editingTitle.trim() &&
+                              editingTitle.trim() !== item.title
+                            )
+                              onRename(item.id, editingTitle.trim());
+                            setEditingId(null);
+                          }}
+                          className="ui-input h-8 min-w-0 flex-1 px-2 text-sm font-bold"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onDoubleClick={(event) => {
+                            if (protectedStructure) return;
+                            event.stopPropagation();
+                            setEditingId(item.id);
+                            setEditingTitle(item.title);
+                          }}
+                          className={
+                            "min-w-0 flex-1 truncate text-left text-sm font-black " +
+                            (isActive
+                              ? "text-text-primary"
+                              : "text-text-secondary")
+                          }
+                          title="더블클릭하여 이름 수정"
+                        >
+                          {item.title}
+                        </button>
+                      )}
+                      {item.count !== undefined && (
+                        <span
+                          className="shrink-0 rounded-full bg-surface-raised px-2 py-1 text-[10px] font-black tabular-nums text-text-muted"
+                          title={`${item.count}개`}
+                        >
+                          {item.count}개
+                        </span>
+                      )}
+                      {!protectedStructure ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(item.id);
+                          }}
+                          title="삭제"
+                          className="ui-icon-button size-7 shrink-0 text-text-muted hover:border-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      ) : (
+                        <span
+                          className="grid size-7 shrink-0 place-items-center text-brand-primary"
+                          title="시스템 갤러리 구조는 삭제할 수 없습니다."
+                        >
+                          <LockKeyhole className="size-3.5" />
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </SortableColumnItem>
+              );
+            })}
 
-        {adding && (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={submit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit();
-              if (e.key === "Escape") {
-                setDraft("");
-                setAdding(false);
-              }
-            }}
-            placeholder={createPlaceholder}
-            className="ui-input"
-          />
-        )}
-        </div>
+            {adding && (
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onBlur={submit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submit();
+                  if (e.key === "Escape") {
+                    setDraft("");
+                    setAdding(false);
+                  }
+                }}
+                placeholder={createPlaceholder}
+                className="ui-input"
+              />
+            )}
+          </div>
+        </DragDropProvider>
       </div>
     </section>
   );

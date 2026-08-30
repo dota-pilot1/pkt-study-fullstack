@@ -15,9 +15,11 @@ export async function getDocument(id: number) {
 
 export const listSpaces = repository.listSpaces;
 export const getTree = repository.getTree;
+export const createCategory = repository.createCategory;
 export const createTopic = repository.createTopic;
 export const renameCategory = repository.renameCategory;
 export const renameTopic = repository.renameTopic;
+export const reorderCategories = repository.reorderCategories;
 export const reorderTopics = repository.reorderTopics;
 
 const SYSTEM_GALLERY_SPACES = new Set(["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
