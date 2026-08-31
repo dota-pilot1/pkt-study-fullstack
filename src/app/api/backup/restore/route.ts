@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const hasUsers = probe.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'").get();
     const hasSpaces = probe.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'playbook_spaces'").get();
     probe.close();
-    if (!hasUsers || !hasSpaces) throw new Error("PKT Study 백업 파일이 아닙니다.");
+    if (!hasUsers || !hasSpaces) throw new Error("티키타카 노트 백업 파일이 아닙니다.");
     fs.renameSync(tempPath, pendingRestorePath);
     return NextResponse.json({ message: "복구 파일을 확인했습니다. 앱을 재시작하면 적용됩니다." });
   } catch (error) {

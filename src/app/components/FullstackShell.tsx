@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpen, Boxes, Code2, Coffee, Database, Factory, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Sparkles,
+  BookOpen, Boxes, Code2, Coffee, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Sparkles,
   Settings, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -156,7 +156,10 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}>
       <div className="relative flex h-screen overflow-hidden">
         <nav aria-hidden={railCollapsed} className={"relative z-50 flex shrink-0 flex-col items-center text-text-on-brand transition-[width] duration-200 ease-in-out " + (railCollapsed ? "pointer-events-none w-0 overflow-hidden" : "w-[92px] overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
-          <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}><Factory className="h-[28px] w-[28px] shrink-0" strokeWidth={2.2} /><span className="sr-only">PKT 프로젝트 (홈으로 가기)</span></button>
+          <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}>
+            <span className="text-[10px] font-black tracking-[0.06em] text-white">TIKITAKA</span>
+            <span className="sr-only">티키타카 노트 홈으로 가기</span>
+          </button>
           <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto py-2">
             {railGroups.map((group, index) => <div key={group.id} className={"flex w-[84px] shrink-0 flex-col items-center gap-1 pb-2 pt-1.5" + (index > 0 ? " border-t border-white/10 mt-1 pt-3" : "")}>
               {group.label && <span className="pb-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-text-on-brand/65">{group.label}</span>}

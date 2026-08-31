@@ -19,6 +19,19 @@ export const lots = sqliteTable("lots", {
   updatedAt: text("updated_at").notNull(),
 });
 
+export const learningGoals = sqliteTable("learning_goals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  groupName: text("group_name").notNull(),
+  task: text("task").notNull(),
+  skill: text("skill").notNull(),
+  progress: integer("progress").notNull().default(0),
+  completed: integer("completed", { mode: "boolean" }).notNull().default(false),
+  orderIdx: integer("order_idx").notNull().default(0),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const roles = sqliteTable("roles", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   code: text("code").notNull().unique(),

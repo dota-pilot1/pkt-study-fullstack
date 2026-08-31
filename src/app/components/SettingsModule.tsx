@@ -70,7 +70,7 @@ export function SettingsModule() {
 function GeneralSettings() {
   return (
     <>
-      <SettingRow label="앱 이름" value="PKT Study Fullstack" />
+      <SettingRow label="앱 이름" value="티키타카 노트" />
       <SettingRow label="실행 방식" value="Next.js + Tauri" />
       <SettingRow label="API 대상" value="현재 앱의 로컬 API (/api)" mono />
       <SettingNote>

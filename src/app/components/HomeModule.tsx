@@ -1,9 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   ArrowUpRight,
+  Boxes,
   BookOpen,
   Check,
   ChevronRight,
@@ -19,6 +22,7 @@ import {
   LayoutDashboard,
   Leaf,
   Layers,
+  Newspaper,
   Palette,
   Search,
   Sparkles,
@@ -68,6 +72,27 @@ const NOTE_GROUPS: NoteGroup[] = [
         tags: ["Spring Boot", "JPA", "DDD"],
       },
       {
+        id: "스프링 시큐리티",
+        title: "스프링 시큐리티",
+        desc: "Spring Security 인증·인가와 RBAC 권한 설계",
+        icon: BookOpen,
+        tags: ["Security", "JWT", "RBAC"],
+      },
+      {
+        id: "스프링 AI",
+        title: "스프링 AI",
+        desc: "LLM 연동, 프롬프트 설계와 Agent 활용 패턴",
+        icon: Sparkles,
+        tags: ["LLM", "Agent", "MCP"],
+      },
+      {
+        id: "API 설계 및 문서화",
+        title: "API 설계 및 문서화",
+        desc: "REST API 계약과 읽기 쉬운 기술 문서 작성 방식",
+        icon: BookOpen,
+        tags: ["REST", "OpenAPI", "Docs"],
+      },
+      {
         id: "자바 노트",
         title: "자바 노트",
         desc: "Java 문법, 객체지향, 컬렉션과 Stream API를 스프링 코드와 연결해 정리",
@@ -99,6 +124,20 @@ const NOTE_GROUPS: NoteGroup[] = [
         tags: ["React 19", "Next.js", "FSD"],
       },
       {
+        id: "라이브러리 활용",
+        title: "라이브러리 활용",
+        desc: "팀에 맞는 라이브러리 선택과 적용 패턴",
+        icon: BookOpen,
+        tags: ["Library", "Pattern", "Guide"],
+      },
+      {
+        id: "도메인 분석",
+        title: "도메인 분석",
+        desc: "도메인 모델과 요구사항을 화면·기능으로 구조화",
+        icon: Workflow,
+        tags: ["Domain", "Model", "Analysis"],
+      },
+      {
         id: "JS·TS 노트",
         title: "JS·TS 노트",
         desc: "map·filter·reduce부터 TypeScript 타입과 React 코드 읽기까지",
@@ -114,48 +153,91 @@ const NOTE_GROUPS: NoteGroup[] = [
       },
     ],
   },
+  {
+    id: "gallery",
+    title: "컴포넌트 스케치",
+    badge: "Gallery",
+    badgeClass: "bg-sky-500/10 text-sky-700 border-sky-500/20 dark:text-sky-400",
+    iconClass: "bg-sky-500/10 text-sky-600 border-sky-500/20",
+    borderClass: "hover:border-sky-500/40",
+    items: [
+      {
+        id: "컴포넌트 스케치",
+        title: "컴포넌트 스케치",
+        desc: "재사용 가능한 UI 컴포넌트와 화면 패턴 실험",
+        icon: Boxes,
+        tags: ["Component", "UI", "Sketch"],
+      },
+    ],
+  },
 ];
 
-const LEARNING_GOALS = [
-  { no: "01", group: "기초 UI", task: "LOT 목록 테이블 만들기", skill: "map, component, props" },
-  { no: "02", group: "기초 UI", task: "LOT 상태별 Badge 표시", skill: "조건부 렌더링" },
-  { no: "03", group: "기초 UI", task: "LOT 클릭 → 상세 패널 출력", skill: "useState" },
-  { no: "04", group: "조회·필터", task: "LOT명/ID 검색 입력", skill: "controlled input" },
-  { no: "05", group: "조회·필터", task: "공정 상태 드롭다운 필터", skill: "filter, Select" },
-  { no: "06", group: "조회·필터", task: "날짜 범위 조회조건 연동", skill: "DatePicker, 상태관리" },
-  { no: "07", group: "폼·검증", task: "LOT 등록 Form 구현", skill: "RHF 기초" },
-  { no: "08", group: "폼·검증", task: "필수값 및 형식 유효성 검증", skill: "Zod + RHF" },
-  { no: "09", group: "폼·검증", task: "LOT 수정 Modal 다이얼로그", skill: "Dialog, Form 재사용" },
-  { no: "10", group: "폼·검증", task: "삭제 확인 인터랙션 Dialog", skill: "UX + mutation 기초" },
-  { no: "11", group: "데이터 테이블", task: "LOT Master → 공정이력 Detail", skill: "Master/Detail 패턴" },
-  { no: "12", group: "데이터 테이블", task: "공정이력 Timeline 렌더링", skill: "배열 렌더링/컴포넌트 설계" },
-  { no: "13", group: "데이터 테이블", task: "공정이력 테이블 다중 정렬", skill: "sorting state" },
-  { no: "14", group: "데이터 테이블", task: "테이블 컬럼 숨김/표시 제어", skill: "table column state" },
-  { no: "15", group: "데이터 테이블", task: "서버 사이드 페이지네이션", skill: "server pagination" },
-  { no: "16", group: "서버 비동기", task: "TanStack Query 데이터 페칭", skill: "useQuery" },
-  { no: "17", group: "서버 비동기", task: "조회 조건 변경 시 자동 갱신", skill: "queryKey 캐시 설계" },
-  { no: "18", group: "서버 비동기", task: "LOT 수정 후 목록 자동 무효화", skill: "useMutation + invalidate" },
-  { no: "19", group: "서버 비동기", task: "Loading, Skeleton, Error UI", skill: "비동기 피드백 UX" },
-  { no: "20", group: "서버 비동기", task: "검색조건 URL searchParams 동기화", skill: "URL State 동기화" },
-  { no: "21", group: "고급 최적화", task: "LOT → Wafer → 공정이력 계층 탐색", skill: "Drill-down 계층 UI" },
-  { no: "22", group: "고급 최적화", task: "설비 목록 + 가동상태 Dashboard", skill: "KPI 카드 + 집계 뷰" },
-  { no: "23", group: "고급 최적화", task: "설비 가동상태 실시간 피드", skill: "SSE / WebSocket" },
-  { no: "24", group: "고급 최적화", task: "이상 이벤트 실시간 Toast 알림", skill: "실시간 이벤트 버스" },
-  { no: "25", group: "고급 최적화", task: "10,000건 대량 행 가상 스크롤", skill: "Virtualization" },
-  { no: "26", group: "고급 최적화", task: "다중 행 선택 및 일괄 처리", skill: "Row Selection" },
-  { no: "27", group: "고급 최적화", task: "역할 기반 버튼/기능 권한 제어", skill: "RBAC Guard" },
-  { no: "28", group: "고급 최적화", task: "조회조건 전역 저장소 관리", skill: "Zustand Store" },
-  { no: "29", group: "고급 최적화", task: "Excel 다운로드/업로드 파서", skill: "Blob / File API" },
-  { no: "30", group: "고급 최적화", task: "PKT Mini 종합 프로젝트 완성", skill: "전체 풀스택 통합" },
+const TIKITAKA_PRINCIPLES: Array<{ title: string; description: string; icon: LucideIcon; iconClass: string }> = [
+  {
+    title: "한방 구현보다 부분 구현",
+    description: "작업을 쪼개고, 구현·검증을 반복해 다음 단계로 안전하게 이어갑니다.",
+    icon: Layers,
+    iconClass: "bg-blue-500/10 text-blue-600",
+  },
+  {
+    title: "잘 만든 패턴을 팀 자산화",
+    description: "이해 가능한 코드와 컨벤션을 팀 표준으로 다듬고 재사용합니다.",
+    icon: BookOpen,
+    iconClass: "bg-violet-500/10 text-violet-600",
+  },
+  {
+    title: "살아있는 기술 베이스",
+    description: "아키텍처·API·DB·공통 컴포넌트를 Agent가 참조할 지식으로 관리합니다.",
+    icon: Database,
+    iconClass: "bg-emerald-500/10 text-emerald-600",
+  },
+  {
+    title: "문제 해결 경험까지 축적",
+    description: "디버깅, 기술 검증, 실패와 의사결정의 이유를 다음 개발에 다시 씁니다.",
+    icon: GraduationCap,
+    iconClass: "bg-amber-500/10 text-amber-600",
+  },
+  {
+    title: "AI 레버리지를 복잡한 곳에",
+    description: "반복 작업과 대규모 코드·문서·테스트·리팩터링에 AI의 힘을 집중합니다.",
+    icon: Sparkles,
+    iconClass: "bg-rose-500/10 text-rose-600",
+  },
 ];
+
+const BOOKMARKS: Array<{ name: string; description: string; href: string; icon: LucideIcon }> = [
+  { name: "긱뉴스", description: "개발자 뉴스와 기술 이야기", href: "https://news.hada.io/", icon: Newspaper },
+  { name: "Spring Guides", description: "Spring 공식 가이드", href: "https://spring.io/guides/", icon: Leaf },
+  { name: "React Docs", description: "React 공식 학습 문서", href: "https://react.dev/learn", icon: Workflow },
+  { name: "Next.js Docs", description: "Next.js 공식 문서", href: "https://nextjs.org/docs", icon: Code2 },
+];
+
+type LearningGoal = { id: number; groupName: string; task: string; skill: string; progress: number; completed: boolean; orderIdx: number };
+const EMPTY_LEARNING_GOALS: LearningGoal[] = [];
+
+async function readApiError(response: Response) {
+  const body = await response.json().catch(() => null) as { message?: string } | null;
+  return body?.message ?? "요청을 처리하지 못했습니다.";
+}
 
 export function HomeModule(_props: { userName?: string; email?: string }) {
-  const [activeTab, setActiveTab] = useState<"spaces" | "goals">("spaces");
+  const [activeTab, setActiveTab] = useState<"intro" | "spaces" | "goals">("intro");
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
   const [goalFilter, setGoalFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [copied, setCopied] = useState(false);
+  const [progressEdits, setProgressEdits] = useState<Record<number, number>>({});
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
+  const goalsQuery = useQuery({
+    queryKey: ["learning-goals"],
+    queryFn: async () => {
+      const response = await fetch("/api/learning-goals", { credentials: "same-origin" });
+      if (!response.ok) throw new Error(await readApiError(response));
+      return response.json() as Promise<LearningGoal[]>;
+    },
+  });
+  const learningGoals = goalsQuery.data ?? EMPTY_LEARNING_GOALS;
 
   const totalSpacesCount = useMemo(
     () => NOTE_GROUPS.reduce((acc, g) => acc + g.items.length, 0),
@@ -183,40 +265,61 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
   }, [selectedGroup]);
 
   const filteredGoals = useMemo(() => {
-    return LEARNING_GOALS.filter((item) => {
-      const matchesGroup = goalFilter === "all" || item.group === goalFilter;
+    return learningGoals.filter((item) => {
+      const matchesGroup = goalFilter === "all" || item.groupName === goalFilter;
       const q = searchQuery.trim().toLowerCase();
       const matchesQuery =
         !q ||
         item.task.toLowerCase().includes(q) ||
         item.skill.toLowerCase().includes(q) ||
-        item.group.toLowerCase().includes(q) ||
-        item.no.includes(q);
+        item.groupName.toLowerCase().includes(q) ||
+        String(item.orderIdx + 1).includes(q);
       return matchesGroup && matchesQuery;
     });
-  }, [goalFilter, searchQuery]);
+  }, [goalFilter, learningGoals, searchQuery]);
 
   const goalGroups = useMemo(() => {
-    const set = new Set(LEARNING_GOALS.map((g) => g.group));
+    const set = new Set(learningGoals.map((g) => g.groupName));
     return ["all", ...Array.from(set)];
-  }, []);
+  }, [learningGoals]);
+
+  const saveProgress = async (goal: LearningGoal, progress: number) => {
+    try {
+      const response = await fetch(`/api/learning-goals/${goal.id}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupName: goal.groupName, task: goal.task, skill: goal.skill, progress }),
+      });
+      if (!response.ok) throw new Error(await readApiError(response));
+      await queryClient.invalidateQueries({ queryKey: ["learning-goals"] });
+      setProgressEdits((current) => {
+        const next = { ...current };
+        delete next[goal.id];
+        return next;
+      });
+      showToast(`학습 완성도를 ${progress}%로 저장했습니다.`);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "학습 완성도를 저장하지 못했습니다.", "error");
+    }
+  };
 
   return (
     <>
       <PageHeader>
         <LayoutDashboard className="size-4 text-brand-primary" />
-        <span className="text-[14px] font-bold tracking-tight text-text-primary">노트 홈</span>
+        <span className="text-[14px] font-bold tracking-tight text-text-primary">티키타카 노트</span>
       </PageHeader>
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-surface-muted">
-        <div className="mx-auto max-w-[1400px] px-6 py-6 space-y-6">
+        <div className="w-full px-5 py-6 space-y-6 xl:px-7">
           {/* Top Banner Card */}
           <div className="relative overflow-hidden rounded-2xl border border-surface-border bg-surface-raised p-6 shadow-sm">
             <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-border bg-brand-glass px-3 py-1 text-[11px] font-bold text-brand-primary">
-                    <Code2 className="size-3.5" /> PKT Developer Workspace
+                    <Sparkles className="size-3.5" /> 티키타카 노트
                   </span>
                   <span className="rounded-full border border-surface-border bg-surface-muted px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-text-secondary">
                     v{packageJson.version}
@@ -225,16 +328,19 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                 </div>
 
                 <h1 className="text-[22px] font-black tracking-tight text-text-primary sm:text-[24px]">
-                  개발 지식을 쌓고, 함께 나누는 공간
+                  팀의 개발 방식을 Agent가 반복해서 잘 일하게 만드는 지식 기반
                 </h1>
 
                 <p className="text-[12.5px] leading-relaxed text-text-secondary">
-                  Spring Boot 백엔드부터 Next.js 프론트엔드, UI 디자인 시스템 및 AI 실습 가이드를 통합 관리합니다.
+                  작업을 쪼개고, 검증하고, 잘 만든 패턴을 축적해 사람과 AI가 같은 방식으로 다음 구현을 이어갑니다.
                 </p>
               </div>
 
               {/* Quick Actions */}
               <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+                <div className="hidden h-[104px] w-[150px] overflow-hidden sm:block" aria-label="로봇과 노트가 대화하는 티키타카 노트 마스코트">
+                  <Image src="/tikitaka-mascot.png" alt="로봇과 노트가 말풍선 공을 주고받는 모습" width={1254} height={1254} priority className="h-full w-full scale-[1.2] object-contain" />
+                </div>
                 <a
                   href={RELEASE_URL}
                   target="_blank"
@@ -277,8 +383,8 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   <BookOpen className="size-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-bold text-text-primary">개발 지식 공유</p>
-                  <p className="truncate text-[11px] text-text-muted">경험과 노하우를 문서로 축적</p>
+                  <p className="text-[12px] font-bold text-text-primary">부분 구현 · 빠른 검증</p>
+                  <p className="truncate text-[11px] text-text-muted">작업을 쪼개고 다음 단계로 연결</p>
                 </div>
               </div>
 
@@ -287,8 +393,8 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   <Palette className="size-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-bold text-text-primary">나만의 UI 디자인</p>
-                  <p className="truncate text-[11px] text-text-muted">컴포넌트와 화면 직접 실험</p>
+                  <p className="text-[12px] font-bold text-text-primary">팀 구현 패턴 자산화</p>
+                  <p className="truncate text-[11px] text-text-muted">코드·컨벤션·예제를 팀 표준으로</p>
                 </div>
               </div>
 
@@ -297,8 +403,8 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   <Sparkles className="size-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[12px] font-bold text-text-primary">Skill · MCP 연구</p>
-                  <p className="truncate text-[11px] text-text-muted">AI 도구 활용법 및 룰 정리</p>
+                  <p className="text-[12px] font-bold text-text-primary">Agent가 참조하는 기술 베이스</p>
+                  <p className="truncate text-[11px] text-text-muted">필요한 지식을 MCP로 반복 공급</p>
                 </div>
               </div>
             </div>
@@ -313,6 +419,19 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                 <div className="flex items-center gap-1 rounded-xl border border-surface-border bg-surface-raised p-1 shadow-sm">
                   <button
                     type="button"
+                    onClick={() => setActiveTab("intro")}
+                    className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-[12.5px] font-bold transition-all ${
+                      activeTab === "intro"
+                        ? "bg-brand-primary text-text-on-brand shadow-sm"
+                        : "text-text-secondary hover:text-text-primary"
+                    }`}
+                  >
+                    <Layers className="size-3.5" />
+                    <span>티키타카 노트</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => setActiveTab("spaces")}
                     className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-[12.5px] font-bold transition-all ${
                       activeTab === "spaces"
@@ -320,13 +439,9 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                         : "text-text-secondary hover:text-text-primary"
                     }`}
                   >
-                    <Layers className="size-3.5" />
-                    <span>노트 스페이스</span>
-                    <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
-                        activeTab === "spaces" ? "bg-white/20 text-white" : "bg-surface-muted text-text-muted"
-                      }`}
-                    >
+                    <BookOpen className="size-3.5" />
+                    <span>노트 둘러보기</span>
+                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${activeTab === "spaces" ? "bg-white/20 text-white" : "bg-surface-muted text-text-muted"}`}>
                       {totalSpacesCount}
                     </span>
                   </button>
@@ -347,7 +462,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                         activeTab === "goals" ? "bg-white/20 text-white" : "bg-surface-muted text-text-muted"
                       }`}
                     >
-                      {LEARNING_GOALS.length}
+                      {learningGoals.length}
                     </span>
                   </button>
                 </div>
@@ -385,6 +500,42 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
               </div>
 
               {/* TAB 1: Note Spaces Grouped Sections */}
+              {activeTab === "intro" && (
+                <section className="overflow-hidden rounded-xl border border-brand-border bg-surface-raised shadow-sm">
+                    <div className="border-b border-brand-border bg-brand-glass px-5 py-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full bg-brand-primary px-2.5 py-1 text-[11px] font-black tracking-wide text-text-on-brand">TIKITAKA DEVELOPMENT NOTE</span>
+                        <span className="text-[12px] font-semibold text-brand-primary">코드를 맡기는 도구를 넘어, 팀의 개발 방식을 구조화합니다.</span>
+                      </div>
+                      <h2 className="mt-3 text-[22px] font-black tracking-tight text-text-primary">사람과 Agent가 같은 맥락으로 다음 구현을 이어가는 방법</h2>
+                      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-text-secondary">개발 노트는 단순 기록이 아니라 구현 패턴, 기술 결정, 검증 경험을 모아 Agent가 반복해서 참고하는 팀의 지식 기반입니다.</p>
+                    </div>
+                    <div className="grid gap-px bg-surface-border-soft sm:grid-cols-2 xl:grid-cols-5">
+                      {TIKITAKA_PRINCIPLES.slice(0, 4).map(({ title, description, icon: Icon, iconClass }) => (
+                        <article key={title} className="bg-surface-raised p-5">
+                          <span className={`grid size-9 place-items-center rounded-lg ${iconClass}`}><Icon className="size-[18px]" /></span>
+                          <h3 className="mt-3 text-[15px] font-black leading-snug text-text-primary">{title}</h3>
+                          <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">{description}</p>
+                        </article>
+                      ))}
+                    </div>
+                    {(() => {
+                      const { title, description, icon: Icon, iconClass } = TIKITAKA_PRINCIPLES[4];
+                      return (
+                        <article className="border-t border-surface-border-soft bg-surface-raised p-5">
+                          <span className={`grid size-9 place-items-center rounded-lg ${iconClass}`}><Icon className="size-[18px]" /></span>
+                          <h3 className="mt-3 text-[15px] font-black leading-snug text-text-primary">{title}</h3>
+                          <p className="mt-2 text-[13px] leading-relaxed text-text-secondary">{description}</p>
+                        </article>
+                      );
+                    })()}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-surface-border-soft bg-surface-muted/70 px-5 py-3">
+                      <p className="text-[14px] font-bold text-text-primary">티키타카 개발 노트 = 사람과 Agent의 티키타카를 팀의 개발 생산성으로 연결하는 AI 시대의 전술 전략 노트</p>
+                      <span className="text-[12.5px] font-semibold text-text-muted">작업 분해 → 부분 구현 → 검증 → 패턴 축적</span>
+                    </div>
+                </section>
+              )}
+
               {activeTab === "spaces" && (
                 <div className="space-y-6">
                   {visibleGroups.map((group) => (
@@ -490,7 +641,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   {/* Tasks Table */}
                   <div className="overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-sm">
                     <div className="border-b border-surface-border px-4 py-2.5 text-[11.5px] font-bold text-text-secondary">
-                      총 {filteredGoals.length}개 과제
+                      {goalsQuery.isLoading ? "학습 과제를 불러오는 중..." : `총 ${filteredGoals.length}개 과제`}
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[560px] border-collapse text-left text-[12px]">
@@ -500,33 +651,53 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                             <th className="w-28 px-3.5 py-2.5">분류</th>
                             <th className="px-3.5 py-2.5">과제명</th>
                             <th className="px-3.5 py-2.5">핵심 스킬</th>
+                            <th className="w-64 px-3.5 py-2.5">학습 완성도</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-surface-border-soft">
-                          {filteredGoals.map((g) => (
-                            <tr
-                              key={g.no}
-                              className="transition-colors hover:bg-brand-glass/25"
-                            >
+                          {filteredGoals.map((g) => {
+                            const progress = progressEdits[g.id] ?? g.progress;
+                            return <tr key={g.id} className="transition-colors hover:bg-brand-glass/25">
                               <td className="px-3.5 py-2.5 text-center font-black tabular-nums text-text-muted">
-                                {g.no}
+                                {String(g.orderIdx + 1).padStart(2, "0")}
                               </td>
                               <td className="px-3.5 py-2.5">
                                 <span className="inline-block rounded border border-surface-border bg-surface-muted px-1.5 py-0.5 text-[10.5px] font-bold text-text-secondary">
-                                  {g.group}
+                                  {g.groupName}
                                 </span>
                               </td>
-                              <td className="px-3.5 py-2.5 font-bold text-text-primary">{g.task}</td>
+                              <td className="px-3.5 py-2.5 font-bold text-text-primary">
+                                <span className={progress === 100 ? "text-text-muted line-through" : undefined}>{g.task}</span>
+                                {progress === 100 && <span className="ml-2 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">완료</span>}
+                              </td>
                               <td className="px-3.5 py-2.5">
                                 <span className="inline-block rounded bg-brand-glass px-1.5 py-0.5 text-[10.5px] font-semibold text-brand-primary">
                                   {g.skill}
                                 </span>
                               </td>
+                              <td className="px-3.5 py-2.5">
+                                <div className="flex items-center gap-2.5">
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="100"
+                                    step="5"
+                                    value={progress}
+                                    onChange={(event) => setProgressEdits((current) => ({ ...current, [g.id]: Number(event.target.value) }))}
+                                    onMouseUp={() => void saveProgress(g, progress)}
+                                    onTouchEnd={() => void saveProgress(g, progress)}
+                                    onKeyUp={(event) => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) void saveProgress(g, progress); }}
+                                    aria-label={`${g.task} 학습 완성도`}
+                                    className="h-1.5 min-w-0 flex-1 cursor-pointer accent-[var(--primary)]"
+                                  />
+                                  <span className="w-9 text-right text-[11px] font-black tabular-nums text-brand-primary">{progress}%</span>
+                                </div>
+                              </td>
                             </tr>
-                          ))}
-                          {filteredGoals.length === 0 && (
+                          })}
+                          {!goalsQuery.isLoading && filteredGoals.length === 0 && (
                             <tr>
-                              <td colSpan={4} className="py-10 text-center text-[12px] text-text-muted">
+                              <td colSpan={5} className="py-10 text-center text-[12px] text-text-muted">
                                 일치하는 실습 과제가 없습니다.
                               </td>
                             </tr>
@@ -541,31 +712,29 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
 
             {/* Right Column: Quick Info & Status */}
             <aside className="space-y-4">
-              {/* Quick Jump List */}
+              {/* Developer Bookmarks */}
               <div className="rounded-xl border border-surface-border bg-surface-raised p-4 shadow-sm">
                 <div className="flex items-center justify-between pb-2.5 border-b border-surface-border-soft">
-                  <h3 className="text-[12.5px] font-black text-text-primary">빠른 바로가기</h3>
-                  <span className="text-[10.5px] text-text-muted">주요 영역</span>
+                  <h3 className="text-[12.5px] font-black text-text-primary">즐겨찾기</h3>
+                  <span className="text-[10.5px] text-text-muted">개발 자료</span>
                 </div>
                 <div className="mt-2.5 space-y-1">
-                  {[
-                    { name: "스프링 부트", cat: "백엔드", icon: Leaf },
-                    { name: "리액트 노트", cat: "프론트", icon: Workflow },
-                  ].map((item) => {
+                  {BOOKMARKS.map((item) => {
                     const Icon = item.icon;
                     return (
-                      <button
+                      <a
                         key={item.name}
-                        type="button"
-                        onClick={() => navigateTo(item.name)}
-                        className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] font-semibold text-text-secondary transition-colors hover:bg-surface-muted hover:text-brand-primary"
+                        href={item.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-surface-muted hover:text-brand-primary"
                       >
                         <div className="flex items-center gap-2">
                           <Icon className="size-3.5 text-text-muted" />
-                          <span>{item.name}</span>
+                          <span><span className="block text-[12px] font-semibold">{item.name}</span><span className="block text-[9.5px] text-text-muted">{item.description}</span></span>
                         </div>
-                        <ArrowRight className="size-3 text-text-muted" />
-                      </button>
+                        <ArrowUpRight className="size-3 text-text-muted" />
+                      </a>
                     );
                   })}
                 </div>
@@ -594,7 +763,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-text-secondary">실습 과제</span>
-                    <span className="font-bold text-text-primary">{LEARNING_GOALS.length}개</span>
+                    <span className="font-bold text-text-primary">{learningGoals.length}개</span>
                   </div>
                 </div>
               </div>
