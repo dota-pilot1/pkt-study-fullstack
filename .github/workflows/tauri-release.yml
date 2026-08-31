@@ -11,11 +11,17 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: pkt-study-release-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
 jobs:
   build-and-upload-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -57,3 +63,12 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: "--bundles nsis"
+
+      - name: Publish updater metadata
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/publish-updater-json.mjs --release-tag "${{ inputs.release_tag }}" --output "$RUNNER_TEMP/latest.json"
+          gh release upload "${{ inputs.release_tag }}" "$RUNNER_TEMP/latest.json" --clobber
