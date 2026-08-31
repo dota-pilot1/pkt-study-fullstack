@@ -266,19 +266,71 @@ type PrismRenderToken = {
   content: string | PrismRenderToken | Array<string | PrismRenderToken>
 }
 
-function appendPrismRenderToken(parent: HTMLElement, value: string | PrismRenderToken | Array<string | PrismRenderToken>) {
+type DomStyleRange = {
+  start: number
+  end: number
+  style: string
+}
+
+function collectDomStyleRanges(element: HTMLElement): DomStyleRange[] {
+  const ranges: DomStyleRange[] = []
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT)
+  let offset = 0
+  let textNode = walker.nextNode()
+
+  while (textNode) {
+    const text = textNode.textContent ?? ''
+    const style = textNode.parentElement?.getAttribute('style') ?? ''
+    if (text && style) ranges.push({ start: offset, end: offset + text.length, style })
+    offset += text.length
+    textNode = walker.nextNode()
+  }
+
+  return ranges
+}
+
+function appendStyledText(
+  parent: HTMLElement,
+  value: string,
+  ranges: DomStyleRange[],
+  offset: { current: number },
+) {
+  const start = offset.current
+  const end = start + value.length
+  const relevant = ranges.filter((range) => range.end > start && range.start < end)
+  let cursor = start
+
+  relevant.forEach((range) => {
+    if (range.start > cursor) parent.appendChild(document.createTextNode(value.slice(cursor - start, range.start - start)))
+    const stop = Math.min(range.end, end)
+    const span = document.createElement('span')
+    span.setAttribute('style', range.style)
+    span.textContent = value.slice(Math.max(cursor, range.start) - start, stop - start)
+    parent.appendChild(span)
+    cursor = stop
+  })
+  if (cursor < end) parent.appendChild(document.createTextNode(value.slice(cursor - start)))
+  offset.current = end
+}
+
+function appendPrismRenderToken(
+  parent: HTMLElement,
+  value: string | PrismRenderToken | Array<string | PrismRenderToken>,
+  ranges: DomStyleRange[],
+  offset: { current: number },
+) {
   if (typeof value === 'string') {
-    parent.appendChild(document.createTextNode(value))
+    appendStyledText(parent, value, ranges, offset)
     return
   }
   if (Array.isArray(value)) {
-    value.forEach((item) => appendPrismRenderToken(parent, item))
+    value.forEach((item) => appendPrismRenderToken(parent, item, ranges, offset))
     return
   }
   const span = document.createElement('span')
   const alias = Array.isArray(value.alias) ? value.alias[0] : value.alias
   span.className = `editor-token-${alias || value.type}`
-  appendPrismRenderToken(span, value.content)
+  appendPrismRenderToken(span, value.content, ranges, offset)
   parent.appendChild(span)
 }
 
@@ -318,8 +370,14 @@ function ReadOnlyPrismFallback() {
           element.getAttribute('data-language') ?? undefined,
         )
         const tokens = PrismTokenizer.tokenize(source, language)
+        const styleRanges = collectDomStyleRanges(element)
         element.replaceChildren()
-        appendPrismRenderToken(element, tokens as string | PrismRenderToken | Array<string | PrismRenderToken>)
+        appendPrismRenderToken(
+          element,
+          tokens as string | PrismRenderToken | Array<string | PrismRenderToken>,
+          styleRanges,
+          { current: 0 },
+        )
       })
     }
 

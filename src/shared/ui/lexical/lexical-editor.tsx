@@ -269,6 +269,76 @@ type PrismRenderToken = {
 
 type SerializedNode = Record<string, unknown>
 
+type SerializedStyleRange = {
+  start: number
+  end: number
+  style: string
+}
+
+function collectSerializedStyleRanges(children: SerializedNode[]): SerializedStyleRange[] {
+  const ranges: SerializedStyleRange[] = []
+  let offset = 0
+
+  children.forEach((child) => {
+    if (child.type === 'linebreak') {
+      offset += 1
+      return
+    }
+
+    const text = typeof child.text === 'string' ? child.text : ''
+    const style = typeof child.style === 'string' ? child.style : ''
+    if (text && style) ranges.push({ start: offset, end: offset + text.length, style })
+    offset += text.length
+  })
+
+  return ranges
+}
+
+function applySerializedStyleRanges(
+  nodes: SerializedNode[],
+  ranges: SerializedStyleRange[],
+): SerializedNode[] {
+  if (ranges.length === 0) return nodes
+
+  const result: SerializedNode[] = []
+  let offset = 0
+
+  nodes.forEach((node) => {
+    if (node.type === 'linebreak') {
+      result.push(node)
+      offset += 1
+      return
+    }
+
+    const text = typeof node.text === 'string' ? node.text : ''
+    const end = offset + text.length
+    const relevant = ranges.filter((range) => range.end > offset && range.start < end)
+    if (node.type !== 'code-highlight' || !text || relevant.length === 0) {
+      result.push(node)
+      offset = end
+      return
+    }
+
+    let cursor = offset
+    relevant.forEach((range) => {
+      if (range.start > cursor) {
+        result.push({ ...node, text: text.slice(cursor - offset, range.start - offset), style: '' })
+      }
+      const stop = Math.min(range.end, end)
+      result.push({
+        ...node,
+        text: text.slice(Math.max(cursor, range.start) - offset, stop - offset),
+        style: range.style,
+      })
+      cursor = stop
+    })
+    if (cursor < end) result.push({ ...node, text: text.slice(cursor - offset), style: '' })
+    offset = end
+  })
+
+  return result
+}
+
 /** 읽기 전용 상태는 마운트 전에 토큰 노드로 만들어 Lexical이 DOM을 직접 관리하게 한다. */
 function createSerializedHighlightNodes(
   value: string | PrismRenderToken | Array<string | PrismRenderToken>,
@@ -303,6 +373,7 @@ function addReadOnlyCodeHighlighting(initialState: string | null): string | null
     const state = JSON.parse(initialState) as { root?: SerializedNode }
     const visit = (node: SerializedNode) => {
       if (node.type === 'code' && Array.isArray(node.children)) {
+        const originalChildren = node.children as SerializedNode[]
         const source = node.children.map((child) =>
           child && typeof child === 'object'
             ? (child as SerializedNode).type === 'linebreak'
@@ -315,7 +386,10 @@ function addReadOnlyCodeHighlighting(initialState: string | null): string | null
         const language = inferCodeLanguage(source, typeof node.language === 'string' ? node.language : undefined)
         node.language = language
         const tokens = PrismTokenizer.tokenize(source, resolvePrismLanguage(language))
-        node.children = createSerializedHighlightNodes(tokens as string | PrismRenderToken | Array<string | PrismRenderToken>)
+        node.children = applySerializedStyleRanges(
+          createSerializedHighlightNodes(tokens as string | PrismRenderToken | Array<string | PrismRenderToken>),
+          collectSerializedStyleRanges(originalChildren),
+        )
       }
       if (Array.isArray(node.children)) {
         node.children.forEach((child) => {
