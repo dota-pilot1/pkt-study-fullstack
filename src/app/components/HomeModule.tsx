@@ -517,7 +517,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                       <h2 className="mt-3 text-[22px] font-black tracking-tight text-text-primary">사람과 Agent가 같은 맥락으로 다음 구현을 이어가는 방법</h2>
                       <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-text-secondary">개발 노트는 단순 기록이 아니라 구현 패턴, 기술 결정, 검증 경험을 모아 Agent가 반복해서 참고하는 팀의 지식 기반입니다.</p>
                     </div>
-                    <div className="grid gap-px bg-surface-border-soft sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid gap-px bg-surface-border-soft sm:grid-cols-2 xl:grid-cols-4">
                       {TIKITAKA_PRINCIPLES.slice(0, 4).map(({ title, description, icon: Icon, iconClass }) => (
                         <article key={title} className="bg-surface-raised p-5">
                           <span className={`grid size-9 place-items-center rounded-lg ${iconClass}`}><Icon className="size-[18px]" /></span>
