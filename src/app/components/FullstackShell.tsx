@@ -134,7 +134,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   const selectModule = (label: string) => {
     setActive(label);
     const subgroup = railItems.find((item) => item.label === label)?.subgroup;
-    if (subgroup) setSelectedRailSubgroup(subgroup);
+    setSelectedRailSubgroup(subgroup ?? null);
     window.history.replaceState(null, "", `#${encodeURIComponent(label)}`);
   };
   const toggleRail = () => {
