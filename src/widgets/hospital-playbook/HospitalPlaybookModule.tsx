@@ -48,7 +48,6 @@ const EMPTY_CATEGORIES: PlaybookCategory[] = [];
 const EMPTY_TOPICS: PlaybookCategory["topics"] = [];
 const EMPTY_DOCUMENTS: PlaybookDocumentSummary[] = [];
 const SYSTEM_GALLERY_DOMAINS: PlaybookDomain[] = [
-  "UIUX",
   "UI_NAV",
   "UI_FORM",
   "UI_LAYOUT",

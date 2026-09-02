@@ -101,6 +101,19 @@ export async function createLlmStructure(spaceCode: string, categoryTitle: strin
   return { category: { ...category, topics }, topics };
 }
 
+// 기존 1차 메뉴 아래에 2차 주제를 추가할 때는 구조를 중복 생성하지 않는다.
+export async function createLlmTopic(categoryId: number, title: string) {
+  const category = await repository.findCategoryById(categoryId);
+  if (!category) throw new LlmPlaybookError(404, "1차 메뉴를 찾을 수 없습니다.");
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) throw new LlmPlaybookError(400, "2차 주제 제목이 필요합니다.");
+  const topics = (await repository.listAllTopics()).filter((topic) => topic.categoryId === categoryId);
+  if (topics.some((topic) => topic.title === normalizedTitle)) {
+    throw new LlmPlaybookError(409, "같은 이름의 2차 주제가 이미 있습니다.");
+  }
+  return { ...(await repository.insertTopic(categoryId, normalizedTitle, topics.length)), documents: [] };
+}
+
 export async function createLlmDocument(topicId: number, title: string, content: string, parentId: number | null) {
   const topic = await repository.findTopicById(topicId);
   if (!topic) throw new LlmPlaybookError(404, "2차 주제를 찾을 수 없습니다.");

@@ -22,7 +22,7 @@ export const renameTopic = repository.renameTopic;
 export const reorderCategories = repository.reorderCategories;
 export const reorderTopics = repository.reorderTopics;
 
-const SYSTEM_GALLERY_SPACES = new Set(["UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
+const SYSTEM_GALLERY_SPACES = new Set(["UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
 
 async function isProtectedGalleryTopic(topicId: number) {
   const topic = await repository.findTopicById(topicId);
@@ -46,7 +46,7 @@ export async function deleteTopic(id: number) {
   return repository.deleteTopic(id);
 }
 
-export async function createDocument(topicId: number, title: string, parentId: number | null, createdBy: number) {
+export async function createDocument(topicId: number, title: string, parentId: number | null, createdBy: number | null) {
   return repository.createDocument(topicId, title, parentId, createdBy);
 }
 

@@ -145,6 +145,13 @@ const NOTE_GROUPS: NoteGroup[] = [
         tags: ["JavaScript", "TypeScript", "Array"],
       },
       {
+        id: "기본 컴포넌트",
+        title: "기본 컴포넌트",
+        desc: "Header, Input, Accordion 같은 UI 구현·검증과 클론 실습을 분류",
+        icon: Boxes,
+        tags: ["UI", "Component", "Clone"],
+      },
+      {
         id: "기본 화면 설계",
         title: "기본 화면 설계",
         desc: "페이지 단위 레이아웃, 와이어프레임 구조화 및 화면 전환 흐름",

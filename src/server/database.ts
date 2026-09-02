@@ -33,7 +33,7 @@ function mergePackagedPlaybookSeed() {
   }
   const now = new Date().toISOString();
   try {
-    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?, ?)").all("COMPONENT_SKETCH", "UIUX", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE", "FRONTEND_LIBRARY") as Array<{ id: number; code: string; name: string }>;
+    const seedSpaces = seed.prepare("SELECT id, code, name FROM playbook_spaces WHERE code IN (?, ?, ?, ?, ?, ?, ?)").all("COMPONENT_SKETCH", "BASIC_COMPONENTS", "UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE", "FRONTEND_LIBRARY") as Array<{ id: number; code: string; name: string }>;
     if (seedSpaces.length === 0) return;
 
     const insertSpace = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)");
@@ -99,6 +99,24 @@ if (!componentSketch && (legacyComponentGallery || legacyCodeLab)) {
   sqlite.prepare("UPDATE playbook_spaces SET code = ?, name = ? WHERE id = ?").run("COMPONENT_SKETCH", "컴포넌트 스케치", (legacyComponentGallery ?? legacyCodeLab)!.id);
 }
 
+function moveComponentPracticeCategories() {
+  const frontendSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("FRONTEND") as { id: number } | undefined;
+  if (!frontendSpace) return;
+
+  const now = new Date().toISOString();
+  let componentSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("BASIC_COMPONENTS") as { id: number } | undefined;
+  if (!componentSpace) {
+    const result = sqlite.prepare("INSERT INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+      .run("BASIC_COMPONENTS", "기본 컴포넌트", now, now);
+    componentSpace = { id: Number(result.lastInsertRowid) };
+  }
+
+  // 실제 UI 구현·클론 기록만 별도 공간으로 옮기고 React 원리·FSD는 FRONTEND에 남긴다.
+  sqlite.prepare("UPDATE playbook_categories SET space_id = ?, updated_at = ? WHERE space_id = ? AND title IN (?, ?)")
+    .run(componentSpace.id, now, frontendSpace.id, "기본 UI", "클론 UI");
+}
+
+moveComponentPracticeCategories();
 mergePackagedPlaybookSeed();
 
 const now = new Date().toISOString();
@@ -138,7 +156,6 @@ if (!databaseExistedBeforeOpen) {
     ["FRONTEND", "리액트 노트", "리액트 노트", "React·Next.js 기술 노트"],
     ["FRONTEND_DOMAIN", "프론트 도메인 분석", "도메인 분석", "상태·전이 설계"],
     ["JS_TS", "JS·TS 노트", "JavaScript·TypeScript 기초", "배열 메서드와 타입"],
-    ["UIUX", "공통 컴포넌트", "기본 컴포넌트", "Button"],
     ["UI_NAV", "메뉴·네비게이션", "기본 UI 실습", "Sidebar와 Header"],
     ["UI_FORM", "폼 UI", "인증 폼", "로그인 폼"],
     ["UI_LAYOUT", "레이아웃·페이지", "레이아웃 기초", "Grid·Flex"],

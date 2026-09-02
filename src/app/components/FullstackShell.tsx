@@ -30,6 +30,7 @@ const railItems: RailItem[] = [
   { label: "라이브러리 활용", icon: Library, group: "frontend" },
   { label: "도메인 분석", icon: Workflow, group: "frontend" },
   { label: "JS·TS 노트", icon: Code2, group: "frontend" },
+  { label: "기본 컴포넌트", icon: Boxes, group: "frontend" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
   { label: "컴포넌트 스케치", icon: Boxes, group: "gallery" },
 ];
