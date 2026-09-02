@@ -102,6 +102,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   const [contentRefreshKey, setContentRefreshKey] = useState(0);
   const [isRefreshingContent, setIsRefreshingContent] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
+  const railMenuRef = useRef<HTMLDivElement>(null);
   const refreshTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -129,6 +130,17 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); };
   }, [accountOpen]);
 
+  useEffect(() => {
+    if (!selectedRailSubgroup) return;
+    const close = (event: MouseEvent) => {
+      if (!railMenuRef.current?.contains(event.target as Node)) setSelectedRailSubgroup(null);
+    };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setSelectedRailSubgroup(null); };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); };
+  }, [selectedRailSubgroup]);
+
   useEffect(() => () => { if (refreshTimerRef.current !== null) window.clearTimeout(refreshTimerRef.current); }, []);
 
   const selectModule = (label: string) => {
@@ -140,7 +152,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     setRailCollapsed((collapsed) => {
       const next = !collapsed;
       window.localStorage.setItem(RAIL_COLLAPSED_KEY, next ? "1" : "0");
-      if (next) setAccountOpen(false);
+      if (next) { setAccountOpen(false); setSelectedRailSubgroup(null); }
       return next;
     });
   };
@@ -164,7 +176,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   return (
     <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}>
       <div className="relative flex h-screen overflow-hidden">
-        <div className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : selectedRailSubgroup ? "w-[272px]" : "w-[92px]")}>
+        <div ref={railMenuRef} className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : "w-[92px]")}>
         <nav aria-hidden={railCollapsed} className={"relative flex h-full w-[92px] shrink-0 flex-col items-center text-text-on-brand " + (railCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
           <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}>
             <span className="text-[10px] font-black tracking-[0.06em] text-white">TIKITAKA</span>
@@ -191,10 +203,10 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
             {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>
-        {selectedRailSubgroup && !railCollapsed && <aside className="h-full w-[180px] border-r border-surface-border bg-surface-raised px-3 py-4 text-text-primary shadow-lg">
+        {selectedRailSubgroup && !railCollapsed && <aside className="absolute left-[92px] top-14 z-50 w-[196px] rounded-r-xl border border-l-0 border-surface-border bg-surface-raised px-3 py-4 text-text-primary shadow-xl">
           <div className="mb-3 flex items-center justify-between border-b border-surface-border-soft px-1 pb-3">
             <div><p className="text-[11px] font-black text-text-muted">2차 메뉴</p><h2 className="mt-0.5 text-[16px] font-black">{railSubgroups.find((subgroup) => subgroup.id === selectedRailSubgroup)?.label}</h2></div>
-            <ChevronDown className="size-4 rotate-90 text-text-muted" />
+            <button type="button" onClick={() => setSelectedRailSubgroup(null)} className="grid size-7 place-items-center rounded-md text-text-muted hover:bg-surface-muted hover:text-text-primary" aria-label="2차 메뉴 닫기"><ChevronDown className="size-4 rotate-90" /></button>
           </div>
           <div className="space-y-1">{railItems.filter((item) => item.subgroup === selectedRailSubgroup).map((item) => {
             const Icon = item.icon; const selected = item.label === active;
