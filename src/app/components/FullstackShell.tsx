@@ -133,8 +133,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
 
   const selectModule = (label: string) => {
     setActive(label);
-    const subgroup = railItems.find((item) => item.label === label)?.subgroup;
-    setSelectedRailSubgroup(subgroup ?? null);
+    setSelectedRailSubgroup(null);
     window.history.replaceState(null, "", `#${encodeURIComponent(label)}`);
   };
   const toggleRail = () => {
@@ -160,12 +159,12 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     }
   };
   const railTint = (percent: number) => `color-mix(in srgb, var(--primary-foreground) ${percent}%, transparent)`;
-  const activeRailSubgroup = railItems.find((item) => item.label === active)?.subgroup ?? selectedRailSubgroup;
+  const activeRailSubgroup = railItems.find((item) => item.label === active)?.subgroup;
 
   return (
     <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}>
       <div className="relative flex h-screen overflow-hidden">
-        <div className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : activeRailSubgroup ? "w-[272px]" : "w-[92px]")}>
+        <div className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : selectedRailSubgroup ? "w-[272px]" : "w-[92px]")}>
         <nav aria-hidden={railCollapsed} className={"relative flex h-full w-[92px] shrink-0 flex-col items-center text-text-on-brand " + (railCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
           <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}>
             <span className="text-[10px] font-black tracking-[0.06em] text-white">TIKITAKA</span>
@@ -176,7 +175,8 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
               {group.label && <span className="pb-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-text-on-brand/65">{group.label}</span>}
               {railSubgroups.filter((subgroup) => railItems.some((item) => item.group === group.id && item.subgroup === subgroup.id)).map((subgroup) => {
                 const selected = activeRailSubgroup === subgroup.id;
-                return <button key={subgroup.id} type="button" onClick={() => setSelectedRailSubgroup(subgroup.id)} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="text-[8px] font-medium text-text-on-brand/65">하위 메뉴</span></button>;
+                const activeChild = railItems.find((item) => item.subgroup === subgroup.id && item.label === active)?.label;
+                return <button key={subgroup.id} type="button" onClick={() => setSelectedRailSubgroup(subgroup.id)} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
               })}
               {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;
@@ -191,12 +191,12 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
             {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>
-        {activeRailSubgroup && !railCollapsed && <aside className="h-full w-[180px] border-r border-surface-border bg-surface-raised px-3 py-4 text-text-primary shadow-lg">
+        {selectedRailSubgroup && !railCollapsed && <aside className="h-full w-[180px] border-r border-surface-border bg-surface-raised px-3 py-4 text-text-primary shadow-lg">
           <div className="mb-3 flex items-center justify-between border-b border-surface-border-soft px-1 pb-3">
-            <div><p className="text-[11px] font-black text-text-muted">2차 메뉴</p><h2 className="mt-0.5 text-[16px] font-black">{railSubgroups.find((subgroup) => subgroup.id === activeRailSubgroup)?.label}</h2></div>
+            <div><p className="text-[11px] font-black text-text-muted">2차 메뉴</p><h2 className="mt-0.5 text-[16px] font-black">{railSubgroups.find((subgroup) => subgroup.id === selectedRailSubgroup)?.label}</h2></div>
             <ChevronDown className="size-4 rotate-90 text-text-muted" />
           </div>
-          <div className="space-y-1">{railItems.filter((item) => item.subgroup === activeRailSubgroup).map((item) => {
+          <div className="space-y-1">{railItems.filter((item) => item.subgroup === selectedRailSubgroup).map((item) => {
             const Icon = item.icon; const selected = item.label === active;
             return <button key={item.label} type="button" onClick={() => selectModule(item.label)} className={"flex min-h-12 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors " + (selected ? "bg-brand-glass text-brand-primary" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary")}><Icon className="size-4 shrink-0" strokeWidth={2} /><span className="line-clamp-2 text-[12px] font-bold leading-tight [word-break:keep-all]">{item.label}</span></button>;
           })}</div>
