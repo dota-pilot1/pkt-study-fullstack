@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "PKT Study Fullstack",
-  "version": "0.1.51",
+  "productName": "티키타카 노트",
+  "version": "0.1.59",
   "identifier": "com.cj.pkt.study.fullstack",
   "build": {
     "beforeDevCommand": "node scripts/prepare-tauri-dev.mjs && npm run dev",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "PKT 프로젝트",
+        "title": "티키타카 노트",
         "width": 1280,
         "height": 900,
         "minWidth": 1024,
@@ -31,16 +31,24 @@
         "dragDropEnabled": false
       }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "targets": ["app", "dmg", "nsis"],
+    "targets": [
+      "app",
+      "dmg",
+      "nsis"
+    ],
     "macOS": {
       "entitlements": "entitlements.plist"
     },
-    "externalBin": ["binaries/node"],
+    "externalBin": [
+      "binaries/node"
+    ],
     "resources": {
       "../dist/next/": "next"
     }
