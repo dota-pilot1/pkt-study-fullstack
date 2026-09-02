@@ -174,12 +174,12 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
                 const subgroupItems = railItems.filter((item) => item.group === group.id && item.subgroup === subgroup.id);
                 const expanded = expandedRailSubgroups[subgroup.id] || subgroupItems.some((item) => item.label === active);
                 return <div key={subgroup.id} className="w-full">
-                  <button type="button" onClick={() => setExpandedRailSubgroups((groups) => ({ ...groups, [subgroup.id]: !groups[subgroup.id] }))} className="flex w-full items-center justify-center gap-1 py-1 text-[9px] font-black text-text-on-brand/85 hover:text-white" aria-expanded={expanded}>
+                  <button type="button" onClick={() => setExpandedRailSubgroups((groups) => ({ ...groups, [subgroup.id]: !groups[subgroup.id] }))} className="flex min-h-6 w-full items-center justify-center gap-1 rounded-md bg-white/10 py-1 text-[9px] font-black text-text-on-brand/90 hover:bg-white/15 hover:text-white" aria-expanded={expanded}>
                     <span>{subgroup.label}</span><ChevronDown className={"size-3 transition-transform " + (expanded ? "" : "-rotate-90")} />
                   </button>
                   {expanded && subgroupItems.map((item) => {
                     const Icon = item.icon; const selected = item.label === active;
-                    return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
+                    return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="max-w-[58px] overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
                   })}
                 </div>;
               })}
