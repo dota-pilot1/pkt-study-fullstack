@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
@@ -98,6 +98,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   const [active, setActive] = useState("노트 홈");
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [selectedRailSubgroup, setSelectedRailSubgroup] = useState<RailSubgroup | null>(null);
+  const [railPopoverTop, setRailPopoverTop] = useState(56);
   const [accountOpen, setAccountOpen] = useState(false);
   const [contentRefreshKey, setContentRefreshKey] = useState(0);
   const [isRefreshingContent, setIsRefreshingContent] = useState(false);
@@ -148,6 +149,12 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     setSelectedRailSubgroup(null);
     window.history.replaceState(null, "", `#${encodeURIComponent(label)}`);
   };
+  const openRailSubgroup = (event: ReactMouseEvent<HTMLButtonElement>, subgroup: RailSubgroup) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const popoverHeight = 232;
+    setRailPopoverTop(Math.max(56, Math.min(rect.top - 8, window.innerHeight - popoverHeight - 16)));
+    setSelectedRailSubgroup(subgroup);
+  };
   const toggleRail = () => {
     setRailCollapsed((collapsed) => {
       const next = !collapsed;
@@ -188,7 +195,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
               {railSubgroups.filter((subgroup) => railItems.some((item) => item.group === group.id && item.subgroup === subgroup.id)).map((subgroup) => {
                 const selected = activeRailSubgroup === subgroup.id;
                 const activeChild = railItems.find((item) => item.subgroup === subgroup.id && item.label === active)?.label;
-                return <button key={subgroup.id} type="button" onClick={() => setSelectedRailSubgroup(subgroup.id)} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
+                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
               })}
               {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;
@@ -203,7 +210,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
             {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>
-        {selectedRailSubgroup && !railCollapsed && <aside className="absolute left-[92px] top-14 z-50 w-[196px] rounded-r-xl border border-l-0 border-surface-border bg-surface-raised px-3 py-4 text-text-primary shadow-xl">
+        {selectedRailSubgroup && !railCollapsed && <aside className="fixed left-[100px] z-50 w-[196px] rounded-xl border border-surface-border bg-surface-raised px-3 py-3 text-text-primary shadow-xl" style={{ top: railPopoverTop }}>
           <div className="mb-3 flex items-center justify-between border-b border-surface-border-soft px-1 pb-3">
             <div><p className="text-[11px] font-black text-text-muted">2차 메뉴</p><h2 className="mt-0.5 text-[16px] font-black">{railSubgroups.find((subgroup) => subgroup.id === selectedRailSubgroup)?.label}</h2></div>
             <button type="button" onClick={() => setSelectedRailSubgroup(null)} className="grid size-7 place-items-center rounded-md text-text-muted hover:bg-surface-muted hover:text-text-primary" aria-label="2차 메뉴 닫기"><ChevronDown className="size-4 rotate-90" /></button>
