@@ -13,7 +13,7 @@ import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
 type RailGroup = "backend" | "frontend" | "gallery";
-type RailSubgroup = "spring" | "react";
+type RailSubgroup = "spring" | "react" | "domainDesign";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
@@ -29,15 +29,16 @@ const railItems: RailItem[] = [
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
   { label: "리액트 노트", icon: Workflow, group: "frontend", subgroup: "react" },
   { label: "라이브러리 활용", icon: Library, group: "frontend", subgroup: "react" },
-  { label: "도메인 분석", icon: Workflow, group: "frontend" },
+  { label: "도메인 분석", icon: Workflow, group: "frontend", subgroup: "domainDesign" },
   { label: "JS·TS 노트", icon: Code2, group: "frontend" },
   { label: "기본 컴포넌트", icon: Boxes, group: "frontend", subgroup: "react" },
-  { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
+  { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
   { label: "컴포넌트 스케치", icon: Boxes, group: "gallery" },
 ];
 const railSubgroups: Array<{ id: RailSubgroup; label: string }> = [
   { id: "spring", label: "스프링" },
   { id: "react", label: "리액트" },
+  { id: "domainDesign", label: "도메인·화면 설계" },
 ];
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
