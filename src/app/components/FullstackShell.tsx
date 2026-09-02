@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpen, Boxes, Code2, Coffee, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Sparkles,
+  BookOpen, Boxes, ChevronDown, Code2, Coffee, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Sparkles,
   Settings, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -13,26 +13,31 @@ import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
 type RailGroup = "backend" | "frontend" | "gallery";
-type RailItem = { label: string; icon: LucideIcon; group: RailGroup };
+type RailSubgroup = "spring" | "react";
+type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
   { id: "backend", label: "백엔드" },
   { id: "frontend", label: "프론트" }, { id: "gallery", label: "컴포넌트 스케치" },
 ];
 const railItems: RailItem[] = [
-  { label: "스프링 부트", icon: Leaf, group: "backend" },
-  { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend" },
-  { label: "스프링 AI", icon: Sparkles, group: "backend" },
+  { label: "스프링 부트", icon: Leaf, group: "backend", subgroup: "spring" },
+  { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend", subgroup: "spring" },
+  { label: "스프링 AI", icon: Sparkles, group: "backend", subgroup: "spring" },
   { label: "API 설계 및 문서화", icon: BookOpen, group: "backend" },
   { label: "자바 노트", icon: Coffee, group: "backend" },
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
-  { label: "리액트 노트", icon: Workflow, group: "frontend" },
-  { label: "라이브러리 활용", icon: Library, group: "frontend" },
+  { label: "리액트 노트", icon: Workflow, group: "frontend", subgroup: "react" },
+  { label: "라이브러리 활용", icon: Library, group: "frontend", subgroup: "react" },
   { label: "도메인 분석", icon: Workflow, group: "frontend" },
   { label: "JS·TS 노트", icon: Code2, group: "frontend" },
-  { label: "기본 컴포넌트", icon: Boxes, group: "frontend" },
+  { label: "기본 컴포넌트", icon: Boxes, group: "frontend", subgroup: "react" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend" },
   { label: "컴포넌트 스케치", icon: Boxes, group: "gallery" },
+];
+const railSubgroups: Array<{ id: RailSubgroup; label: string }> = [
+  { id: "spring", label: "스프링" },
+  { id: "react", label: "리액트" },
 ];
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -92,6 +97,7 @@ export function useActiveModule() { return useContext(ActiveModuleContext); }
 export function FullstackShell({ children, user }: { children: ReactNode; user: ShellUser }) {
   const [active, setActive] = useState("노트 홈");
   const [railCollapsed, setRailCollapsed] = useState(false);
+  const [expandedRailSubgroups, setExpandedRailSubgroups] = useState<Record<RailSubgroup, boolean>>({ spring: true, react: true });
   const [accountOpen, setAccountOpen] = useState(false);
   const [contentRefreshKey, setContentRefreshKey] = useState(0);
   const [isRefreshingContent, setIsRefreshingContent] = useState(false);
@@ -164,7 +170,20 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
           <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto py-2">
             {railGroups.map((group, index) => <div key={group.id} className={"flex w-[84px] shrink-0 flex-col items-center gap-1 pb-2 pt-1.5" + (index > 0 ? " border-t border-white/10 mt-1 pt-3" : "")}>
               {group.label && <span className="pb-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-text-on-brand/65">{group.label}</span>}
-              {railItems.filter((item) => item.group === group.id).map((item) => {
+              {railSubgroups.filter((subgroup) => railItems.some((item) => item.group === group.id && item.subgroup === subgroup.id)).map((subgroup) => {
+                const subgroupItems = railItems.filter((item) => item.group === group.id && item.subgroup === subgroup.id);
+                const expanded = expandedRailSubgroups[subgroup.id] || subgroupItems.some((item) => item.label === active);
+                return <div key={subgroup.id} className="w-full">
+                  <button type="button" onClick={() => setExpandedRailSubgroups((groups) => ({ ...groups, [subgroup.id]: !groups[subgroup.id] }))} className="flex w-full items-center justify-center gap-1 py-1 text-[9px] font-black text-text-on-brand/85 hover:text-white" aria-expanded={expanded}>
+                    <span>{subgroup.label}</span><ChevronDown className={"size-3 transition-transform " + (expanded ? "" : "-rotate-90")} />
+                  </button>
+                  {expanded && subgroupItems.map((item) => {
+                    const Icon = item.icon; const selected = item.label === active;
+                    return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
+                  })}
+                </div>;
+              })}
+              {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;
                 return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
               })}
