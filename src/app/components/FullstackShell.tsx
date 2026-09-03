@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   BookOpen, Boxes, ChevronDown, Code2, Coffee, Copy, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Search, Sparkles,
-  Settings, User, Workflow, type LucideIcon,
+  PenTool, Settings, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
 import { RailToggleProvider } from "@/shared/lib/rail-toggle";
@@ -29,10 +29,12 @@ const railItems: RailItem[] = [
   { label: "스프링 부트", icon: Leaf, group: "backend", subgroup: "spring" },
   { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend", subgroup: "spring" },
   { label: "스프링 AI", icon: Sparkles, group: "backend", subgroup: "spring" },
+  { label: "도메인 설계", icon: Boxes, group: "backend", subgroup: "design" },
   { label: "API 설계 및 문서화", icon: BookOpen, group: "backend", subgroup: "design" },
   { label: "자바 노트", icon: Coffee, group: "language", subgroup: "java" },
   { label: "OOP 실습", icon: Code2, group: "language", subgroup: "java" },
   { label: "DB 테이블 설계", icon: Database, group: "backend", subgroup: "design" },
+  { label: "아키텍처 설계", icon: Workflow, group: "backend", subgroup: "design" },
   { label: "리액트 노트", icon: Workflow, group: "frontend", subgroup: "react" },
   { label: "라이브러리 활용", icon: Library, group: "frontend", subgroup: "react" },
   { label: "도메인 분석", icon: Workflow, group: "frontend", subgroup: "domainDesign" },
@@ -40,6 +42,7 @@ const railItems: RailItem[] = [
   { label: "기본 컴포넌트", icon: Boxes, group: "frontend", subgroup: "react" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
   { label: "클론 코딩", icon: Copy, group: "practice", subgroup: "pilot" },
+  { label: "제품 설계", icon: PenTool, group: "practice", subgroup: "pilot" },
   { label: "프로토타입", icon: Workflow, group: "practice", subgroup: "pilot" },
   { label: "UI 챌린지", icon: GraduationCap, group: "practice", subgroup: "pilot" },
   { label: "AX 기초", icon: Sparkles, group: "ax", subgroup: "ax" },

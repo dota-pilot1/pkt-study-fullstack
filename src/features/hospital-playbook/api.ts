@@ -2,7 +2,7 @@ import { request } from "../../shared/api/client";
 
 export type DocumentStatus = "DRAFT" | "APPROVED" | "ARCHIVED";
 export type PlaybookSearchScope = "all" | "category" | "topic" | "document";
-export type PlaybookDomain = "BACKEND" | "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "REACT" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PROTOTYPE" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "DB" | "AX" | "TDD" | "RAG" | "SECURITY" | "DEVOPS" | "PKT_FRONT_LEV1" | "NOTE_SAMPLE";
+export type PlaybookDomain = "BACKEND" | "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "DOMAIN_DESIGN" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "REACT" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PRODUCT_DESIGN" | "PROTOTYPE" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "DB" | "ARCHITECTURE" | "AX" | "TDD" | "RAG" | "SECURITY" | "DEVOPS" | "PKT_FRONT_LEV1" | "NOTE_SAMPLE";
 export type PlaybookSpace = { id: number; code: string; name: string };
 
 export type PlaybookDocumentSummary = {
@@ -49,7 +49,17 @@ export type PlaybookDocument = PlaybookDocumentSummary & {
   updatedAt: string;
 };
 
-export type PlaybookSampleKey = "API_IMPLEMENTATION" | "FRONTEND_IMPLEMENTATION";
+// 샘플은 DB에서 관리하는 템플릿이므로 새 키를 추가해도 프론트 타입을 고칠 필요가 없다.
+export type PlaybookSampleKey = string;
+export type PlaybookSampleSummary = {
+  sampleKey: PlaybookSampleKey;
+  documentId: number;
+  topicId: number;
+  title: string;
+  content: string;
+  version: number;
+  updatedAt: string;
+};
 export type PlaybookSampleChildDocument = {
   documentId: number;
   parentId: number | null;
@@ -120,6 +130,26 @@ export const playbookApi = {
   sampleDocument: (sampleKey: PlaybookSampleKey) =>
     request<PlaybookSampleDocument>(`/api/llm/hospital-playbook/samples/${sampleKey}`, {
       errorMessage: "구현 노트 샘플을 불러오지 못했습니다.",
+    }),
+
+  sampleDocuments: () =>
+    request<PlaybookSampleSummary[]>("/api/llm/hospital-playbook/samples", {
+      errorMessage: "노트 샘플 목록을 불러오지 못했습니다.",
+    }),
+
+  createSampleDocument: (sampleKey: string, title: string, content?: string) =>
+    request<PlaybookSampleSummary>("/api/llm/hospital-playbook/samples", {
+      method: "POST", body: { sampleKey, title, content }, errorMessage: "예제를 추가하지 못했습니다.",
+    }),
+
+  deleteSampleDocument: (sampleKey: string) =>
+    request<void>(`/api/llm/hospital-playbook/samples/${sampleKey}`, {
+      method: "DELETE", errorMessage: "예제를 삭제하지 못했습니다.",
+    }),
+
+  updateSampleDocument: (currentKey: string, body: { sampleKey: string; title: string; content: string; expectedVersion: number }) =>
+    request<PlaybookSampleSummary>(`/api/llm/hospital-playbook/samples/${currentKey}`, {
+      method: "PATCH", body, errorMessage: "예제를 저장하지 못했습니다.",
     }),
 
   search: (keyword: string, domain: PlaybookDomain) =>

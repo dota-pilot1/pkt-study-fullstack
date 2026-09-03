@@ -259,11 +259,6 @@ body {
     margin-block-start: 0.25rem !important;
     margin-block-end: 0.75rem !important;
   }
-  .lexical-editor-input > p:has(+ code[data-language]),
-  .lexical-editor-input > p:has(+ code[data-highlight-language]) {
-    margin-block-start: 0.5rem !important;
-    margin-block-end: 0.5rem !important;
-  }
   /* 파일:·코드: 라벨은 앞 요소가 quote인지 경로 code인지와 관계없이 같은 리듬을 사용한다. */
   .drawer-document-content .lexical-editor-input > blockquote + p:has(+ code[data-language]),
   .drawer-document-content .lexical-editor-input > blockquote + p:has(+ code[data-highlight-language]),
@@ -317,6 +312,12 @@ body {
     border-radius: 0;
     padding: 0;
   }
+  /* 메모장처럼 모든 paragraph의 상자 규칙을 고정한다.
+     Enter가 만든 빈 문단도 일반 문단과 같은 한 줄 높이와 0 마진을 가진다. */
+  .lexical-editor-input > p {
+    min-height: 1.75rem;
+    margin: 0 !important;
+  }
   .lexical-editor-input ol,
   .lexical-editor-input ul {
     margin-top: 0;
@@ -325,19 +326,7 @@ body {
   .lexical-editor-input li {
     margin-bottom: 0.15rem;
   }
-  /* 의도적인 빈 paragraph는 한 줄보다 작게 두어 섹션 간 호흡만 남긴다. */
-  .lexical-editor-input p:empty,
-  .lexical-editor-input p:has(> br:only-child) {
-    height: 0.75rem;
-    min-height: 0;
-    line-height: 0;
-    margin-block-start: 0 !important;
-    margin-bottom: 0 !important;
-  }
-  /* 제목 바로 앞 빈 paragraph는 제목의 위 간격과 겹치므로 접는다. */
-  .lexical-editor-input > :is(p:empty, p:has(> br:only-child)):has(+ :is(h1, h2, h3)) {
-    height: 0;
-  }
+  /* Enter가 만든 빈 문단도 일반 paragraph와 같은 규칙을 쓴다. */
   /* 코드 블록 뒤에는 코드 자체의 기본 하단 margin과 빈 paragraph 간격을 겹치지 않는다. */
   .lexical-editor-input > code[data-language],
   .lexical-editor-input > code[data-highlight-language] {

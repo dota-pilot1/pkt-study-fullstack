@@ -133,6 +133,12 @@ export const playbookDocuments = sqliteTable("playbook_documents", {
   updatedAt: text("updated_at").notNull(),
 });
 
+// 기본 시드 예제를 사용자가 지웠다는 사실을 보존해, 다음 실행 때 되살아나지 않게 한다.
+export const playbookSampleTombstones = sqliteTable("playbook_sample_tombstones", {
+  sampleKey: text("sample_key").primaryKey(),
+  deletedAt: text("deleted_at").notNull(),
+});
+
 export const playbookDocumentComments = sqliteTable("playbook_document_comments", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   documentId: integer("document_id").notNull().references(() => playbookDocuments.id),

@@ -7,7 +7,7 @@ import PageHeader from "@/shared/ui/PageHeader";
 import { playbookApi, type PlaybookMenuSearchResult } from "@/features/hospital-playbook/api";
 
 const SPACE_LABELS: Record<string, string> = {
-  SPRING_BOOT: "스프링 부트", SPRING_SECURITY: "스프링 시큐리티", SPRING_AI: "스프링 AI", SPRING_API: "API 설계 및 문서화", JAVA: "자바 노트", JAVA_OOP: "OOP 실습", DB: "DB 테이블 설계", FRONTEND: "리액트 노트", FRONTEND_LIBRARY: "라이브러리 활용", FRONTEND_DOMAIN: "도메인 분석", JS_TS: "JS·TS 노트", BASIC_COMPONENTS: "기본 컴포넌트", PKT_FRONT_LEV1: "기본 화면 설계", COMPONENT_SKETCH: "컴포넌트 스케치", PROTOTYPE: "프로토타입", UI_CHALLENGE: "UI 챌린지", AX_BASIC: "AX 기초", AX_CHALLENGE: "AX 챌린지", TESTING: "테스팅", DEBUGGING: "디버깅", CI_CD: "CI/CD", DEPLOYMENT: "배포", MONITORING: "모니터링", INFRASTRUCTURE: "환경·인프라",
+  SPRING_BOOT: "스프링 부트", SPRING_SECURITY: "스프링 시큐리티", SPRING_AI: "스프링 AI", DOMAIN_DESIGN: "도메인 설계", SPRING_API: "API 설계 및 문서화", JAVA: "자바 노트", JAVA_OOP: "OOP 실습", DB: "DB 테이블 설계", ARCHITECTURE: "아키텍처 설계", FRONTEND: "리액트 노트", FRONTEND_LIBRARY: "라이브러리 활용", FRONTEND_DOMAIN: "도메인 분석", JS_TS: "JS·TS 노트", BASIC_COMPONENTS: "기본 컴포넌트", PKT_FRONT_LEV1: "기본 화면 설계", COMPONENT_SKETCH: "컴포넌트 스케치", PRODUCT_DESIGN: "제품 설계", PROTOTYPE: "프로토타입", UI_CHALLENGE: "UI 챌린지", AX_BASIC: "AX 기초", AX_CHALLENGE: "AX 챌린지", TESTING: "테스팅", DEBUGGING: "디버깅", CI_CD: "CI/CD", DEPLOYMENT: "배포", MONITORING: "모니터링", INFRASTRUCTURE: "환경·인프라",
 };
 
 function ResultCard({ result }: { result: PlaybookMenuSearchResult }) {

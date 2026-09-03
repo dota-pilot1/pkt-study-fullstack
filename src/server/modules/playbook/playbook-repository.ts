@@ -6,6 +6,7 @@ import {
   playbookDocuments,
   playbookCategories,
   playbookSpaces,
+  playbookSampleTombstones,
   playbookTopics,
 } from "@/db/schema";
 import { db } from "@/server/database";
@@ -95,6 +96,34 @@ export async function listSampleDocuments() {
 export async function findSampleDocument(sampleKey: string) {
   const [document] = await db.select().from(playbookDocuments).where(eq(playbookDocuments.sampleKey, sampleKey)).limit(1);
   return document ?? null;
+}
+
+export async function createSampleDocument(sampleKey: string, title: string, content: string) {
+  const space = await findSpaceByCode("NOTE_SAMPLE");
+  if (!space) throw new Error("샘플 노트 공간을 찾을 수 없습니다.");
+  const categories = await listCategoriesBySpace(space.id);
+  const category = categories.find((item) => item.title === "구현 노트 모범 예시")
+    ?? await insertCategory(space.id, "구현 노트 모범 예시", categories.length);
+  const topic = await insertTopic(category.id, title, (await listAllTopics()).filter((item) => item.categoryId === category.id).length);
+  const now = new Date().toISOString();
+  const [document] = await db.insert(playbookDocuments).values({
+    topicId: topic.id, title, content, orderIdx: 0, sampleKey, createdAt: now, updatedAt: now,
+  }).returning();
+  await db.delete(playbookSampleTombstones).where(eq(playbookSampleTombstones.sampleKey, sampleKey));
+  return document;
+}
+
+export async function updateSampleDocument(id: number, patch: { sampleKey: string; title: string; content: string; version: number }) {
+  const [document] = await db.update(playbookDocuments)
+    .set({ ...patch, updatedAt: new Date().toISOString() })
+    .where(eq(playbookDocuments.id, id))
+    .returning();
+  return document ?? null;
+}
+
+export async function addSampleTombstone(sampleKey: string) {
+  await db.insert(playbookSampleTombstones).values({ sampleKey, deletedAt: new Date().toISOString() })
+    .onConflictDoUpdate({ target: playbookSampleTombstones.sampleKey, set: { deletedAt: new Date().toISOString() } });
 }
 
 export async function getTree(spaceCode: string) {

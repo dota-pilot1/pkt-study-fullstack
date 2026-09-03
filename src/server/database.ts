@@ -149,6 +149,15 @@ if (!defaultSpace) {
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
   .run("CLONE_CODING", "클론 코딩", now, now);
 
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("PRODUCT_DESIGN", "제품 설계", now, now);
+
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("DOMAIN_DESIGN", "도메인 설계", now, now);
+
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("ARCHITECTURE", "아키텍처 설계", now, now);
+
 // 프로토타입은 클론 코딩과 분리해 업무 도메인·화면 흐름을 직접 설계하는 프로젝트 실습 공간이다.
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
   .run("PROTOTYPE", "프로토타입", now, now);
@@ -437,6 +446,8 @@ const sampleSeeds = [
   ["FRONTEND_IMPLEMENTATION", "프론트 노트 정리 예시", "프론트 구현 노트 모범 문서", FRONTEND_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE],
 ] as const;
 for (const [sampleKey, topicTitle, documentTitle, content] of sampleSeeds) {
+  const deletedByUser = sqlite.prepare("SELECT sample_key FROM playbook_sample_tombstones WHERE sample_key = ? LIMIT 1").get(sampleKey);
+  if (deletedByUser) continue;
   let topic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? ORDER BY id LIMIT 1")
     .get(sampleCategory.id, topicTitle) as { id: number } | undefined;
   if (!topic) {
@@ -464,18 +475,20 @@ for (const [sampleKey, topicTitle, documentTitle, content] of sampleSeeds) {
 
 // API 모범 예시는 상위 계획 문서와 TODO별 상세 하위 문서 구조까지 제공한다.
 const apiSampleParent = sqlite.prepare("SELECT id, topic_id AS topicId FROM playbook_documents WHERE sample_key = ? LIMIT 1")
-  .get("API_IMPLEMENTATION") as { id: number; topicId: number };
-for (const [orderIdx, child] of API_IMPLEMENTATION_CHILD_SAMPLES.entries()) {
-  const existingChild = sqlite.prepare(
-    "SELECT id, version FROM playbook_documents WHERE topic_id = ? AND parent_id = ? AND title = ? LIMIT 1",
-  ).get(apiSampleParent.topicId, apiSampleParent.id, child.title) as { id: number; version: number } | undefined;
-  if (!existingChild) {
-    sqlite.prepare(
-      "INSERT INTO playbook_documents (topic_id, parent_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    ).run(apiSampleParent.topicId, apiSampleParent.id, child.title, child.content, orderIdx, now, now);
-  } else if (existingChild.version === 1) {
-    sqlite.prepare("UPDATE playbook_documents SET content = ?, order_idx = ?, updated_at = ? WHERE id = ?")
-      .run(child.content, orderIdx, now, existingChild.id);
+  .get("API_IMPLEMENTATION") as { id: number; topicId: number } | undefined;
+if (apiSampleParent) {
+  for (const [orderIdx, child] of API_IMPLEMENTATION_CHILD_SAMPLES.entries()) {
+    const existingChild = sqlite.prepare(
+      "SELECT id, version FROM playbook_documents WHERE topic_id = ? AND parent_id = ? AND title = ? LIMIT 1",
+    ).get(apiSampleParent.topicId, apiSampleParent.id, child.title) as { id: number; version: number } | undefined;
+    if (!existingChild) {
+      sqlite.prepare(
+        "INSERT INTO playbook_documents (topic_id, parent_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).run(apiSampleParent.topicId, apiSampleParent.id, child.title, child.content, orderIdx, now, now);
+    } else if (existingChild.version === 1) {
+      sqlite.prepare("UPDATE playbook_documents SET content = ?, order_idx = ?, updated_at = ? WHERE id = ?")
+        .run(child.content, orderIdx, now, existingChild.id);
+    }
   }
 }
 

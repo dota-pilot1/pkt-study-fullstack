@@ -1,8 +1,8 @@
 import type { EditorThemeClasses } from 'lexical'
 
 export const editorTheme: EditorThemeClasses = {
-  // Keep normal paragraphs readable without relying on empty paragraphs for spacing.
-  paragraph: 'mb-3 leading-7 text-text-primary',
+  // 문단과 빈 문단 모두 같은 줄높이를 쓴다. 간격은 의미 있는 블록이 만든다.
+  paragraph: 'leading-7 text-text-primary',
   heading: {
     h1: 'mt-6 mb-3 border-b border-surface-border-soft pb-2 text-2xl font-bold text-text-primary',
     h2: 'mt-5 mb-2 text-xl font-bold text-text-primary',

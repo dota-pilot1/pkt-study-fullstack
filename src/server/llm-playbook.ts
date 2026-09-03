@@ -194,3 +194,34 @@ export async function llmSample(sampleKey: string) {
   });
   return { sampleKey: document.sampleKey, topicId: document.topicId, ...childNode(document) };
 }
+
+const EMPTY_LEXICAL_STATE = JSON.stringify({ root: { children: [], direction: null, format: "", indent: 0, type: "root", version: 1 } });
+
+export async function createLlmSample(sampleKey: string, title: string, content = EMPTY_LEXICAL_STATE) {
+  const normalizedKey = sampleKey.trim().toUpperCase();
+  if (!/^[A-Z][A-Z0-9_]{2,63}$/.test(normalizedKey)) throw new LlmPlaybookError(400, "예제 키는 영문 대문자, 숫자, 밑줄로 3~64자여야 합니다.");
+  if (!title.trim()) throw new LlmPlaybookError(400, "예제 제목이 필요합니다.");
+  if (await repository.findSampleDocument(normalizedKey)) throw new LlmPlaybookError(409, "같은 예제 키가 이미 있습니다.");
+  const document = await repository.createSampleDocument(normalizedKey, title.trim(), content);
+  return { sampleKey: normalizedKey, documentId: document.id, topicId: document.topicId, title: document.title, content: document.content, version: document.version, updatedAt: document.updatedAt };
+}
+
+export async function deleteLlmSample(sampleKey: string) {
+  const document = await repository.findSampleDocument(sampleKey.trim().toUpperCase());
+  if (!document?.sampleKey) throw new LlmPlaybookError(404, "샘플 문서를 찾을 수 없습니다.");
+  await repository.addSampleTombstone(document.sampleKey);
+  await deleteLlmDocument(document.id);
+}
+
+export async function updateLlmSample(currentKey: string, nextKey: string, title: string, content: string, expectedVersion: number | undefined) {
+  const current = await repository.findSampleDocument(currentKey.trim().toUpperCase());
+  if (!current?.sampleKey) throw new LlmPlaybookError(404, "샘플 문서를 찾을 수 없습니다.");
+  const normalizedKey = nextKey.trim().toUpperCase();
+  if (!/^[A-Z][A-Z0-9_]{2,63}$/.test(normalizedKey)) throw new LlmPlaybookError(400, "예제 키는 영문 대문자, 숫자, 밑줄로 3~64자여야 합니다.");
+  if (!title.trim()) throw new LlmPlaybookError(400, "예제 제목이 필요합니다.");
+  if (expectedVersion !== undefined && current.version !== expectedVersion) throw new LlmPlaybookError(409, "예제 version이 변경되었습니다. 최신 예제를 다시 조회하세요.");
+  if (normalizedKey !== current.sampleKey && await repository.findSampleDocument(normalizedKey)) throw new LlmPlaybookError(409, "같은 예제 키가 이미 있습니다.");
+  const updated = await repository.updateSampleDocument(current.id, { sampleKey: normalizedKey, title: title.trim(), content, version: current.version + 1 });
+  if (!updated) throw new LlmPlaybookError(404, "샘플 문서를 찾을 수 없습니다.");
+  return { sampleKey: updated.sampleKey!, documentId: updated.id, topicId: updated.topicId, title: updated.title, content: updated.content, version: updated.version, updatedAt: updated.updatedAt };
+}
