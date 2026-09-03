@@ -91,23 +91,23 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
         <span className="text-[14px] font-bold tracking-tight text-text-primary">티키타카 노트</span>
       </PageHeader>
 
-      <main className="min-h-0 flex-1 overflow-y-auto bg-surface-muted">
-        <div className="mx-auto flex w-full max-w-6xl gap-5 px-5 py-6 xl:px-7" style={{ alignItems: "flex-start" }}>
-          <aside className="h-fit rounded-2xl border border-brand-border bg-surface-raised p-6 shadow-sm" style={{ flex: "0 0 31%" }}>
-            <div className="flex items-center justify-center rounded-xl bg-brand-glass/60" style={{ height: "8rem" }}>
-              <Image src="/tikitaka-mascot.png" alt="로봇과 노트가 대화하는 티키타카 노트 마스코트" width={1254} height={1254} priority style={{ width: "10rem", height: "8rem", objectFit: "contain" }} />
+      <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-surface-muted">
+        <div className="w-full min-w-0 space-y-6 px-4 py-5 sm:px-6 xl:px-8">
+          <section aria-labelledby="home-intro-title" className="flex flex-col gap-4 rounded-2xl border border-brand-border bg-surface-raised p-5 shadow-sm sm:flex-row sm:items-center sm:gap-6 sm:p-6">
+            <div className="flex h-24 w-28 shrink-0 items-center justify-center rounded-xl bg-brand-glass/60 sm:h-28 sm:w-32">
+              <Image src="/tikitaka-mascot.png" alt="로봇과 노트가 대화하는 티키타카 노트 마스코트" width={1254} height={1254} priority className="h-full w-full object-contain" />
             </div>
-            <span className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-brand-glass px-2.5 py-1 text-[11px] font-black text-brand-primary">
-              TIKITAKA NOTE
-            </span>
-            <h1 className="mt-4 text-[24px] font-black leading-tight tracking-tight text-text-primary">개발의 다음 단계를 이어가는 노트</h1>
-            <p className="mt-3 text-[13px] leading-6 text-text-secondary">구현 과정의 결정과 검증을 남기고, 다음 작업과 Agent가 같은 맥락에서 이어갈 수 있게 정리합니다.</p>
-            <div className="mt-6 border-t border-surface-border-soft pt-4 text-[12px] leading-5 text-text-muted">
-              좌측 메뉴에서 학습 영역을 열고, 현재 계획에서 진행률을 관리하세요.
+            <div className="min-w-0 break-keep">
+              <span className="inline-flex rounded-full bg-brand-glass px-2.5 py-1 text-[11px] font-black text-brand-primary">
+                TIKITAKA NOTE
+              </span>
+              <h1 id="home-intro-title" className="mt-2 text-[22px] font-black leading-snug tracking-tight text-text-primary sm:text-[24px]">개발의 다음 단계를 이어가는 노트</h1>
+              <p className="mt-2 text-[13px] leading-6 text-text-secondary">구현 과정의 결정과 검증을 남기고, 다음 작업과 Agent가 같은 맥락에서 이어갈 수 있게 정리합니다.</p>
+              <p className="mt-1 text-[12px] leading-5 text-text-muted">좌측 메뉴에서 학습 영역을 열고, 현재 계획에서 진행률을 관리하세요.</p>
             </div>
-          </aside>
+          </section>
 
-          <div className="min-w-0" style={{ flex: "1 1 0%" }}>
+          <div className="min-w-0">
             <nav className="mb-5 flex items-center gap-1 border-b border-surface-border pb-3" aria-label="홈 콘텐츠">
               <button type="button" onClick={() => setActiveTab("goals")} className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12.5px] font-bold transition-all ${activeTab === "goals" ? "bg-brand-primary text-text-on-brand shadow-sm" : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"}`}>
                 <GraduationCap className="size-3.5" /> 현재 계획
@@ -137,7 +137,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                     </button>
                   ))}
                 </div>
-                <label className="relative w-full sm:w-56">
+                <label className="relative w-full shrink-0 sm:w-64">
                   <span className="sr-only">현재 계획 검색</span>
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-text-muted" />
                   <input type="search" placeholder="과제명, 스킬 검색..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="w-full rounded-lg border border-surface-border bg-surface-raised py-1.5 pl-8 pr-3 text-[11.5px] text-text-primary placeholder:text-text-muted focus:border-brand-border focus:outline-none focus:ring-1 focus:ring-brand-border" />
@@ -149,7 +149,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                   {goalsQuery.isLoading ? "현재 계획을 불러오는 중..." : `총 ${filteredGoals.length}개 과제`}
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[560px] border-collapse text-left text-[12px]">
+                  <table className="w-full min-w-[640px] border-collapse break-keep text-left text-[12px]">
                     <thead className="bg-surface-muted text-[11px] font-bold uppercase text-text-secondary">
                       <tr>
                         <th className="w-14 px-3.5 py-2.5 text-center">No</th>
@@ -191,7 +191,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                 <Newspaper className="size-4 text-brand-primary" />
                 <h2 className="text-[16px] font-black tracking-tight text-text-primary">뉴스</h2>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {BOOKMARKS.map((item) => {
                   const Icon = item.icon;
                   return (
