@@ -102,8 +102,8 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                 TIKITAKA NOTE
               </span>
               <h1 id="home-intro-title" className="mt-2 text-[22px] font-black leading-snug tracking-tight text-text-primary sm:text-[24px]">개발의 다음 단계를 이어가는 노트</h1>
-              <p className="mt-2 text-[13px] leading-6 text-text-secondary">구현 과정의 결정과 검증을 남기고, 다음 작업과 Agent가 같은 맥락에서 이어갈 수 있게 정리합니다.</p>
-              <p className="mt-1 text-[12px] leading-5 text-text-muted">좌측 메뉴에서 학습 영역을 열고, 현재 계획에서 진행률을 관리하세요.</p>
+              <p className="mt-2 text-[13px] leading-6 text-text-secondary">개발의 기본기를 문서화하고, Agent가 문서를 추가·편집할 수 있습니다.</p>
+              <p className="mt-1 text-[12px] leading-5 text-text-muted">프로토타입, 디버깅 노트, 라이브러리 활용, 클론 코딩 설계를 다룹니다.</p>
             </div>
           </section>
 
