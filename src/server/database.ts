@@ -156,7 +156,7 @@ sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, u
 // 서버 초기화 때 특정 프로젝트 메뉴를 채우면 사용자가 삭제한 메뉴가 다시 생성된다.
 
 // AX 실습과 UI 챌린지는 왼쪽 레일에서 독립 플레이북으로 관리한다.
-for (const [code, name] of [["AX_BASIC", "AX 기초"], ["AX_CHALLENGE", "AX 챌린지"], ["UI_CHALLENGE", "UI 챌린지"], ["JAVA_OOP", "OOP 실습"]] as const) {
+for (const [code, name] of [["AX_BASIC", "AX 기초"], ["AX_CHALLENGE", "AX 챌린지"], ["UI_CHALLENGE", "UI 챌린지"], ["JAVA_OOP", "OOP 실습"], ["TESTING", "테스팅"], ["DEBUGGING", "디버깅"], ["CI_CD", "CI/CD"], ["DEPLOYMENT", "배포"], ["MONITORING", "모니터링"], ["INFRASTRUCTURE", "환경·인프라"]] as const) {
   sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
     .run(code, name, now, now);
 }

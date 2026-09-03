@@ -12,41 +12,55 @@ import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
-type RailGroup = "backend" | "frontend" | "practice" | "ax";
-type RailSubgroup = "spring" | "java" | "react" | "domainDesign";
+type RailGroup = "backend" | "frontend" | "language" | "practice" | "ax" | "quality" | "devops";
+type RailSubgroup = "spring" | "java" | "design" | "react" | "domainDesign" | "pilot" | "ax" | "quality" | "devops";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
   { id: "backend", label: "백엔드" },
   { id: "frontend", label: "프론트" },
-  { id: "practice", label: "프로젝트 실습" },
-  { id: "ax", label: "AX 실습" },
+  { id: "language", label: "언어" },
+  { id: "practice", label: null },
+  { id: "ax", label: null },
+  { id: "quality", label: null },
+  { id: "devops", label: null },
 ];
 const railItems: RailItem[] = [
   { label: "스프링 부트", icon: Leaf, group: "backend", subgroup: "spring" },
   { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend", subgroup: "spring" },
   { label: "스프링 AI", icon: Sparkles, group: "backend", subgroup: "spring" },
-  { label: "API 설계 및 문서화", icon: BookOpen, group: "backend" },
-  { label: "자바 노트", icon: Coffee, group: "backend", subgroup: "java" },
-  { label: "OOP 실습", icon: Code2, group: "backend", subgroup: "java" },
-  { label: "DB 테이블 설계", icon: Database, group: "backend" },
+  { label: "API 설계 및 문서화", icon: BookOpen, group: "backend", subgroup: "design" },
+  { label: "자바 노트", icon: Coffee, group: "language", subgroup: "java" },
+  { label: "OOP 실습", icon: Code2, group: "language", subgroup: "java" },
+  { label: "DB 테이블 설계", icon: Database, group: "backend", subgroup: "design" },
   { label: "리액트 노트", icon: Workflow, group: "frontend", subgroup: "react" },
   { label: "라이브러리 활용", icon: Library, group: "frontend", subgroup: "react" },
   { label: "도메인 분석", icon: Workflow, group: "frontend", subgroup: "domainDesign" },
-  { label: "JS·TS 노트", icon: Code2, group: "frontend" },
+  { label: "JS·TS 노트", icon: Code2, group: "language" },
   { label: "기본 컴포넌트", icon: Boxes, group: "frontend", subgroup: "react" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
-  { label: "클론 코딩", icon: Copy, group: "practice" },
-  { label: "프로토타입", icon: Workflow, group: "practice" },
-  { label: "UI 챌린지", icon: GraduationCap, group: "practice" },
-  { label: "AX 기초", icon: Sparkles, group: "ax" },
-  { label: "AX 챌린지", icon: Sparkles, group: "ax" },
+  { label: "클론 코딩", icon: Copy, group: "practice", subgroup: "pilot" },
+  { label: "프로토타입", icon: Workflow, group: "practice", subgroup: "pilot" },
+  { label: "UI 챌린지", icon: GraduationCap, group: "practice", subgroup: "pilot" },
+  { label: "AX 기초", icon: Sparkles, group: "ax", subgroup: "ax" },
+  { label: "AX 챌린지", icon: Sparkles, group: "ax", subgroup: "ax" },
+  { label: "테스팅", icon: Boxes, group: "quality", subgroup: "quality" },
+  { label: "디버깅", icon: Search, group: "quality", subgroup: "quality" },
+  { label: "CI/CD", icon: Workflow, group: "devops", subgroup: "devops" },
+  { label: "배포", icon: Boxes, group: "devops", subgroup: "devops" },
+  { label: "모니터링", icon: Search, group: "devops", subgroup: "devops" },
+  { label: "환경·인프라", icon: Database, group: "devops", subgroup: "devops" },
 ];
 const railSubgroups: Array<{ id: RailSubgroup; label: string }> = [
   { id: "spring", label: "스프링" },
   { id: "java", label: "자바" },
+  { id: "design", label: "설계" },
   { id: "react", label: "리액트" },
   { id: "domainDesign", label: "도메인 설계" },
+  { id: "pilot", label: "파일럿" },
+  { id: "ax", label: "AX" },
+  { id: "quality", label: "개발 품질" },
+  { id: "devops", label: "DevOps" },
 ];
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -108,6 +122,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   const [railCollapsed, setRailCollapsed] = useState(false);
   const [selectedRailSubgroup, setSelectedRailSubgroup] = useState<RailSubgroup | null>(null);
   const [railPopoverTop, setRailPopoverTop] = useState(56);
+  const [railPopoverLeft, setRailPopoverLeft] = useState(116);
   const [accountOpen, setAccountOpen] = useState(false);
   const [contentRefreshKey, setContentRefreshKey] = useState(0);
   const [isRefreshingContent, setIsRefreshingContent] = useState(false);
@@ -166,6 +181,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     const rect = event.currentTarget.getBoundingClientRect();
     const popoverHeight = 196;
     setRailPopoverTop(Math.max(56, Math.min(rect.top - 8, window.innerHeight - popoverHeight - 16)));
+    setRailPopoverLeft(rect.right + 12);
     setSelectedRailSubgroup(subgroup);
   };
   const toggleRail = () => {
@@ -196,36 +212,36 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   return (
     <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}>
       <div className="relative flex h-screen overflow-hidden">
-        <div ref={railMenuRef} className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : "w-[92px]")}>
-        <nav aria-hidden={railCollapsed} className={"relative flex h-full w-[92px] shrink-0 flex-col items-center text-text-on-brand " + (railCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
+        <div ref={railMenuRef} className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : "w-[108px]")}>
+        <nav aria-hidden={railCollapsed} className={"relative flex h-full w-[108px] shrink-0 flex-col items-center text-text-on-brand " + (railCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
           <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}>
             <span className="text-[10px] font-black tracking-[0.06em] text-white">TIKITAKA</span>
             <span className="sr-only">티키타카 노트 홈으로 가기</span>
           </button>
-          <div className="flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto py-2">
-            {railGroups.map((group, index) => <div key={group.id} className={"flex w-[84px] shrink-0 flex-col items-center gap-1 pb-2 pt-1.5" + (index > 0 ? " border-t border-white/10 mt-1 pt-3" : "")}>
+          <div className="flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto py-1">
+            {railGroups.map((group, index) => <div key={group.id} className={"flex w-[100px] shrink-0 flex-col items-center gap-0.5 pb-1 pt-1" + (index > 0 ? " border-t border-white/10 mt-0.5 pt-2" : "")}>
               {group.label && <span className="pb-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-text-on-brand/65">{group.label}</span>}
               {railSubgroups.filter((subgroup) => railItems.some((item) => item.group === group.id && item.subgroup === subgroup.id)).map((subgroup) => {
                 const selected = selectedRailSubgroup === subgroup.id;
                 const hasActiveChild = activeRailSubgroup === subgroup.id;
                 const activeChild = railItems.find((item) => item.subgroup === subgroup.id && item.label === active)?.label;
-                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} aria-expanded={selected} aria-controls={`rail-submenu-${subgroup.id}`} className={"flex min-h-[42px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : hasActiveChild ? "rounded-[13px] bg-white/10" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
+                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} aria-expanded={selected} aria-controls={`rail-submenu-${subgroup.id}`} className={"flex min-h-[40px] w-[92px] flex-col items-center justify-center gap-1 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : hasActiveChild ? "rounded-[13px] bg-white/10" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[82px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
               })}
               {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;
-                return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[42px] w-[76px] flex-col items-center justify-center gap-0.5 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
+                return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[40px] w-[92px] flex-col items-center justify-center gap-0.5 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
               })}
             </div>)}
           </div>
           <div ref={accountRef} className="relative flex min-h-[116px] w-full flex-col items-center gap-1 border-t px-2 py-2" style={{ borderColor: railTint(10) }}>
-            <button type="button" onClick={() => selectModule("통합 검색")} title="전체 노트 검색" aria-label="전체 노트 검색" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "통합 검색" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "통합 검색" ? railTint(25) : undefined }}><Search className="size-[20px]" strokeWidth={2} /></button>
-            <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
-            <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[76px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
+            <button type="button" onClick={() => selectModule("통합 검색")} title="전체 노트 검색" aria-label="전체 노트 검색" className={"flex h-[40px] w-[92px] items-center justify-center transition-all duration-200 " + (active === "통합 검색" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "통합 검색" ? railTint(25) : undefined }}><Search className="size-[20px]" strokeWidth={2} /></button>
+            <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[92px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
+            <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[92px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
             <span className="mt-0.5 select-none text-[8.5px] font-bold tabular-nums" style={{ color: railTint(85) }}>v{packageJson.version}</span>
-            {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
+            {accountOpen && <div className="absolute bottom-[52px] left-[102px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>
-        {selectedRailSubgroup && !railCollapsed && <aside id={`rail-submenu-${selectedRailSubgroup}`} className="fixed left-[96px] z-50 w-[180px] rounded-xl border border-surface-border bg-surface-raised px-2.5 py-2.5 text-text-primary shadow-xl" style={{ top: railPopoverTop }}>
+        {selectedRailSubgroup && !railCollapsed && <aside id={`rail-submenu-${selectedRailSubgroup}`} className="fixed z-50 w-[180px] rounded-xl border border-surface-border bg-surface-raised px-2.5 py-2.5 text-text-primary shadow-xl" style={{ top: railPopoverTop, left: railPopoverLeft }}>
           <div className="mb-1.5 flex items-center justify-between rounded-lg bg-surface-muted px-2 py-1.5">
             <h2 className="text-[13px] font-black">{railSubgroups.find((subgroup) => subgroup.id === selectedRailSubgroup)?.label}</h2>
             <button type="button" onClick={() => setSelectedRailSubgroup(null)} className="grid size-5 place-items-center rounded-md text-text-muted hover:bg-surface-raised hover:text-text-primary" aria-label="2차 메뉴 닫기"><ChevronDown className="size-3 rotate-90" /></button>

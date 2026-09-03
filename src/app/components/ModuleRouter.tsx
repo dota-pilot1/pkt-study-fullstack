@@ -5,7 +5,7 @@ import HospitalPlaybookModule from "../../widgets/hospital-playbook/HospitalPlay
 import SettingsModule from "./SettingsModule";
 import SearchModule from "./SearchModule";
 
-const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "DB" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PROTOTYPE" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
+const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "DB" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PROTOTYPE" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
   "샘플 노트": { domain: "NOTE_SAMPLE", title: "샘플 노트" },
   "스프링 부트": { domain: "SPRING_BOOT", title: "스프링 부트" },
   "스프링 시큐리티": { domain: "SPRING_SECURITY", title: "스프링 시큐리티" },
@@ -25,6 +25,12 @@ const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPR
   "UI 챌린지": { domain: "UI_CHALLENGE", title: "UI 챌린지" },
   "AX 기초": { domain: "AX_BASIC", title: "AX 기초" },
   "AX 챌린지": { domain: "AX_CHALLENGE", title: "AX 챌린지" },
+  "테스팅": { domain: "TESTING", title: "테스팅" },
+  "디버깅": { domain: "DEBUGGING", title: "디버깅" },
+  "CI/CD": { domain: "CI_CD", title: "CI/CD" },
+  "배포": { domain: "DEPLOYMENT", title: "배포" },
+  "모니터링": { domain: "MONITORING", title: "모니터링" },
+  "환경·인프라": { domain: "INFRASTRUCTURE", title: "환경·인프라" },
 };
 
 export function ModuleRouter({ children }: { children: React.ReactNode; tree?: unknown }) {
