@@ -5,7 +5,7 @@ import HospitalPlaybookModule from "../../widgets/hospital-playbook/HospitalPlay
 import SettingsModule from "./SettingsModule";
 import SearchModule from "./SearchModule";
 
-const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "SPRING_API" | "JAVA" | "DB" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
+const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "SPRING_API" | "JAVA" | "DB" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PROTOTYPE" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
   "샘플 노트": { domain: "NOTE_SAMPLE", title: "샘플 노트" },
   "스프링 부트": { domain: "SPRING_BOOT", title: "스프링 부트" },
   "스프링 시큐리티": { domain: "SPRING_SECURITY", title: "스프링 시큐리티" },
@@ -19,7 +19,8 @@ const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPR
   "JS·TS 노트": { domain: "JS_TS", title: "JS·TS 노트" },
   "기본 컴포넌트": { domain: "BASIC_COMPONENTS", title: "기본 컴포넌트" },
   "기본 화면 설계": { domain: "PKT_FRONT_LEV1", title: "기본 화면 설계" },
-  "컴포넌트 스케치": { domain: "COMPONENT_SKETCH", title: "컴포넌트 스케치" },
+  "클론 코딩": { domain: "CLONE_CODING", title: "클론 코딩" },
+  "프로토타입": { domain: "PROTOTYPE", title: "프로토타입" },
 };
 
 export function ModuleRouter({ children }: { children: React.ReactNode; tree?: unknown }) {

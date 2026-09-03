@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpen, Boxes, ChevronDown, Code2, Coffee, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Search, Sparkles,
+  BookOpen, Boxes, ChevronDown, Code2, Coffee, Copy, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Search, Sparkles,
   Settings, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -12,13 +12,14 @@ import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
-type RailGroup = "backend" | "frontend" | "gallery";
+type RailGroup = "backend" | "frontend" | "practice";
 type RailSubgroup = "spring" | "react" | "domainDesign";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
   { id: "backend", label: "백엔드" },
-  { id: "frontend", label: "프론트" }, { id: "gallery", label: "컴포넌트 스케치" },
+  { id: "frontend", label: "프론트" },
+  { id: "practice", label: "프로젝트 실습" },
 ];
 const railItems: RailItem[] = [
   { label: "스프링 부트", icon: Leaf, group: "backend", subgroup: "spring" },
@@ -33,12 +34,13 @@ const railItems: RailItem[] = [
   { label: "JS·TS 노트", icon: Code2, group: "frontend" },
   { label: "기본 컴포넌트", icon: Boxes, group: "frontend", subgroup: "react" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
-  { label: "컴포넌트 스케치", icon: Boxes, group: "gallery" },
+  { label: "클론 코딩", icon: Copy, group: "practice" },
+  { label: "프로토타입", icon: Workflow, group: "practice" },
 ];
 const railSubgroups: Array<{ id: RailSubgroup; label: string }> = [
   { id: "spring", label: "스프링" },
   { id: "react", label: "리액트" },
-  { id: "domainDesign", label: "도메인·화면 설계" },
+  { id: "domainDesign", label: "도메인 설계" },
 ];
 const ActiveModuleContext = createContext("노트 홈");
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });

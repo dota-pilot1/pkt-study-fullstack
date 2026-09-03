@@ -151,6 +151,20 @@ export async function deleteLlmDocument(documentId: number) {
   await repository.deleteDocumentTree(targets);
 }
 
+// 로컬 LLM 관리 API에서도 메뉴 구조를 정리할 수 있도록 1차 메뉴를 함께 삭제한다.
+export async function deleteLlmCategory(categoryId: number) {
+  if (!Number.isInteger(categoryId)) throw new LlmPlaybookError(400, "1차 메뉴 ID가 올바르지 않습니다.");
+  const deleted = await repository.deleteCategory(categoryId);
+  if (!deleted) throw new LlmPlaybookError(404, "1차 메뉴를 찾을 수 없습니다.");
+}
+
+// 2차 메뉴 삭제는 연결된 본문 문서와 댓글까지 정리한다.
+export async function deleteLlmTopic(topicId: number) {
+  if (!Number.isInteger(topicId)) throw new LlmPlaybookError(400, "2차 주제 ID가 올바르지 않습니다.");
+  const deleted = await repository.deleteTopic(topicId);
+  if (!deleted) throw new LlmPlaybookError(404, "2차 주제를 찾을 수 없습니다.");
+}
+
 export async function reorderLlmDocuments(topicId: number, ids: number[], parentId: number | null) {
   const documents = await repository.countDocumentsByTopic(topicId);
   const siblings = documents.filter((document) => document.parentId === parentId);

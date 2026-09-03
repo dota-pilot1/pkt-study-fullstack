@@ -139,12 +139,15 @@ Content-Type: application/json
 expectedVersion은 수정 직전에 GET으로 확인한 최신 version을 사용합니다. 충돌이 발생하면 문서를 다시 조회한 뒤 재시도합니다.`,
       },
       {
-        id: "delete", label: "DELETE 삭제", method: "DELETE", summary: "대상을 확인한 뒤 문서와 하위 문서를 삭제합니다.",
-        content: `# 문서 삭제
+        id: "delete", label: "DELETE 삭제", method: "DELETE", summary: "대상을 확인한 뒤 1·2차 메뉴 또는 문서 트리를 삭제합니다.",
+        content: `# 메뉴·문서 삭제
+
+DELETE ${base}/categories/{categoryId}
+DELETE ${base}/topics/{topicId}
 
 DELETE ${base}/documents/{documentId}
 
-삭제 전 GET tree 또는 GET document로 대상 ID와 하위 문서 범위를 확인합니다. 문서 삭제 시 하위 문서와 댓글도 함께 삭제될 수 있습니다.`,
+삭제 전 GET tree 또는 GET document로 대상 ID와 하위 범위를 확인합니다. 1차 메뉴 삭제 시 연결된 2차 주제·문서·댓글이 함께 삭제되고, 2차 주제 삭제 시 연결된 문서·댓글이 함께 삭제됩니다. 이 API는 localhost에서 로그인 없이 사용할 수 있습니다.`,
       },
       {
         id: "lexical", label: "Lexical 규칙", summary: "content는 Markdown이 아닌 JSON.stringify(EditorState) 문자열입니다.",

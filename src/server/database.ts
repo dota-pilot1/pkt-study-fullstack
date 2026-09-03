@@ -145,6 +145,16 @@ if (!defaultSpace) {
   sqlite.prepare("INSERT OR IGNORE INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(topic.id, "풀스택 전환 시작하기", JSON.stringify({ root: { children: [{ type: "paragraph", children: [{ type: "text", text: "Tauri + Next.js + SQLite 전환 노트" }] }] } }), 0, now, now);
 }
 
+// 클론 코딩은 개별 컴포넌트 전시 대신 실제 화면·흐름을 분석하고 구현하는 프로젝트 실습 공간이다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("CLONE_CODING", "클론 코딩", now, now);
+
+// 프로토타입은 클론 코딩과 분리해 업무 도메인·화면 흐름을 직접 설계하는 프로젝트 실습 공간이다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("PROTOTYPE", "프로토타입", now, now);
+// 프로토타입의 1차·2차 메뉴는 노트 API에서 관리한다.
+// 서버 초기화 때 특정 프로젝트 메뉴를 채우면 사용자가 삭제한 메뉴가 다시 생성된다.
+
 // 최초 설치 DB에 필요한 일반 노트의 시작 구조만 만든다. 기존 사용자 DB에는
 // 다시 실행하지 않아 삭제한 메뉴를 복원하지 않는다.
 if (!databaseExistedBeforeOpen) {
