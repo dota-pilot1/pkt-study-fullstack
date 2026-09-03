@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
+import { ToolbarHelp } from '../../../shared/ui/lexical/toolbar-help'
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext'
 import {
   $createParagraphNode,
@@ -354,7 +355,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
   if (variant === 'simple') {
     return (
       <div
-        className={`lexical-toolbar flex flex-wrap items-center gap-1 border-b border-surface-border-soft bg-surface-muted px-3 py-2 ${className ?? ''}`}
+        className={`lexical-toolbar relative flex flex-wrap items-center gap-1 border-b border-surface-border-soft bg-surface-muted py-2 pl-3 pr-14 ${className ?? ''}`}
       >
         <ToolbarButton onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)} disabled={!canUndo} title="실행 취소">
           <Undo className="size-3.5" />
@@ -403,13 +404,14 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
         <HtmlPreviewInsertButton />
         <ComponentPreviewInsertButton />
         <LinkInsertButton />
+        <ToolbarHelp variant="simple" hasImageUpload={false} />
       </div>
     )
   }
 
   return (
     <div
-      className={`lexical-toolbar flex flex-wrap items-center gap-1 border-b border-surface-border-soft bg-surface-muted px-3 py-2 ${className ?? ''}`}
+      className={`lexical-toolbar relative flex flex-wrap items-center gap-1 border-b border-surface-border-soft bg-surface-muted py-2 pl-3 pr-14 ${className ?? ''}`}
     >
       <ToolbarButton onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)} disabled={!canUndo} title="실행 취소">
         <Undo className="size-3.5" />
@@ -521,6 +523,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
       ) : null}
 
       <YoutubeInsertButton />
+      <ToolbarHelp variant="full" hasImageUpload={Boolean(onImageUpload)} />
     </div>
   )
 }
@@ -1281,6 +1284,7 @@ function ToolbarButton({
       onMouseDown={(event) => event.preventDefault()}
       disabled={disabled}
       title={title}
+      aria-label={title}
       className={`flex size-8 shrink-0 items-center justify-center rounded-md transition-colors ${
         active
           ? 'bg-brand-glass text-brand-primary'

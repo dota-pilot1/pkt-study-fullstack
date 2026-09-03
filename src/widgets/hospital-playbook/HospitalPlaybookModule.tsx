@@ -960,19 +960,11 @@ function HospitalPlaybookModule({
                 </div>
               </header>
               {editingDocumentId ? (
-                <div className="min-h-0 flex-1 overflow-y-auto p-3">
-                  <div className="mb-2 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setEditingDocumentId(null)}
-                      className="ui-icon-button h-8 px-3 text-xs font-black"
-                    >
-                      목록으로
-                    </button>
-                  </div>
+                <div className="min-h-0 flex-1 overflow-y-auto p-2">
                   <DocumentPane
                     documentId={editingDocumentId}
                     onChanged={invalidate}
+                    onBack={() => setEditingDocumentId(null)}
                   />
                 </div>
               ) : (

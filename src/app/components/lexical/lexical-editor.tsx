@@ -8,6 +8,7 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
+import { UrlLinkPlugin } from '../../../shared/ui/lexical/plugins/url-link-plugin'
 import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
@@ -841,6 +842,7 @@ export function LexicalEditor({
         <ListPlugin />
         <CheckListPlugin />
         <LinkPlugin />
+        {readOnly ? null : <UrlLinkPlugin />}
         <HorizontalRulePlugin />
         <TablePlugin hasHorizontalScroll />
         <CodeHighlightPlugin />

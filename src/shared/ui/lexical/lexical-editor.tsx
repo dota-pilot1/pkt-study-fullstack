@@ -8,6 +8,7 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin'
 import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { CheckListPlugin } from '@lexical/react/LexicalCheckListPlugin'
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin'
+import { UrlLinkPlugin } from './plugins/url-link-plugin'
 import { HorizontalRulePlugin } from '@lexical/react/LexicalHorizontalRulePlugin'
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode'
 import { TablePlugin } from '@lexical/react/LexicalTablePlugin'
@@ -851,6 +852,7 @@ export function LexicalEditor({
         <ListPlugin />
         <CheckListPlugin />
         <LinkPlugin />
+        {readOnly ? null : <UrlLinkPlugin />}
         <HorizontalRulePlugin />
         <TablePlugin hasHorizontalScroll />
         {/* 읽기 전용 Drawer에서는 Prism 변환이 초기 DOM 동기화와 충돌할 수 있다. */}

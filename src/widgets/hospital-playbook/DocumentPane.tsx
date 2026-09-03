@@ -1,10 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect -- editor form state synchronizes with fetched document data. */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, RotateCcw, Save } from "lucide-react";
+import { Loader2, Menu, RotateCcw, Save } from "lucide-react";
 import { playbookApi } from "../../features/hospital-playbook/api";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
+
+const TITLE_CONTROL_SIZE = 40;
 
 /**
  * 선택한 개발 문서의 편집 영역.
@@ -14,10 +16,12 @@ function DocumentPane({
   documentId,
   onChanged,
   onCancel,
+  onBack,
 }: {
   documentId: number;
   onChanged: () => void;
   onCancel?: () => void;
+  onBack?: () => void;
 }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -58,18 +62,35 @@ function DocumentPane({
       showToast(error instanceof Error ? error.message : "문서를 저장하지 못했습니다.", "error");
     },
   });
+  const backButton = onBack ? (
+    <button
+      type="button"
+      onClick={onBack}
+      disabled={save.isPending}
+      aria-label="목록으로"
+      title="목록으로"
+      className="ui-icon-button disabled:opacity-40"
+      style={{ width: TITLE_CONTROL_SIZE, height: TITLE_CONTROL_SIZE, minWidth: TITLE_CONTROL_SIZE, minHeight: TITLE_CONTROL_SIZE, flex: `0 0 ${TITLE_CONTROL_SIZE}px`, padding: 0 }}
+    >
+      <Menu className="size-[18px]" />
+    </button>
+  ) : null;
   if (document.isPending) {
     return (
-      <div className="mt-3 grid place-items-center rounded-lg border border-surface-border-soft bg-surface-muted py-10 text-text-muted">
-        <Loader2 className="size-5 animate-spin" />
+      <div className="rounded-lg border border-surface-border-soft bg-surface-muted p-2 text-text-muted">
+        {backButton}
+        <div className="grid place-items-center py-8">
+          <Loader2 className="size-5 animate-spin" />
+        </div>
       </div>
     );
   }
   if (document.isError || !document.data) {
     return (
-      <p className="mt-3 rounded-lg border border-surface-border-soft bg-surface-muted px-4 py-6 text-center text-[13px] font-semibold text-text-muted">
-        문서를 불러오지 못했습니다.
-      </p>
+      <div className="rounded-lg border border-surface-border-soft bg-surface-muted p-2">
+        {backButton}
+        <p className="py-6 text-center text-[13px] font-semibold text-text-muted">문서를 불러오지 못했습니다.</p>
+      </div>
     );
   }
 
@@ -94,13 +115,18 @@ function DocumentPane({
   };
 
   return (
-    <div className="mt-3 rounded-lg border border-surface-border-soft bg-surface-muted p-3.5">
-      <input
-        value={title}
-        onChange={(e) => { setTitle(e.target.value); setSaveMessage(""); }}
-        placeholder="문서 제목"
-        className="ui-input mt-3 font-black"
-      />
+    <div className="rounded-lg border border-surface-border-soft bg-surface-muted p-2">
+      <div className="flex items-center gap-2">
+        <input
+          value={title}
+          onChange={(e) => { setTitle(e.target.value); setSaveMessage(""); }}
+          placeholder="문서 제목"
+          aria-label="문서 제목"
+          className="ui-input min-w-0 flex-1 font-black"
+          style={{ height: TITLE_CONTROL_SIZE, minHeight: TITLE_CONTROL_SIZE }}
+        />
+        {backButton}
+      </div>
 
       <div className="lexical-editor-frame mt-2">
         <LexicalEditor
