@@ -18,14 +18,27 @@ export type PlaybookDocumentSummary = {
 
 export type PlaybookSearchResult = {
   id: number;
+  spaceCode: string;
   categoryId: number;
   categoryTitle: string;
   topicId: number;
   topicTitle: string;
   parentId: number | null;
   title: string;
+  excerpt: string;
+  matchType: "title" | "body";
   status: DocumentStatus;
   updatedAt: string;
+};
+
+export type PlaybookMenuSearchResult = {
+  kind: "category" | "topic";
+  spaceCode: string;
+  categoryId: number;
+  categoryTitle: string;
+  topicId: number | null;
+  topicTitle: string | null;
+  score: number;
 };
 
 export type PlaybookDocument = PlaybookDocumentSummary & {
@@ -112,6 +125,11 @@ export const playbookApi = {
   search: (keyword: string, domain: PlaybookDomain) =>
     request<PlaybookSearchResult[]>(`${BASE}/search?q=${encodeURIComponent(keyword)}&scope=document&spaceCode=${domain}`, {
       errorMessage: "노트 검색에 실패했습니다.",
+    }),
+
+  searchAll: (keyword: string) =>
+    request<PlaybookMenuSearchResult[]>(`${BASE}/search?q=${encodeURIComponent(keyword)}&scope=menu`, {
+      errorMessage: "메뉴 검색에 실패했습니다.",
     }),
 
   shareDocument: (id: number) =>

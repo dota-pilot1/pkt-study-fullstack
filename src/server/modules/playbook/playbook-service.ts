@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
 import * as repository from "./playbook-repository";
+import { extractSearchText, makeSearchExcerpt } from "./search-text";
 
 export class PlaybookServiceError extends Error {
   constructor(readonly status: number, message: string) {
@@ -102,9 +103,49 @@ export async function issueAiEditToken(id: number, userId: number, isAdmin: bool
 }
 
 export async function searchDocuments(keyword: string, spaceCode: string | null) {
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase();
+  if (!normalizedKeyword) return [];
   const rows = await repository.searchDocuments(keyword, spaceCode);
-  return rows.map(({ document, topic, category, space }) => ({
-    id: document.id, title: document.title, status: document.status, updatedAt: document.updatedAt,
-    topicId: topic.id, topicTitle: topic.title, categoryId: category.id, categoryTitle: category.title, spaceCode: space.code,
-  }));
+  return rows
+    .flatMap(({ document, topic, category, space }) => {
+      const title = document.title.toLocaleLowerCase();
+      const body = extractSearchText(document.content);
+      const bodyIndex = body.toLocaleLowerCase().indexOf(normalizedKeyword);
+      const titleScore = title === normalizedKeyword ? 1_000 : title.startsWith(normalizedKeyword) ? 800 : title.includes(normalizedKeyword) ? 600 : 0;
+      const score = titleScore || (bodyIndex >= 0 ? 100 : 0);
+      if (!score) return [];
+      return [{
+        id: document.id,
+        parentId: document.parentId,
+        title: document.title,
+        excerpt: titleScore ? makeSearchExcerpt(body, normalizedKeyword) : makeSearchExcerpt(body, normalizedKeyword),
+        matchType: titleScore ? "title" : "body",
+        score,
+        status: document.status,
+        updatedAt: document.updatedAt,
+        topicId: topic.id,
+        topicTitle: topic.title,
+        categoryId: category.id,
+        categoryTitle: category.title,
+        spaceCode: space.code,
+      }];
+    })
+    .sort((left, right) => right.score - left.score || right.updatedAt.localeCompare(left.updatedAt))
+    .slice(0, 30);
+}
+
+export async function searchMenuEntries(keyword: string) {
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase();
+  if (!normalizedKeyword) return [];
+  const rows = await repository.listSearchMenus();
+  const results = new Map<string, { kind: "category" | "topic"; spaceCode: string; categoryId: number; categoryTitle: string; topicId: number | null; topicTitle: string | null; score: number }>();
+  for (const { space, category, topic } of rows) {
+    const categoryTitle = category.title.toLocaleLowerCase();
+    const topicTitle = topic?.title.toLocaleLowerCase() ?? "";
+    const categoryScore = categoryTitle === normalizedKeyword ? 400 : categoryTitle.includes(normalizedKeyword) ? 200 : 0;
+    const topicScore = topicTitle === normalizedKeyword ? 500 : topicTitle.includes(normalizedKeyword) ? 300 : 0;
+    if (categoryScore && !results.has(`category:${category.id}`)) results.set(`category:${category.id}`, { kind: "category", spaceCode: space.code, categoryId: category.id, categoryTitle: category.title, topicId: null, topicTitle: null, score: categoryScore });
+    if (topic && topicScore) results.set(`topic:${topic.id}`, { kind: "topic", spaceCode: space.code, categoryId: category.id, categoryTitle: category.title, topicId: topic.id, topicTitle: topic.title, score: topicScore });
+  }
+  return [...results.values()].sort((left, right) => right.score - left.score).slice(0, 30);
 }

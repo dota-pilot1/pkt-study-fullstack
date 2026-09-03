@@ -331,6 +331,19 @@ function HospitalPlaybookModule({
   const toggleTopic = usePlaybookLayoutStore((state) => state.toggleTopic);
 
   const categories: PlaybookCategory[] = tree.data ?? EMPTY_CATEGORIES;
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem("pkt-study-menu-search-target");
+    if (!saved) return;
+    try {
+      const target = JSON.parse(saved) as { spaceCode?: string; categoryId?: number; topicId?: number | null };
+      if (target.spaceCode !== domain || !categories.some((item) => item.id === target.categoryId)) return;
+      setCategoryId(target.categoryId ?? null);
+      setPendingTopicSelection(target.topicId ?? null);
+      window.sessionStorage.removeItem("pkt-study-menu-search-target");
+    } catch {
+      window.sessionStorage.removeItem("pkt-study-menu-search-target");
+    }
+  }, [categories, domain]);
   const category = useMemo(
     () => categories.find((item) => item.id === categoryId) ?? null,
     [categories, categoryId],
@@ -744,6 +757,7 @@ function HospitalPlaybookModule({
             <div className="min-w-0 flex-1">
               <PageHeaderSearch
                 value={submittedSearch}
+                placeholder="현재 노트 제목·본문 검색"
                 onSearch={submitSearch}
                 onClear={() => setSubmittedSearch("")}
               />

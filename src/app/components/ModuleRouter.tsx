@@ -3,6 +3,7 @@
 import { useActiveModule } from "./FullstackShell";
 import HospitalPlaybookModule from "../../widgets/hospital-playbook/HospitalPlaybookModule";
 import SettingsModule from "./SettingsModule";
+import SearchModule from "./SearchModule";
 
 const modules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "SPRING_API" | "JAVA" | "DB" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
   "샘플 노트": { domain: "NOTE_SAMPLE", title: "샘플 노트" },
@@ -25,6 +26,7 @@ export function ModuleRouter({ children }: { children: React.ReactNode; tree?: u
   const active = useActiveModule();
   if (active === "노트 홈") return <>{children}</>;
   if (active === "설정") return <SettingsModule />;
+  if (active === "통합 검색") return <SearchModule />;
   const moduleConfig = modules[active];
   if (moduleConfig) return <main className="flex min-h-0 min-w-0 flex-1"><HospitalPlaybookModule key={active} domain={moduleConfig.domain} title={moduleConfig.title} /></main>;
   return <main className="flex min-h-0 min-w-0 flex-1"><section className="module-empty"><p className="eyebrow">PKT MODULE</p><h1>{active}</h1><p>선택한 모듈을 준비하고 있습니다.</p></section></main>;

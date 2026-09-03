@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpen, Boxes, ChevronDown, Code2, Coffee, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Sparkles,
+  BookOpen, Boxes, ChevronDown, Code2, Coffee, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Search, Sparkles,
   Settings, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
@@ -151,8 +151,12 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     window.history.replaceState(null, "", `#${encodeURIComponent(label)}`);
   };
   const openRailSubgroup = (event: ReactMouseEvent<HTMLButtonElement>, subgroup: RailSubgroup) => {
+    if (selectedRailSubgroup === subgroup) {
+      setSelectedRailSubgroup(null);
+      return;
+    }
     const rect = event.currentTarget.getBoundingClientRect();
-    const popoverHeight = 232;
+    const popoverHeight = 196;
     setRailPopoverTop(Math.max(56, Math.min(rect.top - 8, window.innerHeight - popoverHeight - 16)));
     setSelectedRailSubgroup(subgroup);
   };
@@ -194,9 +198,10 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
             {railGroups.map((group, index) => <div key={group.id} className={"flex w-[84px] shrink-0 flex-col items-center gap-1 pb-2 pt-1.5" + (index > 0 ? " border-t border-white/10 mt-1 pt-3" : "")}>
               {group.label && <span className="pb-0.5 text-[8.5px] font-black uppercase tracking-[0.14em] text-text-on-brand/65">{group.label}</span>}
               {railSubgroups.filter((subgroup) => railItems.some((item) => item.group === group.id && item.subgroup === subgroup.id)).map((subgroup) => {
-                const selected = activeRailSubgroup === subgroup.id;
+                const selected = selectedRailSubgroup === subgroup.id;
+                const hasActiveChild = activeRailSubgroup === subgroup.id;
                 const activeChild = railItems.find((item) => item.subgroup === subgroup.id && item.label === active)?.label;
-                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
+                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} aria-expanded={selected} aria-controls={`rail-submenu-${subgroup.id}`} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : hasActiveChild ? "rounded-[13px] bg-white/10" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
               })}
               {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;
@@ -205,20 +210,21 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
             </div>)}
           </div>
           <div ref={accountRef} className="relative flex min-h-[136px] w-full flex-col items-center gap-2 border-t px-2 py-3" style={{ borderColor: railTint(10) }}>
+            <button type="button" onClick={() => selectModule("통합 검색")} title="전체 노트 검색" aria-label="전체 노트 검색" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "통합 검색" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "통합 검색" ? railTint(25) : undefined }}><Search className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[76px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
             <span className="mt-0.5 select-none text-[8.5px] font-bold tabular-nums" style={{ color: railTint(85) }}>v{packageJson.version}</span>
             {accountOpen && <div className="absolute bottom-[52px] left-[86px] z-50 w-[200px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-xl"><div className="border-b border-surface-border-soft px-2.5 py-2"><p className="truncate text-[13px] font-black">{user.username}</p><p className="truncate text-[11px] font-semibold text-text-secondary">{user.role.name}</p><p className="truncate text-[10px] text-text-secondary">{user.email}</p></div><button type="button" onClick={() => void logout()} className="mt-1 flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-[13px] font-bold text-destructive hover:bg-destructive/10"><LogOut className="size-4" /> 로그아웃</button></div>}
           </div>
         </nav>
-        {selectedRailSubgroup && !railCollapsed && <aside className="fixed left-[100px] z-50 w-[196px] rounded-xl border border-surface-border bg-surface-raised px-3 py-3 text-text-primary shadow-xl" style={{ top: railPopoverTop }}>
-          <div className="mb-3 flex items-center justify-between border-b border-surface-border-soft px-1 pb-3">
-            <div><p className="text-[11px] font-black text-text-muted">2차 메뉴</p><h2 className="mt-0.5 text-[16px] font-black">{railSubgroups.find((subgroup) => subgroup.id === selectedRailSubgroup)?.label}</h2></div>
-            <button type="button" onClick={() => setSelectedRailSubgroup(null)} className="grid size-7 place-items-center rounded-md text-text-muted hover:bg-surface-muted hover:text-text-primary" aria-label="2차 메뉴 닫기"><ChevronDown className="size-4 rotate-90" /></button>
+        {selectedRailSubgroup && !railCollapsed && <aside id={`rail-submenu-${selectedRailSubgroup}`} className="fixed left-[96px] z-50 w-[180px] rounded-xl border border-surface-border bg-surface-raised px-2.5 py-2.5 text-text-primary shadow-xl" style={{ top: railPopoverTop }}>
+          <div className="mb-1.5 flex items-center justify-between rounded-lg bg-surface-muted px-2 py-1.5">
+            <h2 className="text-[13px] font-black">{railSubgroups.find((subgroup) => subgroup.id === selectedRailSubgroup)?.label}</h2>
+            <button type="button" onClick={() => setSelectedRailSubgroup(null)} className="grid size-5 place-items-center rounded-md text-text-muted hover:bg-surface-raised hover:text-text-primary" aria-label="2차 메뉴 닫기"><ChevronDown className="size-3 rotate-90" /></button>
           </div>
-          <div className="space-y-1">{railItems.filter((item) => item.subgroup === selectedRailSubgroup).map((item) => {
+          <div className="space-y-0.5">{railItems.filter((item) => item.subgroup === selectedRailSubgroup).map((item) => {
             const Icon = item.icon; const selected = item.label === active;
-            return <button key={item.label} type="button" onClick={() => selectModule(item.label)} className={"flex min-h-12 w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors " + (selected ? "bg-brand-glass text-brand-primary" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary")}><Icon className="size-4 shrink-0" strokeWidth={2} /><span className="line-clamp-2 text-[12px] font-bold leading-tight [word-break:keep-all]">{item.label}</span></button>;
+            return <button key={item.label} type="button" onClick={() => selectModule(item.label)} className={"flex min-h-10 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors " + (selected ? "bg-brand-glass text-brand-primary" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary")}><Icon className="size-3.5 shrink-0" strokeWidth={2} /><span className="line-clamp-2 text-[11px] font-bold leading-tight [word-break:keep-all]">{item.label}</span></button>;
           })}</div>
         </aside>}
         </div>

@@ -5,7 +5,7 @@
 원본 PostgreSQL 연결 정보는 `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` 환경 변수로 전달한다. `export`는 public 스키마의 모든 테이블을 읽어 JSON으로 저장하며 원본 DB를 변경하지 않는다.
 
 ```bash
-cd /Users/terecal/pilot-project/sample-pkt-project/pkt-study-fullstack
+cd /Users/terecal/pilot-project/sample-pkt-project/tikitaka-note/pkt-study-fullstack
 PGHOST=127.0.0.1 PGPORT=5454 PGDATABASE=sk_pkt_mes PGUSER=postgres PGPASSWORD=postgres \
   node scripts/migrate-postgres-to-sqlite.mjs export --output .data/postgres-export.json
 node scripts/migrate-postgres-to-sqlite.mjs import \

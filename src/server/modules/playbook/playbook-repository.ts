@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray, isNotNull, like } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull } from "drizzle-orm";
 import {
   playbookDocumentComments,
   playbookDocuments,
@@ -308,13 +308,20 @@ export async function issueAiEditToken(id: number, tokenHash: string, expiresAt:
 }
 
 export async function searchDocuments(keyword: string, spaceCode: string | null) {
-  const conditions = spaceCode
-    ? and(like(playbookDocuments.title, `%${keyword}%`), eq(playbookSpaces.code, spaceCode))
-    : like(playbookDocuments.title, `%${keyword}%`);
+  const conditions = spaceCode ? eq(playbookSpaces.code, spaceCode) : undefined;
   return db.select({ document: playbookDocuments, topic: playbookTopics, category: playbookCategories, space: playbookSpaces })
     .from(playbookDocuments)
     .innerJoin(playbookTopics, eq(playbookDocuments.topicId, playbookTopics.id))
     .innerJoin(playbookCategories, eq(playbookTopics.categoryId, playbookCategories.id))
     .innerJoin(playbookSpaces, eq(playbookCategories.spaceId, playbookSpaces.id))
-    .where(conditions);
+    .where(conditions)
+    .orderBy(asc(playbookDocuments.updatedAt));
+}
+
+export async function listSearchMenus() {
+  return db.select({ space: playbookSpaces, category: playbookCategories, topic: playbookTopics })
+    .from(playbookCategories)
+    .innerJoin(playbookSpaces, eq(playbookCategories.spaceId, playbookSpaces.id))
+    .leftJoin(playbookTopics, eq(playbookTopics.categoryId, playbookCategories.id))
+    .orderBy(asc(playbookSpaces.name), asc(playbookCategories.orderIdx), asc(playbookTopics.orderIdx));
 }
