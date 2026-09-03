@@ -16,11 +16,13 @@ function DocumentPane({
   documentId,
   onChanged,
   onCancel,
+  onSaved,
   onBack,
 }: {
   documentId: number;
   onChanged: () => void;
   onCancel?: () => void;
+  onSaved?: () => void;
   onBack?: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -53,6 +55,7 @@ function DocumentPane({
     showToast("저장했습니다.");
     void queryClient.invalidateQueries({ queryKey: key });
     onChanged();
+    onSaved?.();
   };
 
   const save = useMutation({
@@ -101,6 +104,7 @@ function DocumentPane({
   const handleSave = () => {
     if (!dirty) {
       showToast("변경된 내용이 없습니다.", "info");
+      onSaved?.();
       return;
     }
     save.mutate();

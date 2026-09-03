@@ -353,7 +353,12 @@ function DocumentDrawer({
 
         <div ref={contentRef} className="drawer-document-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6">
           {isEditing ? (
-            <DocumentPane documentId={document.id} onChanged={onChanged} onCancel={() => setIsEditing(false)} />
+            <DocumentPane
+              documentId={document.id}
+              onChanged={onChanged}
+              onSaved={() => setIsEditing(false)}
+              onCancel={() => setIsEditing(false)}
+            />
           ) : document.content.trim() ? (
             <div className="drawer-document-content overflow-hidden rounded-lg border border-surface-border-soft bg-white">
               <LexicalEditor
