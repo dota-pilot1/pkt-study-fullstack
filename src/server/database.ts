@@ -155,6 +155,12 @@ sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, u
 // 프로토타입의 1차·2차 메뉴는 노트 API에서 관리한다.
 // 서버 초기화 때 특정 프로젝트 메뉴를 채우면 사용자가 삭제한 메뉴가 다시 생성된다.
 
+// AX 실습과 UI 챌린지는 왼쪽 레일에서 독립 플레이북으로 관리한다.
+for (const [code, name] of [["AX_BASIC", "AX 기초"], ["AX_CHALLENGE", "AX 챌린지"], ["UI_CHALLENGE", "UI 챌린지"], ["JAVA_OOP", "OOP 실습"]] as const) {
+  sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+    .run(code, name, now, now);
+}
+
 // 최초 설치 DB에 필요한 일반 노트의 시작 구조만 만든다. 기존 사용자 DB에는
 // 다시 실행하지 않아 삭제한 메뉴를 복원하지 않는다.
 if (!databaseExistedBeforeOpen) {

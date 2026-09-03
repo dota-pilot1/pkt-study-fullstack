@@ -12,21 +12,23 @@ import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
-type RailGroup = "backend" | "frontend" | "practice";
-type RailSubgroup = "spring" | "react" | "domainDesign";
+type RailGroup = "backend" | "frontend" | "practice" | "ax";
+type RailSubgroup = "spring" | "java" | "react" | "domainDesign";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
   { id: "backend", label: "백엔드" },
   { id: "frontend", label: "프론트" },
   { id: "practice", label: "프로젝트 실습" },
+  { id: "ax", label: "AX 실습" },
 ];
 const railItems: RailItem[] = [
   { label: "스프링 부트", icon: Leaf, group: "backend", subgroup: "spring" },
   { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend", subgroup: "spring" },
   { label: "스프링 AI", icon: Sparkles, group: "backend", subgroup: "spring" },
   { label: "API 설계 및 문서화", icon: BookOpen, group: "backend" },
-  { label: "자바 노트", icon: Coffee, group: "backend" },
+  { label: "자바 노트", icon: Coffee, group: "backend", subgroup: "java" },
+  { label: "OOP 실습", icon: Code2, group: "backend", subgroup: "java" },
   { label: "DB 테이블 설계", icon: Database, group: "backend" },
   { label: "리액트 노트", icon: Workflow, group: "frontend", subgroup: "react" },
   { label: "라이브러리 활용", icon: Library, group: "frontend", subgroup: "react" },
@@ -36,9 +38,13 @@ const railItems: RailItem[] = [
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
   { label: "클론 코딩", icon: Copy, group: "practice" },
   { label: "프로토타입", icon: Workflow, group: "practice" },
+  { label: "UI 챌린지", icon: GraduationCap, group: "practice" },
+  { label: "AX 기초", icon: Sparkles, group: "ax" },
+  { label: "AX 챌린지", icon: Sparkles, group: "ax" },
 ];
 const railSubgroups: Array<{ id: RailSubgroup; label: string }> = [
   { id: "spring", label: "스프링" },
+  { id: "java", label: "자바" },
   { id: "react", label: "리액트" },
   { id: "domainDesign", label: "도메인 설계" },
 ];
@@ -203,15 +209,15 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
                 const selected = selectedRailSubgroup === subgroup.id;
                 const hasActiveChild = activeRailSubgroup === subgroup.id;
                 const activeChild = railItems.find((item) => item.subgroup === subgroup.id && item.label === active)?.label;
-                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} aria-expanded={selected} aria-controls={`rail-submenu-${subgroup.id}`} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : hasActiveChild ? "rounded-[13px] bg-white/10" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
+                return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} aria-expanded={selected} aria-controls={`rail-submenu-${subgroup.id}`} className={"flex min-h-[42px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : hasActiveChild ? "rounded-[13px] bg-white/10" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[66px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
               })}
               {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
                 const Icon = item.icon; const selected = item.label === active;
-                return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[46px] w-[76px] flex-col items-center justify-center gap-1 px-1 py-1.5 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
+                return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[42px] w-[76px] flex-col items-center justify-center gap-0.5 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
               })}
             </div>)}
           </div>
-          <div ref={accountRef} className="relative flex min-h-[136px] w-full flex-col items-center gap-2 border-t px-2 py-3" style={{ borderColor: railTint(10) }}>
+          <div ref={accountRef} className="relative flex min-h-[116px] w-full flex-col items-center gap-1 border-t px-2 py-2" style={{ borderColor: railTint(10) }}>
             <button type="button" onClick={() => selectModule("통합 검색")} title="전체 노트 검색" aria-label="전체 노트 검색" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "통합 검색" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "통합 검색" ? railTint(25) : undefined }}><Search className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[76px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[76px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
