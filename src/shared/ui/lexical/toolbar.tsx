@@ -1,3 +1,4 @@
+import { SpeechInputPlugin } from "./plugins/speech-input-plugin";
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { ToolbarHelp } from './toolbar-help'
@@ -436,6 +437,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
         <TailwindTsxPreviewInsertButton />
         <LinkInsertButton />
         <ToolbarHelp variant="simple" hasImageUpload={false} />
+        <SpeechInputPlugin />
       </div>
     )
   }
@@ -559,6 +561,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
 
       <YoutubeInsertButton />
       <ToolbarHelp variant="full" hasImageUpload={Boolean(onImageUpload)} />
+      <SpeechInputPlugin />
     </div>
   )
 }

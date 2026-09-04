@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.cj.pkt.study.fullstack</string>
+  <key>CFBundleName</key>
+  <string>티키타카 노트</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>말한 내용을 텍스트로 변환하여 노트에 입력합니다.</string>
+  <key>NSSpeechRecognitionUsageDescription</key>
+  <string>말한 내용을 인식하여 현재 편집 중인 노트에 입력합니다.</string>
+</dict>
+</plist>
