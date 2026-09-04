@@ -7,6 +7,12 @@ import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
 
 const TITLE_CONTROL_SIZE = 40;
+const EMPTY_LEXICAL_STATE = '{"root":{"children":[]}}';
+
+type DocumentDraft = {
+  topicId: number;
+  parentId: number | null;
+};
 
 /**
  * 선택한 개발 문서의 편집 영역.
@@ -14,40 +20,55 @@ const TITLE_CONTROL_SIZE = 40;
  */
 function DocumentPane({
   documentId,
+  draft,
   onChanged,
   onCancel,
   onSaved,
+  onCreated,
   onBack,
 }: {
-  documentId: number;
+  documentId?: number;
+  draft?: DocumentDraft;
   onChanged: () => void;
   onCancel?: () => void;
   onSaved?: () => void;
+  onCreated?: (documentId: number) => void;
   onBack?: () => void;
 }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const key = ["hospital-playbook", "document", documentId];
-  const document = useQuery({ queryKey: key, queryFn: () => playbookApi.document(documentId) });
+  const document = useQuery({
+    queryKey: key,
+    queryFn: () => playbookApi.document(documentId!),
+    enabled: documentId !== undefined,
+  });
+  const isDraft = draft !== undefined;
 
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState(EMPTY_LEXICAL_STATE);
   const [editorRevision, setEditorRevision] = useState(0);
   const [saveMessage, setSaveMessage] = useState("");
   // 상세 조회가 비동기로 끝난 뒤 Lexical 편집기도 서버 본문으로 초기화한다.
   // LexicalEditor의 initialState는 마운트 시 한 번만 사용되므로, 문서 데이터가
   // 준비되면 editorRevision을 증가시켜 빈 편집기가 남지 않게 한다.
   useEffect(() => {
+    if (isDraft) {
+      setTitle("");
+      setContent(EMPTY_LEXICAL_STATE);
+      setEditorRevision((revision) => revision + 1);
+      return;
+    }
     if (!document.data) return;
     setTitle(document.data.title);
     setContent(document.data.content);
     setEditorRevision((revision) => revision + 1);
-  }, [document.data]);
+  }, [document.data, draft?.parentId, draft?.topicId, isDraft]);
 
   const afterWrite = (saved: Awaited<ReturnType<typeof playbookApi.updateDocument>>) => {
     // 같은 문서에서는 id가 바뀌지 않으므로, 성공 응답을 직접 기준값으로 삼아야
     // 저장 후에도 "저장하지 않은 변경" 상태가 남지 않는다.
-    queryClient.setQueryData(key, saved);
+    queryClient.setQueryData(["hospital-playbook", "document", saved.id], saved);
     setTitle(saved.title);
     setContent(saved.content);
     setEditorRevision((revision) => revision + 1);
@@ -55,11 +76,15 @@ function DocumentPane({
     showToast("저장했습니다.");
     void queryClient.invalidateQueries({ queryKey: key });
     onChanged();
+    onCreated?.(saved.id);
     onSaved?.();
   };
 
   const save = useMutation({
-    mutationFn: () => playbookApi.updateDocument(documentId, { title, content, parentId: document.data?.parentId ?? null }),
+    mutationFn: () =>
+      draft
+        ? playbookApi.createDocument(draft.topicId, title.trim(), draft.parentId, content)
+        : playbookApi.updateDocument(documentId!, { title, content, parentId: document.data?.parentId ?? null }),
     onSuccess: afterWrite,
     onError: (error) => {
       showToast(error instanceof Error ? error.message : "문서를 저장하지 못했습니다.", "error");
@@ -78,7 +103,7 @@ function DocumentPane({
       <Menu className="size-[18px]" />
     </button>
   ) : null;
-  if (document.isPending) {
+  if (!isDraft && document.isPending) {
     return (
       <div className="rounded-lg border border-surface-border-soft bg-surface-muted p-2 text-text-muted">
         {backButton}
@@ -88,7 +113,7 @@ function DocumentPane({
       </div>
     );
   }
-  if (document.isError || !document.data) {
+  if (!isDraft && (document.isError || !document.data)) {
     return (
       <div className="rounded-lg border border-surface-border-soft bg-surface-muted p-2">
         {backButton}
@@ -98,10 +123,16 @@ function DocumentPane({
   }
 
   const doc = document.data;
-  const dirty = title !== doc.title || content !== doc.content;
+  const dirty = isDraft
+    ? title.trim().length > 0 || content !== EMPTY_LEXICAL_STATE
+    : title !== doc!.title || content !== doc!.content;
   const busy = save.isPending;
 
   const handleSave = () => {
+    if (isDraft && !title.trim()) {
+      showToast("문서 제목을 입력하세요.", "error");
+      return;
+    }
     if (!dirty) {
       showToast("변경된 내용이 없습니다.", "info");
       onSaved?.();
@@ -111,8 +142,12 @@ function DocumentPane({
   };
 
   const cancel = () => {
-    setTitle(doc.title);
-    setContent(doc.content);
+    if (isDraft) {
+      onCancel?.();
+      return;
+    }
+    setTitle(doc!.title);
+    setContent(doc!.content);
     setEditorRevision((revision) => revision + 1);
     setSaveMessage("변경 내용을 취소했습니다.");
     onCancel?.();
@@ -134,7 +169,7 @@ function DocumentPane({
 
       <div className="lexical-editor-frame mt-2">
         <LexicalEditor
-          key={`${documentId}-${editorRevision}`}
+          key={`${documentId ?? "draft"}-${editorRevision}`}
           initialState={content}
           onChange={(nextContent) => { setContent(nextContent); setSaveMessage(""); }}
           placeholder="개발 학습 내용을 입력하세요. 코드 블록, 이미지, 표, 체크리스트를 사용할 수 있습니다."
@@ -146,7 +181,7 @@ function DocumentPane({
 
       <div className="mt-2.5 flex items-center gap-2">
         <div className="min-w-0 flex-1 text-[12px] font-bold">
-          {save.isError ? <span className="text-destructive">{(save.error as Error).message}</span> : dirty ? <span className="text-text-muted">저장하지 않은 변경이 있습니다.</span> : saveMessage ? <span className="text-brand-primary">{saveMessage}</span> : null}
+          {save.isError ? <span className="text-destructive">{(save.error as Error).message}</span> : dirty ? <span className="text-text-muted">{isDraft ? "저장하면 새 문서가 생성됩니다." : "저장하지 않은 변경이 있습니다."}</span> : saveMessage ? <span className="text-brand-primary">{saveMessage}</span> : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button

@@ -1,6 +1,13 @@
-import { createLlmDocument, handleLlmRequest, LlmPlaybookError } from "@/server/llm-playbook";
+import { createLlmDocument, handleLlmRequest, llmTopicDocumentTree, LlmPlaybookError } from "@/server/llm-playbook";
 
 export const runtime = "nodejs";
+
+export async function GET(request: Request, context: RouteContext<"/api/llm/hospital-playbook/topics/[topicId]/documents">) {
+  return handleLlmRequest(request, async () => {
+    const topicId = Number((await context.params).topicId);
+    return llmTopicDocumentTree(topicId, new URL(request.url).origin);
+  });
+}
 
 export async function POST(request: Request, context: RouteContext<"/api/llm/hospital-playbook/topics/[topicId]/documents">) {
   return handleLlmRequest(request, async () => {

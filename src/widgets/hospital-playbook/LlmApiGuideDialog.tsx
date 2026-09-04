@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 import type { PlaybookDomain, PlaybookSampleKey } from "../../features/hospital-playbook/api";
+import { getApiBase } from "../../shared/api/client";
+import { copyToClipboard } from "../../shared/lib/clipboard";
+import { useToast } from "../../shared/ui/toast";
 import ApiGuideDialogShell from "./ApiGuideDialogShell";
 import ImplementationNoteSamplePreview from "./ImplementationNoteSamplePreview";
 
-type CopyMode = "document" | "implementation" | "review" | "all";
+type CopyMode = "default" | "document" | "implementation" | "review" | "all";
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 type ApiItem = { id: string; label: string; method: HttpMethod; endpoint: string; summary: string; content: string };
 
@@ -22,6 +26,7 @@ const methodClass: Record<HttpMethod, string> = {
 };
 
 const modes: Array<{ id: CopyMode; label: string; description: string }> = [
+  { id: "default", label: "기본", description: "필요한 API만 직접 골라 LLM에 전달할 때" },
   { id: "document", label: "문서 작성", description: "정책·요구사항·설계 문서를 새로 쓰거나 고칠 때" },
   { id: "implementation", label: "구현 기록", description: "실제 API·프론트 구현 과정과 검증을 기록할 때" },
   { id: "review", label: "코드 리뷰", description: "기존 문서와 구현 맥락을 읽고 검토할 때" },
@@ -29,9 +34,12 @@ const modes: Array<{ id: CopyMode; label: string; description: string }> = [
 ];
 
 export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, onClose }: LlmApiGuideDialogProps) {
-  const [mode, setMode] = useState<CopyMode>("document");
-  const [selectedIds, setSelectedIds] = useState<string[]>(["tree", "topic", "create-document", "patch-content"]);
+  const [mode, setMode] = useState<CopyMode>("default");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [selectedApisCopied, setSelectedApisCopied] = useState(false);
+  const { showToast } = useToast();
   const base = "/api/llm/hospital-playbook";
   const topic = String(topicId ?? "{topicId}");
   const parent = String(parentDocumentId ?? "{parentDocumentId}");
@@ -48,6 +56,12 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
       endpoint: base + "/topics/" + topic,
       summary: "선택한 2차 주제의 문서, parentId, 최신 version을 확인합니다.",
       content: ["GET " + base + "/topics/" + topic, "", "기존 문서와 최신 version을 확인합니다.", "문서를 수정할 때는 응답의 version을 expectedVersion으로 사용합니다."].join("\n"),
+    },
+    {
+      id: "topic-documents", label: "주제 문서 트리와 조회 URL 확인", method: "GET",
+      endpoint: base + "/topics/" + topic + "/documents",
+      summary: "선택한 2차 주제의 본문·하위 문서 전체와 각 문서의 조회·context·본문 URL을 재귀적으로 확인합니다.",
+      content: ["GET " + base + "/topics/" + topic + "/documents", "", "선택한 2차 주제의 최상위 문서와 모든 하위 문서를 children 트리로 반환합니다.", "각 문서의 documentUrl, contextUrl, contentUrl을 사용해 필요한 범위만 조회·수정합니다."].join("\n"),
     },
     {
       id: "samples", label: "구현 노트 샘플 조회", method: "GET",
@@ -88,12 +102,14 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
   ];
 
   const presets: Record<CopyMode, string[]> = {
-    document: ["tree", "topic", "create-document", "patch-content"],
-    implementation: ["tree", "topic", "samples", "create-document", "patch-content", "create-child", "reorder"],
-    review: ["tree", "topic", "samples"],
+    default: [],
+    document: ["tree", "topic", "topic-documents", "create-document", "patch-content"],
+    implementation: ["tree", "topic", "topic-documents", "samples", "create-document", "patch-content", "create-child", "reorder"],
+    review: ["tree", "topic", "topic-documents", "samples"],
     all: items.map((item) => item.id),
   };
   const profiles: Record<CopyMode, string> = {
+    default: "# API 선택 안내\n- 현재 작업에 필요한 API만 표에서 직접 선택합니다.\n- 문서 위치와 기존 상태를 확인해야 하면 tree, topic, 주제 문서 트리 조회부터 선택합니다.",
     document: "# 문서 작성 규칙\n- 정책·요구사항·설계 문서는 하나의 목적당 본문 문서 하나로 작성합니다.\n- 제목, 설명, 결정할 항목, 목록을 사용합니다. 구현 하위 문서와 실제 코드를 강제하지 않습니다.",
     implementation: "# 구현 기록 규칙\n- TODO 하나를 본문 문서 하나로 작성합니다.\n- 작업이 길면 API 구현·Front 구현 하위 문서로 나누고, 각 문서 안에 Step을 작성합니다.\n- 구현이 끝난 뒤에만 실제 파일 경로, 코드, 테스트 결과를 기록합니다.",
     review: "# 코드 리뷰 규칙\n- 먼저 현재 문서·구현 맥락을 조회합니다.\n- 문제점은 근거, 영향, 수정 방향을 함께 적습니다.\n- 리뷰만 할 때는 새 문서·하위 문서를 만들지 않습니다.",
@@ -112,6 +128,45 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
   const toggleItem = (id: string) => {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
+  const allItemsSelected = selectedIds.length === items.length;
+  const toggleAllItems = () => {
+    setSelectedIds(allItemsSelected ? [] : items.map((item) => item.id));
+  };
+  const copyApiItem = async (item: ApiItem) => {
+    const value = [
+      `${item.method} ${window.location.origin}${getApiBase()}${item.endpoint}`,
+      "",
+      item.summary,
+    ].join("\n");
+    try {
+      await copyToClipboard(value);
+      setCopiedId(item.id);
+      showToast("API URL과 설명을 복사했습니다.");
+      window.setTimeout(() => setCopiedId(null), 1600);
+    } catch {
+      showToast("클립보드에 복사하지 못했습니다.", "error");
+    }
+  };
+  const copySelectedApis = async () => {
+    if (selectedItems.length === 0) {
+      showToast("복사할 API를 선택하세요.", "info");
+      return;
+    }
+    const value = selectedItems.map((item) => [
+      `# ${item.label}`,
+      `${item.method} ${window.location.origin}${getApiBase()}${item.endpoint}`,
+      "",
+      item.summary,
+    ].join("\n")).join("\n\n---\n\n");
+    try {
+      await copyToClipboard(value);
+      setSelectedApisCopied(true);
+      showToast("선택한 API 정보를 복사했습니다.");
+      window.setTimeout(() => setSelectedApisCopied(false), 1600);
+    } catch {
+      showToast("클립보드에 복사하지 못했습니다.", "error");
+    }
+  };
 
   return (
     <ApiGuideDialogShell
@@ -127,10 +182,10 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
       footer={<p><strong className="text-text-primary">선택 항목 복사</strong>는 공통 규칙과 현재 탭의 작성 규칙, 체크한 API·작성 예제 GET 주소만 복사합니다.</p>}
     >
       <div className="flex min-h-full min-w-0 flex-col bg-surface-raised">
-        <div className="shrink-0 border-b border-surface-border-soft px-4 pt-3">
-          <nav className="flex gap-1 overflow-x-auto" role="tablist" aria-label="작업 목적 선택">
+        <div className="shrink-0 border-b border-surface-border-soft px-4 py-3">
+          <nav className="flex w-fit min-w-full gap-1 overflow-x-auto rounded-lg border border-surface-border-soft bg-surface-muted p-1" role="tablist" aria-label="작업 목적 선택">
             {modes.map((item) => (
-              <button key={item.id} type="button" role="tab" aria-selected={mode === item.id} onClick={() => selectMode(item.id)} className={"shrink-0 rounded-t-md px-3 py-2 text-xs font-black transition " + (mode === item.id ? "bg-brand-primary text-white" : "text-text-muted hover:bg-surface-muted hover:text-text-primary")}>
+              <button key={item.id} type="button" role="tab" aria-selected={mode === item.id} onClick={() => selectMode(item.id)} className={"shrink-0 rounded-md px-3 py-2 text-xs font-black transition " + (mode === item.id ? "bg-brand-primary text-white shadow-sm" : "bg-surface-raised text-text-muted hover:bg-white hover:text-text-primary")}>
                 {item.label}
               </button>
             ))}
@@ -141,19 +196,26 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
             <h3 className="text-base font-black text-text-primary">{activeMode.label}</h3>
             <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">{activeMode.description} 탭을 누르면 필요한 API가 자동 선택됩니다. 표에서 원하는 항목만 추가하거나 뺄 수 있습니다.</p>
           </div>
+          <div className="mb-2 flex justify-end">
+            <button type="button" onClick={() => void copySelectedApis()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">
+              {selectedApisCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+              선택 API 복사 ({selectedItems.length})
+            </button>
+          </div>
           <div className="overflow-x-auto rounded-lg border border-surface-border-soft">
-            <table className="w-full min-w-[680px] border-collapse text-left text-xs">
+            <table className="w-full min-w-[790px] border-collapse text-left text-xs">
               <thead className="bg-surface-muted text-text-secondary">
-                <tr><th scope="col" className="w-12 px-3 py-3 text-center font-black">선택</th><th scope="col" className="w-16 px-3 py-3 font-black">방식</th><th scope="col" className="min-w-40 px-3 py-3 font-black">API</th><th scope="col" className="min-w-36 px-3 py-3 font-black">하는 일</th></tr>
+                <tr><th scope="col" className="w-12 px-3 py-3 text-center font-black"><input type="checkbox" checked={allItemsSelected} onChange={toggleAllItems} aria-label="모든 API 선택" className="size-4 accent-brand-primary" /></th><th scope="col" className="w-16 px-3 py-3 font-black">방식</th><th scope="col" className="min-w-40 px-3 py-3 font-black">API</th><th scope="col" className="min-w-36 px-3 py-3 font-black">하는 일</th><th scope="col" className="w-32 px-3 py-3 text-center font-black">복사</th></tr>
               </thead>
               <tbody>
                 {items.map((item) => {
                   const checked = selectedIds.includes(item.id);
                   return <tr key={item.id} className="border-t border-surface-border-soft align-top hover:bg-surface-muted/60">
-                    <td className="px-3 py-3 text-center"><input type="checkbox" checked={checked} onChange={() => toggleItem(item.id)} aria-label={item.label + " 선택"} className="size-4 accent-brand-primary" /></td>
+                    <td className="!align-middle px-3 py-3 text-center"><input type="checkbox" checked={checked} onChange={() => toggleItem(item.id)} aria-label={item.label + " 선택"} className="size-4 accent-brand-primary" /></td>
                     <td className="px-3 py-3"><span className={"rounded px-1.5 py-1 font-mono text-[10px] font-black " + methodClass[item.method]}>{item.method}</span></td>
                     <td className="break-words px-3 py-3 font-mono text-[11px] leading-5 text-text-primary [overflow-wrap:anywhere]">{item.endpoint}</td>
                     <td className="px-3 py-3 font-semibold leading-5 text-text-muted">{item.summary}</td>
+                    <td className="px-2 py-3 text-center"><button type="button" onClick={() => void copyApiItem(item)} aria-label={item.label + " API URL과 설명 복사"} className="ui-icon-button size-7 text-brand-primary" title="HTTP 메서드, 전체 URL, 설명 복사">{copiedId === item.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button></td>
                   </tr>;
                 })}
               </tbody>

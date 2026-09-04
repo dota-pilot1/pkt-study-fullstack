@@ -47,8 +47,8 @@ export async function deleteTopic(id: number) {
   return repository.deleteTopic(id);
 }
 
-export async function createDocument(topicId: number, title: string, parentId: number | null, createdBy: number | null) {
-  return repository.createDocument(topicId, title, parentId, createdBy);
+export async function createDocument(topicId: number, title: string, parentId: number | null, createdBy: number | null, content?: string) {
+  return repository.createDocument(topicId, title, parentId, createdBy, content);
 }
 
 export async function updateDocument(id: number, title: string | undefined, content: string | undefined) {

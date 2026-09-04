@@ -67,6 +67,11 @@ type DeleteTarget = {
   childCount: number;
 };
 
+type NewDocumentDraft = {
+  topicId: number;
+  parentId: number | null;
+};
+
 function StructureDeleteConfirm({
   target,
   deleting,
@@ -217,35 +222,38 @@ function SortableTreeDocumentRow({
           />
         </button>
       )}
-      {depth < 1 && (
+      <div className="flex shrink-0 items-center gap-1">
+        {depth < 1 && (
+          <button
+            type="button"
+            onClick={onAddChild}
+            className="ui-icon-button size-7 text-brand-primary"
+            title="하위 문서 추가"
+          >
+            <GitBranch className="size-3.5" />
+          </button>
+        )}
         <button
           type="button"
-          onClick={onAddChild}
-          className="ui-icon-button size-7 text-brand-primary"
-          title="하위 문서 추가"
+          onClick={onOpenPage}
+          className="ui-icon-button size-7"
+          title="전체 페이지로 보기"
         >
-          <GitBranch className="size-3.5" />
+          <ExternalLink className="size-3.5" />
         </button>
-      )}
-      {depth === 0 && (
-        <button
-          type="button"
-          onClick={onOpenContextApi}
-          className="ui-icon-button size-7 text-brand-primary"
-          title="2차 노트 관리 {}"
-          aria-label="2차 노트 관리 {}"
-        >
-          <Braces className="size-3.5" />
-        </button>
-      )}
-      <button
-        type="button"
-        onClick={onOpenPage}
-        className="ui-icon-button size-7"
-        title="전체 페이지로 보기"
-      >
-        <ExternalLink className="size-3.5" />
-      </button>
+        {depth === 0 && (
+          <button
+            type="button"
+            onClick={onOpenContextApi}
+            className="ui-icon-button h-7 gap-1 px-2 text-[10px] font-black text-brand-primary"
+            title="하위 문서 작업 API"
+            aria-label="하위 문서 작업 API"
+          >
+            <span>하위</span>
+            <Braces className="size-3.5" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -296,6 +304,8 @@ function HospitalPlaybookModule({
   const [editingDocumentId, setEditingDocumentId] = useState<number | null>(
     null,
   );
+  const [newDocumentDraft, setNewDocumentDraft] =
+    useState<NewDocumentDraft | null>(null);
   const [drawerDocumentId, setDrawerDocumentId] = useState<number | null>(null);
   const [pageDocumentId, setPageDocumentId] = useState<number | null>(null);
   const [expandedDocumentIds, setExpandedDocumentIds] = useState<Set<number>>(
@@ -555,14 +565,6 @@ function HospitalPlaybookModule({
     },
     onSettled: invalidate,
   });
-  const createDocument = useMutation({
-    mutationFn: (value: { topicId: number; parentId: number | null }) =>
-      playbookApi.createDocument(value.topicId, "새 문서", value.parentId),
-    onSuccess: (document) => {
-      invalidate();
-      setEditingDocumentId(document.id);
-    },
-  });
   const deleteDocument = useMutation({
     mutationFn: (id: number) => playbookApi.deleteDocument(id),
     onSuccess: () => {
@@ -626,7 +628,9 @@ function HospitalPlaybookModule({
     return true;
   };
   const createNewDocument = (parentId: number | null = null) => {
-    if (topic) createDocument.mutate({ topicId: topic.id, parentId });
+    if (!topic) return;
+    setEditingDocumentId(null);
+    setNewDocumentDraft({ topicId: topic.id, parentId });
   };
   const requestStructureDelete = (target: DeleteTarget) =>
     setDeleteTarget(target);
@@ -951,7 +955,7 @@ function HospitalPlaybookModule({
                   </button>
                   <button
                     type="button"
-                    disabled={!topic || createDocument.isPending}
+                    disabled={!topic || newDocumentDraft !== null}
                     onClick={() => createNewDocument()}
                     className="ui-icon-button-brand h-9 shrink-0 gap-1.5 px-3 text-[13px] font-black disabled:opacity-40"
                   >
@@ -959,12 +963,21 @@ function HospitalPlaybookModule({
                   </button>
                 </div>
               </header>
-              {editingDocumentId ? (
+              {editingDocumentId || newDocumentDraft ? (
                 <div className="min-h-0 flex-1 overflow-y-auto p-2">
                   <DocumentPane
-                    documentId={editingDocumentId}
+                    documentId={editingDocumentId ?? undefined}
+                    draft={newDocumentDraft ?? undefined}
                     onChanged={invalidate}
-                    onBack={() => setEditingDocumentId(null)}
+                    onCreated={(documentId) => {
+                      setNewDocumentDraft(null);
+                      setEditingDocumentId(documentId);
+                    }}
+                    onCancel={() => setNewDocumentDraft(null)}
+                    onBack={() => {
+                      setNewDocumentDraft(null);
+                      setEditingDocumentId(null);
+                    }}
                   />
                 </div>
               ) : (
@@ -1082,6 +1095,7 @@ function HospitalPlaybookModule({
             setDrawerDocumentId(null);
             setPageDocumentId(detail.id);
           }}
+          onOpenContextApi={() => setContextApiDocument(detail)}
           onDelete={() => deleteDocument.mutate(detail.id)}
           onClose={() => setDrawerDocumentId(null)}
           deleting={deleteDocument.isPending}
@@ -1120,6 +1134,7 @@ function HospitalPlaybookModule({
       {contextApiDocument && (
         <DocumentContextApiDialog
           documentId={contextApiDocument.id}
+          topicId={contextApiDocument.topicId}
           documentTitle={contextApiDocument.title}
           onClose={() => setContextApiDocument(null)}
         />

@@ -13,7 +13,7 @@ import { ToastProvider } from "@/shared/ui/toast";
 import packageJson from "../../../package.json";
 
 type RailGroup = "backend" | "frontend" | "language" | "practice" | "ax" | "quality" | "devops";
-type RailSubgroup = "spring" | "java" | "design" | "react" | "domainDesign" | "pilot" | "ax" | "quality" | "devops";
+type RailSubgroup = "spring" | "java" | "design" | "react" | "domainDesign" | "pilot" | "challenge" | "ax" | "quality" | "devops";
 type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
@@ -41,10 +41,10 @@ const railItems: RailItem[] = [
   { label: "JS·TS 노트", icon: Code2, group: "language" },
   { label: "기본 컴포넌트", icon: Boxes, group: "frontend", subgroup: "react" },
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
-  { label: "클론 코딩", icon: Copy, group: "practice", subgroup: "pilot" },
+  { label: "클론 코딩", icon: Copy, group: "practice", subgroup: "challenge" },
   { label: "제품 설계", icon: PenTool, group: "practice", subgroup: "pilot" },
   { label: "프로토타입", icon: Workflow, group: "practice", subgroup: "pilot" },
-  { label: "UI 챌린지", icon: GraduationCap, group: "practice", subgroup: "pilot" },
+  { label: "UI 챌린지", icon: GraduationCap, group: "practice", subgroup: "challenge" },
   { label: "AX 기초", icon: Sparkles, group: "ax", subgroup: "ax" },
   { label: "AX 챌린지", icon: Sparkles, group: "ax", subgroup: "ax" },
   { label: "테스팅", icon: Boxes, group: "quality", subgroup: "quality" },
@@ -61,6 +61,7 @@ const railSubgroups: Array<{ id: RailSubgroup; label: string }> = [
   { id: "react", label: "리액트" },
   { id: "domainDesign", label: "도메인 설계" },
   { id: "pilot", label: "파일럿" },
+  { id: "challenge", label: "챌린지" },
   { id: "ax", label: "AX" },
   { id: "quality", label: "개발 품질" },
   { id: "devops", label: "DevOps" },

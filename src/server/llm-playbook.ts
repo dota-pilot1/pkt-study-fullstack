@@ -65,6 +65,30 @@ export async function llmTopic(topicId: number) {
   return { ...topic, documents: documents.map(documentSummary) };
 }
 
+/** 선택한 2차 주제의 전체 문서 트리와 LLM 조회 URL을 한 번에 제공한다. */
+export async function llmTopicDocumentTree(topicId: number, apiOrigin: string) {
+  const topic = await repository.findTopicById(topicId);
+  if (!topic) throw new LlmPlaybookError(404, "2차 주제를 찾을 수 없습니다.");
+  const documents = await repository.listDocumentsByTopic(topicId);
+  const apiBase = `${apiOrigin}/api/llm/hospital-playbook`;
+  const node = (current: typeof playbookDocuments.$inferSelect): Record<string, unknown> => ({
+    ...documentSummary(current),
+    documentUrl: `${apiBase}/documents/${current.id}`,
+    contextUrl: `${apiBase}/documents/${current.id}/context`,
+    contentUrl: `${apiBase}/documents/${current.id}/content`,
+    children: documents.filter((child) => child.parentId === current.id).map(node),
+  });
+
+  return {
+    ...topic,
+    topicId: topic.id,
+    apiBaseUrl: apiBase,
+    topicUrl: `${apiBase}/topics/${topic.id}`,
+    documentsUrl: `${apiBase}/topics/${topic.id}/documents`,
+    documents: documents.filter((document) => document.parentId === null).map(node),
+  };
+}
+
 export async function llmDocument(documentId: number) {
   const document = await repository.findDocument(documentId);
   if (!document) throw new LlmPlaybookError(404, "문서를 찾을 수 없습니다.");

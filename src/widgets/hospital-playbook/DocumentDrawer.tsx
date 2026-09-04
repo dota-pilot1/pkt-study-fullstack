@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, ExternalLink, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, Copy, ExternalLink, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
@@ -10,7 +10,6 @@ import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
 import DocumentComments from "./DocumentComments";
 import DocumentPane from "./DocumentPane";
-import AiEditConnectionDialog from "./AiEditConnectionDialog";
 
 const DRAWER_SIZE_KEY = "pkt-study-document-drawer-size";
 const DRAWER_SIZES = [
@@ -34,6 +33,7 @@ function DocumentDrawer({
   onDelete,
   onClose,
   onOpenPage,
+  onOpenContextApi,
   onChanged,
   deleting = false,
   deleteError,
@@ -47,6 +47,7 @@ function DocumentDrawer({
   onDelete: () => void;
   onClose: () => void;
   onOpenPage?: () => void;
+  onOpenContextApi: () => void;
   onChanged: () => void;
   deleting?: boolean;
   deleteError?: string;
@@ -60,8 +61,9 @@ function DocumentDrawer({
   const { showToast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [aiContentCopied, setAiContentCopied] = useState(false);
-  const [aiEditConnection, setAiEditConnection] = useState<string | null>(null);
+  const [contentCopied, setContentCopied] = useState(false);
+  const [lookupCopied, setLookupCopied] = useState(false);
+  const [updateCopied, setUpdateCopied] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
@@ -76,7 +78,6 @@ function DocumentDrawer({
     setSearchQuery("");
     setSearchMatchIndex(0);
     setSearchMatchCount(0);
-    setAiEditConnection(null);
   }, [document.id]);
 
   const handleClose = useCallback(() => {
@@ -125,62 +126,45 @@ function DocumentDrawer({
     }
   };
 
-  const copyAiEditConnection = () => {
-    const apiBase = getApiBase();
-    const base = `${apiBase}/api/llm/hospital-playbook`;
-    const documentEndpoint = `${base}/documents/${document.id}`;
-    const contentEndpoint = `${documentEndpoint}/content`;
-    const documentRole = document.parentId === null ? "2차 주제 본문 문서(전체 TODO 계획)" : "TODO 하위 문서(이 TODO의 Step 1~N)";
-    const connection = [
-        "PKT 2차 주제 개별 문서 편집 API FOR LLM",
-        "이 앱은 로컬 학습용이므로 별도 Bearer 토큰 없이 문서를 조회·수정합니다.",
-        `topicId: ${document.topicId}`,
-        `documentId: ${document.id}`,
-        `documentTitle: ${document.title}`,
-        `documentRole: ${documentRole}`,
-        `parentId: ${document.parentId ?? "null"}`,
-        `expectedVersion: ${document.version}`,
-        "",
-        "같은 2차 주제의 문서 생성·삭제·정렬도 아래 LLM API에서 토큰 없이 처리합니다.",
-        document.parentId === null
-          ? "현재 문서는 본문 문서입니다. 전체 목표와 TODO 1~N 계획만 작성하고 Step 상세는 하위 문서로 분리합니다."
-          : "현재 문서는 TODO 하위 문서입니다. 이 문서 안에서 해당 TODO의 Step 1~N을 순서대로 작성합니다.",
-        "",
-        `GET ${documentEndpoint}`,
-        `PATCH ${contentEndpoint}`,
-        "",
-        'PATCH body: {"title":"수정 제목","content":"수정 본문","expectedVersion":<CURRENT_VERSION>}',
-        "",
-        `하위 문서 생성: POST ${base}/topics/${document.topicId}/children`,
-        `하위 문서 생성 body: {"parentId":${document.parentId ?? document.id},"title":"TODO 제목","content":"Lexical JSON 문자열"}`,
-        "",
-        "CONTENT FORMAT:",
-        "content는 Markdown·HTML이 아닌 Lexical EditorState를 JSON.stringify한 문자열입니다.",
-        "GET으로 기존 문서 전체를 조회한 뒤 root 구조와 노드를 유지하면서 title·content 전체를 PATCH합니다.",
-        "일반 본문은 paragraph, 제목은 heading, 목록은 list/listitem, 설명 묶음은 quote 노드를 사용합니다.",
-        "각 섹션은 heading → quote 설명 → 필요 시 파일 경로 code(language: text) → 실제 코드 code(language: java·typescript·tsx·bash·json) 순서로 작성합니다.",
-        "code 노드 children에는 type: code-highlight를 두고 실제 원문을 child text에 넣습니다.",
-        "섹션 사이에는 children: []인 빈 paragraph 2개를 두고 목록 항목 사이에는 빈 paragraph를 넣지 않습니다.",
-        "content에 일반 텍스트·Markdown·HTML을 직접 넣지 말고, 수정 전 최신 version을 expectedVersion에 사용합니다.",
-      ].join("\n");
-    setAiEditConnection(connection);
+  const copyDocumentContent = async () => {
+    try {
+      const markdown = lexicalToMarkdown(document.content);
+      await copyToClipboard([`# ${document.title}`, "", markdown].join("\n"));
+      setContentCopied(true);
+      showToast("문서 내용을 복사했습니다.");
+      window.setTimeout(() => setContentCopied(false), 1800);
+    } catch (error) {
+      showToast(error instanceof ApiError ? `내용 복사 실패: ${error.message}` : "문서 내용을 클립보드에 복사하지 못했습니다.", "error");
+    }
   };
 
-  const copyAiContent = async () => {
-    if (isSharing) return;
-    setIsSharing(true);
+  const copyDocumentLookup = async () => {
+    const url = `${window.location.origin}${getApiBase()}/api/llm/hospital-playbook/documents/${document.id}`;
     try {
-      const { token } = await playbookApi.shareDocument(document.id);
-      const url = `${getApiBase()}/api/public/hospital-playbook/documents/${token}`;
-      const markdown = lexicalToMarkdown(document.content);
-      await copyToClipboard([`# ${document.title}`, "", markdown, "", "---", `원문 API: ${url}`].join("\n"));
-      setAiContentCopied(true);
-      showToast("AI용 Markdown 내용을 복사했습니다.");
-      window.setTimeout(() => setAiContentCopied(false), 1800);
-    } catch (error) {
-      showToast(error instanceof ApiError ? `AI용 내용 발급 실패: ${error.message}` : "AI용 내용을 클립보드에 복사하지 못했습니다.", "error");
-    } finally {
-      setIsSharing(false);
+      await copyToClipboard([`GET ${url}`, "", "현재 문서의 제목·Lexical 본문·parentId·최신 version을 조회합니다."].join("\n"));
+      setLookupCopied(true);
+      showToast("문서 조회 URL과 설명을 복사했습니다.");
+      window.setTimeout(() => setLookupCopied(false), 1800);
+    } catch {
+      showToast("문서 조회 정보를 클립보드에 복사하지 못했습니다.", "error");
+    }
+  };
+
+  const copyDocumentUpdate = async () => {
+    const url = `${window.location.origin}${getApiBase()}/api/llm/hospital-playbook/documents/${document.id}/content`;
+    try {
+      await copyToClipboard([
+        `PATCH ${url}`,
+        "",
+        "현재 문서의 제목과 Lexical 본문을 저장합니다.",
+        `expectedVersion: ${document.version}`,
+        `parentId: ${document.parentId ?? "null"}`,
+      ].join("\n"));
+      setUpdateCopied(true);
+      showToast("문서 수정 URL과 저장 정보를 복사했습니다.");
+      window.setTimeout(() => setUpdateCopied(false), 1800);
+    } catch {
+      showToast("문서 수정 정보를 클립보드에 복사하지 못했습니다.", "error");
     }
   };
 
@@ -304,11 +288,18 @@ function DocumentDrawer({
             <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 API 링크 복사">
               {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
             </button>
-            <button type="button" className="ui-icon-button size-8" onClick={() => void copyAiContent()} disabled={isSharing} title="AI용 Markdown 내용 복사">
-              {aiContentCopied ? <Check className="size-4" /> : <Clipboard className="size-4" />}
+            <span className="ml-1 text-[10px] font-black text-text-muted">본문</span>
+            <button type="button" className="ui-icon-button size-8" onClick={() => void copyDocumentContent()} title="본문 내용 복사" aria-label="본문 내용 복사">
+              {contentCopied ? <Check className="size-3.5" /> : <Clipboard className="size-3.5" />}
             </button>
-            <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={copyAiEditConnection} title="토큰 없는 개별 문서 편집 API for LLM 복사">
-              <span className="font-mono text-xs font-black leading-none">{"{}"}</span>
+            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyDocumentLookup()} title="본문 조회 URL과 설명 복사" aria-label="본문 조회 URL과 설명 복사">
+              {lookupCopied ? <Check className="size-3.5" /> : <><span>조회</span><Copy className="size-3.5" /></>}
+            </button>
+            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyDocumentUpdate()} title="본문 수정 URL과 저장 정보 복사" aria-label="본문 수정 URL과 저장 정보 복사">
+              {updateCopied ? <Check className="size-3.5" /> : <><span>수정</span><Copy className="size-3.5" /></>}
+            </button>
+            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={onOpenContextApi} title="하위 문서 작업 API">
+              <span>하위</span><span className="font-mono text-xs leading-none">{"{}"}</span>
             </button>
           </div>
           <div className="drawer-action-group drawer-action-group-danger flex shrink-0 items-center gap-1">
@@ -424,7 +415,6 @@ function DocumentDrawer({
           </div>
         )}
       </aside>
-      {aiEditConnection && <AiEditConnectionDialog connection={aiEditConnection} documentTitle={document.title} isChildDocument={document.parentId !== null} onClose={() => setAiEditConnection(null)} />}
     </div>
   );
 }

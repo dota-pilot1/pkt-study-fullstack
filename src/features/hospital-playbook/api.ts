@@ -216,10 +216,10 @@ export const playbookApi = {
       errorMessage: "주제 순서를 저장하지 못했습니다.",
     }),
 
-  createDocument: (topicId: number, title: string, parentId: number | null = null) =>
+  createDocument: (topicId: number, title: string, parentId: number | null = null, content?: string) =>
     request<PlaybookDocument>(`${BASE}/topics/${topicId}/documents`, {
       method: "POST",
-      body: { title, parentId },
+      body: { title, parentId, content },
       errorMessage: "문서를 만들지 못했습니다.",
     }),
 
