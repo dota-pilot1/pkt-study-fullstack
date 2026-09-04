@@ -11,7 +11,15 @@ export class PlaybookServiceError extends Error {
 }
 
 export async function getDocument(id: number) {
-  return repository.findDocument(id);
+  const document = await repository.findDocument(id);
+  if (!document) return null;
+  const topic = await repository.findTopicById(document.topicId);
+  const category = topic ? await repository.findCategoryById(topic.categoryId) : null;
+  const space = category ? await repository.findSpaceById(category.spaceId) : null;
+  return { ...document, location: topic && category && space ? {
+    spaceCode: space.code, categoryId: category.id, categoryTitle: category.title,
+    topicId: topic.id, topicTitle: topic.title,
+  } : null };
 }
 
 export const listSpaces = repository.listSpaces;
@@ -51,12 +59,34 @@ export async function createDocument(topicId: number, title: string, parentId: n
   return repository.createDocument(topicId, title, parentId, createdBy, content);
 }
 
-export async function updateDocument(id: number, title: string | undefined, content: string | undefined) {
+export async function updateDocument(id: number, title: string | undefined, content: string | undefined, parentId: number | null | undefined = undefined) {
   const current = await repository.findDocument(id);
   if (!current) throw new PlaybookServiceError(404, "문서를 찾을 수 없습니다.");
+  const parentChanged = parentId !== undefined && parentId !== current.parentId;
+  if (parentChanged && parentId !== null) {
+    const parent = await repository.findParentDocument(parentId, current.topicId);
+    if (!parent) throw new PlaybookServiceError(400, "같은 주제의 본문 아래로만 이동할 수 있습니다.");
+
+    const documents = await repository.listDocumentsByTopic(current.topicId);
+    const descendants = new Set<number>([current.id]);
+    let foundChild = true;
+    while (foundChild) {
+      foundChild = false;
+      for (const document of documents) {
+        if (document.parentId !== null && descendants.has(document.parentId) && !descendants.has(document.id)) {
+          descendants.add(document.id);
+          foundChild = true;
+        }
+      }
+    }
+    if (descendants.has(parentId)) throw new PlaybookServiceError(400, "현재 문서 또는 하위 문서 아래로는 이동할 수 없습니다.");
+  }
+  const siblings = parentChanged ? await repository.listDocumentsByTopic(current.topicId) : [];
   return repository.updateDocument(id, {
     ...(title === undefined ? {} : { title: title.trim().slice(0, 300) }),
     ...(content === undefined ? {} : { content }),
+    ...(parentId === undefined ? {} : { parentId }),
+    ...(parentChanged ? { orderIdx: siblings.filter((document) => document.parentId === parentId).length } : {}),
     version: current.version + 1,
   });
 }

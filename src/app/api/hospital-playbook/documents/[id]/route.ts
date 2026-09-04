@@ -24,12 +24,11 @@ export async function DELETE(_request: Request, context: RouteContext<"/api/hosp
 }
 
 export async function PATCH(request: Request, context: RouteContext<"/api/hospital-playbook/documents/[id]">) {
-  const user = await requireUser();
-  if (!user) return NextResponse.json({ message: "로그인이 필요합니다." }, { status: 401 });
   const id = Number((await context.params).id);
-  const body = await request.json().catch(() => null) as { title?: unknown; content?: unknown } | null;
+  const body = await request.json().catch(() => null) as { title?: unknown; content?: unknown; parentId?: unknown } | null;
   try {
-    return NextResponse.json(await updateDocument(id, typeof body?.title === "string" ? body.title : undefined, typeof body?.content === "string" ? body.content : undefined));
+    const parentId = body?.parentId === null || typeof body?.parentId === "number" ? body.parentId : undefined;
+    return NextResponse.json(await updateDocument(id, typeof body?.title === "string" ? body.title : undefined, typeof body?.content === "string" ? body.content : undefined, parentId));
   } catch (error) {
     if (error instanceof PlaybookServiceError) return NextResponse.json({ message: error.message }, { status: error.status });
     throw error;

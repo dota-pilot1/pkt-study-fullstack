@@ -263,7 +263,7 @@ export async function createDocument(topicId: number, title: string, parentId: n
   return document;
 }
 
-export async function updateDocument(id: number, patch: { title?: string; content?: string; parentId?: number | null; version: number }) {
+export async function updateDocument(id: number, patch: { title?: string; content?: string; parentId?: number | null; orderIdx?: number; version: number }) {
   const [document] = await db.update(playbookDocuments)
     .set({ ...patch, updatedAt: new Date().toISOString() })
     .where(eq(playbookDocuments.id, id))

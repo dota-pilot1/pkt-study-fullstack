@@ -3,7 +3,7 @@ import { useId, useRef, useState } from 'react'
 import { Button } from '../button'
 import {
   AlignCenter, AlignJustify, AlignLeft, AlignRight, Baseline, Blocks, Bold,
-  CircleHelp, Code, GitBranch, Heading1, Heading2, Heading3, Highlighter,
+  CircleHelp, Code, Eraser, GitBranch, Heading1, Heading2, Heading3, Highlighter,
   Image, Italic, Link, List, ListChecks, ListOrdered, Minus, PanelTop, Quote,
   Redo, Strikethrough, Table, Underline, Undo, Video, X, type LucideIcon,
 } from 'lucide-react'
@@ -21,6 +21,7 @@ const HELP_GROUPS: { title: string; items: HelpItem[] }[] = [
   { title: '글자 서식', items: [
     { icon: Undo, title: '실행 취소', description: '방금 한 편집을 되돌립니다.' },
     { icon: Redo, title: '다시 실행', description: '취소했던 편집을 다시 적용합니다.' },
+    { icon: Eraser, title: '서식 지우기', description: '선택한 영역의 글자·문단 서식을 지우고 일반 본문으로 되돌립니다.' },
     { label: 'Aa', title: '글씨체', description: '선택한 글자의 글꼴을 바꿉니다.', fullOnly: true },
     { label: '15', title: '글씨 크기', description: '선택한 글자의 크기를 바꿉니다.', fullOnly: true },
     { icon: Bold, title: '굵게', description: '선택한 글자를 굵게 표시합니다. ⌘/Ctrl+B' },

@@ -42,6 +42,7 @@ export type PlaybookMenuSearchResult = {
 };
 
 export type PlaybookDocument = PlaybookDocumentSummary & {
+  location?: { spaceCode: string; categoryId: number; categoryTitle: string; topicId: number; topicTitle: string } | null;
   content: string;
   createdBy: number | null;
   approvedBy: number | null;

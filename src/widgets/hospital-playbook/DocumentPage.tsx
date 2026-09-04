@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect -- document tree state synchronizes with fetched content. */
+import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
 import {
   DragDropProvider,
   type DragEndEvent,
@@ -396,6 +397,7 @@ export default function DocumentPage({
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-1.5">
+                    <BookmarkButton document={document.data} />
                     <button
                       type="button"
                       onClick={() => onEdit(documentId)}

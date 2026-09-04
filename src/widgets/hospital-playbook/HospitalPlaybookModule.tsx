@@ -345,10 +345,13 @@ function HospitalPlaybookModule({
     const saved = window.sessionStorage.getItem("pkt-study-menu-search-target");
     if (!saved) return;
     try {
-      const target = JSON.parse(saved) as { spaceCode?: string; categoryId?: number; topicId?: number | null };
+      const target = JSON.parse(saved) as { spaceCode?: string; categoryId?: number; topicId?: number | null; documentId?: number };
       if (target.spaceCode !== domain || !categories.some((item) => item.id === target.categoryId)) return;
       setCategoryId(target.categoryId ?? null);
       setPendingTopicSelection(target.topicId ?? null);
+      const targetDocument = categories.find((item) => item.id === target.categoryId)?.topics
+        .find((item) => item.id === target.topicId)?.documents.find((item) => item.id === target.documentId);
+      if (targetDocument) setPageDocumentId(targetDocument.id);
       window.sessionStorage.removeItem("pkt-study-menu-search-target");
     } catch {
       window.sessionStorage.removeItem("pkt-study-menu-search-target");
@@ -1091,6 +1094,13 @@ function HospitalPlaybookModule({
           }
           onNavigate={(target) => setDrawerDocumentId(target.id)}
           onChanged={invalidate}
+          documents={documents}
+          onMove={async (parentId) => {
+            const moved = await playbookApi.updateDocument(detail.id, { parentId });
+            queryClient.setQueryData(["hospital-playbook", "document", moved.id], moved);
+            await queryClient.invalidateQueries({ queryKey: playbookTreeKey(domain) });
+            showToast(parentId === null ? "문서를 루트 본문으로 이동했습니다." : "문서를 선택한 본문 아래로 이동했습니다.");
+          }}
           onOpenPage={() => {
             setDrawerDocumentId(null);
             setPageDocumentId(detail.id);

@@ -1,7 +1,8 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, Copy, ExternalLink, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
+import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, Copy, ExternalLink, GitBranch, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { PlaybookDocument } from "../../features/hospital-playbook/api";
+import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
 import { lexicalToMarkdown } from "../../features/hospital-playbook/lexicalToMarkdown";
 import { ApiError, getApiBase } from "../../shared/api/client";
@@ -9,6 +10,7 @@ import { copyToClipboard } from "../../shared/lib/clipboard";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
 import DocumentComments from "./DocumentComments";
+import DocumentLocationDialog from "./DocumentLocationDialog";
 import DocumentPane from "./DocumentPane";
 
 const DRAWER_SIZE_KEY = "pkt-study-document-drawer-size";
@@ -35,6 +37,8 @@ function DocumentDrawer({
   onOpenPage,
   onOpenContextApi,
   onChanged,
+  documents,
+  onMove,
   deleting = false,
   deleteError,
   loading = false,
@@ -49,6 +53,8 @@ function DocumentDrawer({
   onOpenPage?: () => void;
   onOpenContextApi: () => void;
   onChanged: () => void;
+  documents: PlaybookDocumentSummary[];
+  onMove: (parentId: number | null) => Promise<void>;
   deleting?: boolean;
   deleteError?: string;
   loading?: boolean;
@@ -68,6 +74,7 @@ function DocumentDrawer({
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
   const [searchMatchCount, setSearchMatchCount] = useState(0);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -269,6 +276,7 @@ function DocumentDrawer({
             {!isEditing && <h2 className="mt-0.5 truncate text-lg font-black text-text-primary">{document.title}</h2>}
           </div>
           <div className="drawer-action-group flex shrink-0 items-center gap-1">
+            <BookmarkButton document={document} />
             <button
               type="button"
               className={`ui-icon-button size-8 ${isEditing ? "bg-brand-primary text-white" : ""}`}
@@ -279,6 +287,9 @@ function DocumentDrawer({
               title="수정"
             >
               <Pencil className="size-4" />
+            </button>
+            <button type="button" className="ui-icon-button size-8" onClick={() => setLocationDialogOpen(true)} disabled={isEditing} title="문서 위치 이동" aria-label="문서 위치 이동">
+              <GitBranch className="size-4" />
             </button>
             {onOpenPage && <button type="button" className="ui-icon-button size-8" onClick={onOpenPage} title="전체 페이지로 보기">
               <ExternalLink className="size-4" />
@@ -397,7 +408,7 @@ function DocumentDrawer({
           </button>
         </footer>
 
-      {deleteConfirmOpen && (
+        {deleteConfirmOpen && (
           <div className="absolute inset-0 z-10 grid place-items-center bg-black/30 p-5">
             <div className="w-full max-w-sm rounded-lg border border-surface-border bg-surface-raised p-5 shadow-xl">
               <h3 className="text-base font-black text-text-primary">문서를 삭제할까요?</h3>
@@ -413,6 +424,14 @@ function DocumentDrawer({
               {deleteError && <p className="mt-3 text-xs font-bold text-destructive">{deleteError}</p>}
             </div>
           </div>
+        )}
+        {locationDialogOpen && (
+          <DocumentLocationDialog
+            document={document}
+            documents={documents}
+            onClose={() => setLocationDialogOpen(false)}
+            onMove={onMove}
+          />
         )}
       </aside>
     </div>

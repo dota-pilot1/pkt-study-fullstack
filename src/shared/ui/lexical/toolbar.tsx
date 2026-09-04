@@ -10,6 +10,7 @@ import {
   $getSelection,
   $isElementNode,
   $isRangeSelection,
+  $isTextNode,
   $setSelection,
   INTERNAL_$isBlock,
   CAN_REDO_COMMAND,
@@ -49,6 +50,7 @@ import {
   Baseline,
   Bold,
   Code,
+  Eraser,
   Heading1,
   Heading2,
   Heading3,
@@ -290,6 +292,29 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
     })
   }
 
+  const clearFormatting = () => {
+    editor.update(() => {
+      const selection = $getSelection()
+      if (!$isRangeSelection(selection)) return
+
+      // 선택한 텍스트의 인라인 서식과 직접 지정한 CSS를 제거한다.
+      selection.setFormat(0)
+      selection.setStyle('')
+      selection.getNodes().forEach((node) => {
+        if ($isTextNode(node)) {
+          node.setFormat(0)
+          node.setStyle('')
+        } else if ($isElementNode(node)) {
+          node.setTextFormat(0)
+          node.setFormat('')
+        }
+      })
+
+      // 제목·인용·목록·코드 블록을 일반 문단으로 되돌린다. 텍스트 내용은 유지한다.
+      $setBlocksType(selection, () => $createParagraphNode())
+    })
+  }
+
   const formatCodeBlock = () => {
     editor.update(() => {
       const selection = $getSelection()
@@ -365,6 +390,9 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
         <ToolbarButton onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} disabled={!canRedo} title="다시 실행">
           <Redo className="size-3.5" />
         </ToolbarButton>
+        <ToolbarButton onClick={clearFormatting} title="서식 지우기">
+          <Eraser className="size-3.5" />
+        </ToolbarButton>
 
         <Divider />
 
@@ -421,6 +449,9 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
       </ToolbarButton>
       <ToolbarButton onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)} disabled={!canRedo} title="다시 실행">
         <Redo className="size-3.5" />
+      </ToolbarButton>
+      <ToolbarButton onClick={clearFormatting} title="서식 지우기">
+        <Eraser className="size-3.5" />
       </ToolbarButton>
 
       <Divider />

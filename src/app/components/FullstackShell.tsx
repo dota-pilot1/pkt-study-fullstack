@@ -4,12 +4,13 @@ import { createContext, useContext, useEffect, useRef, useState, useSyncExternal
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  BookOpen, Boxes, ChevronDown, Code2, Coffee, Copy, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Search, Sparkles,
+  Bookmark, BookOpen, Boxes, ChevronDown, Code2, Coffee, Copy, Database, GraduationCap, Leaf, Library, LockKeyhole, LogOut, Search, Sparkles,
   PenTool, Settings, User, Workflow, type LucideIcon,
 } from "lucide-react";
 import { ContentRefreshProvider } from "@/shared/lib/content-refresh";
 import { RailToggleProvider } from "@/shared/lib/rail-toggle";
 import { ToastProvider } from "@/shared/ui/toast";
+import { BookmarkProvider } from "@/features/hospital-playbook/bookmarks";
 import packageJson from "../../../package.json";
 
 type RailGroup = "backend" | "frontend" | "language" | "practice" | "ax" | "quality" | "devops";
@@ -214,7 +215,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   const activeRailSubgroup = railItems.find((item) => item.label === active)?.subgroup;
 
   return (
-    <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}>
+    <ToastProvider><QueryClientProvider client={queryClient}><ActiveModuleContext.Provider value={active}><BookmarkProvider userId={user.email}>
       <div className="relative flex h-screen overflow-hidden">
         <div ref={railMenuRef} className={"relative z-50 flex shrink-0 transition-[width] duration-200 ease-in-out " + (railCollapsed ? "w-0" : "w-[108px]")}>
         <nav aria-hidden={railCollapsed} className={"relative flex h-full w-[108px] shrink-0 flex-col items-center text-text-on-brand " + (railCollapsed ? "pointer-events-none overflow-hidden" : "overflow-visible")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
@@ -239,6 +240,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
           </div>
           <div ref={accountRef} className="relative flex min-h-[116px] w-full flex-col items-center gap-1 border-t px-2 py-2" style={{ borderColor: railTint(10) }}>
             <button type="button" onClick={() => selectModule("통합 검색")} title="전체 노트 검색" aria-label="전체 노트 검색" className={"flex h-[40px] w-[92px] items-center justify-center transition-all duration-200 " + (active === "통합 검색" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "통합 검색" ? railTint(25) : undefined }}><Search className="size-[20px]" strokeWidth={2} /></button>
+            <button type="button" onClick={() => selectModule("북마크")} title="북마크" aria-label="북마크" aria-current={active === "북마크" ? "page" : undefined} className={"flex h-[40px] w-[92px] shrink-0 items-center justify-center gap-1.5 rounded-[13px] text-[10px] font-bold hover:bg-white/10"} style={{ backgroundColor: active === "북마크" ? railTint(25) : undefined }}><Bookmark className="size-[18px]" fill={active === "북마크" ? "currentColor" : "none"} />북마크</button>
             <button type="button" onClick={() => selectModule("설정")} title="설정" className={"flex h-[40px] w-[92px] items-center justify-center transition-all duration-200 " + (active === "설정" ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: active === "설정" ? railTint(25) : undefined }}><Settings className="size-[20px]" strokeWidth={2} /></button>
             <button type="button" onClick={() => setAccountOpen((open) => !open)} title="PKT 관리자" className="grid h-[40px] w-[92px] place-items-center rounded-[20px] border border-transparent p-0 transition-all hover:bg-white/20"><span className="grid h-[30px] w-[30px] place-items-center rounded-full border bg-surface-raised text-text-primary" style={{ borderColor: railTint(30) }}><User className="size-4" /></span></button>
             <span className="mt-0.5 select-none text-[8.5px] font-bold tabular-nums" style={{ color: railTint(85) }}>v{packageJson.version}</span>
@@ -261,6 +263,6 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
         </RailToggleProvider></ContentRefreshProvider>
         <WindowResizeHandles />
       </div>
-    </ActiveModuleContext.Provider></QueryClientProvider></ToastProvider>
+    </BookmarkProvider></ActiveModuleContext.Provider></QueryClientProvider></ToastProvider>
   );
 }

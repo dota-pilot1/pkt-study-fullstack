@@ -1,6 +1,7 @@
 export class ApiError extends Error {
-  constructor(readonly status: number, message: string) {
-    super(message);
+  constructor(readonly status: number, message: string, readonly url?: string) {
+    super(`${message} (HTTP ${status}${url ? `: ${url}` : ""})`);
+    this.name = "ApiError";
   }
 }
 
@@ -24,7 +25,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`;
       window.location.replace(`/login?returnTo=${encodeURIComponent(returnTo)}`);
     }
-    throw new ApiError(response.status, message);
+    throw new ApiError(response.status, message, path);
   }
   if (response.status === 204) return undefined as T;
   return await response.json() as T;
