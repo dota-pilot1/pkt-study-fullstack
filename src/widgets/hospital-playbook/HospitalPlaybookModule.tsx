@@ -13,6 +13,7 @@ import {
   ExternalLink,
   FileText,
   GitBranch,
+  ListTodo,
   Loader2,
   LockKeyhole,
   Plus,
@@ -23,6 +24,8 @@ import PageHeader from "../../shared/ui/PageHeader";
 import PageHeaderSearch from "../../shared/ui/PageHeaderSearch";
 import { useColumnResize } from "../../shared/lib/useColumnResize";
 import ColumnResizeHandle from "../../shared/ui/ColumnResizeHandle";
+import { TodoDrawer } from "../../features/todo/TodoDrawer";
+import { useTodos } from "../../features/todo/useTodos";
 import {
   playbookApi,
   type PlaybookCategory,
@@ -317,6 +320,7 @@ function HospitalPlaybookModule({
     number | null
   >(null);
   const [llmApiGuideOpen, setLlmApiGuideOpen] = useState(false);
+  const [todoDrawerOpen, setTodoDrawerOpen] = useState(false);
   const [contextApiDocument, setContextApiDocument] =
     useState<PlaybookDocumentSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -365,6 +369,18 @@ function HospitalPlaybookModule({
     () => category?.topics.find((item) => item.id === topicId) ?? null,
     [category, topicId],
   );
+  const todoScope = useMemo(
+    () => ({
+      spaceCode: domain,
+      categoryId: category?.id ?? null,
+      categoryTitle: category?.title ?? null,
+      topicId: topic?.id ?? null,
+      topicTitle: topic?.title ?? null,
+      includeCategoryTodos: domain === "PROTOTYPE",
+    }),
+    [category?.id, category?.title, domain, topic?.id, topic?.title],
+  );
+  const { activeCount: activeTodoCount } = useTodos(todoScope);
   const documents = topic?.documents ?? EMPTY_DOCUMENTS;
   const { rows: documentRows, children } = useMemo(
     () => flattenDocuments(documents),
@@ -778,6 +794,20 @@ function HospitalPlaybookModule({
               <span>전체 노트 관리</span>{" "}
               <span className="font-mono text-xs leading-none">{"{}"}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setTodoDrawerOpen(true)}
+              className="ui-icon-button h-9 shrink-0 gap-1.5 px-2.5 text-[11px] font-black text-brand-primary"
+              title="현재 주제의 할 일 관리 (TODO)"
+            >
+              <ListTodo className="size-3.5" />
+              <span>할 일</span>
+              {activeTodoCount > 0 && (
+                <span className="rounded-full bg-brand-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                  {activeTodoCount}
+                </span>
+              )}
+            </button>
           </div>
         }
       >
@@ -1149,6 +1179,7 @@ function HospitalPlaybookModule({
           onClose={() => setContextApiDocument(null)}
         />
       )}
+      <TodoDrawer open={todoDrawerOpen} onOpenChange={setTodoDrawerOpen} scope={todoScope} />
     </div>
   );
 }

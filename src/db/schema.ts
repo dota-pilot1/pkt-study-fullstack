@@ -32,6 +32,40 @@ export const learningGoals = sqliteTable("learning_goals", {
   updatedAt: text("updated_at").notNull(),
 });
 
+/**
+ * 노트 화면과 로컬 Agent가 함께 쓰는 프로젝트 작업 단위다.
+ * 상세 목록은 JSON 문자열로 보관해 초기 스키마 변경을 작게 유지한다.
+ */
+export const workTodos = sqliteTable("work_todos", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").notNull().references(() => users.id),
+  spaceCode: text("space_code").notNull().default("COMMON"),
+  categoryId: integer("category_id"),
+  categoryTitle: text("category_title"),
+  topicId: integer("topic_id"),
+  topicTitle: text("topic_title"),
+  documentId: integer("document_id"),
+  documentTitle: text("document_title"),
+  workstream: text("workstream").notNull().default("BACKEND"),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  status: text("status").notNull().default("TODO"),
+  important: integer("important", { mode: "boolean" }).notNull().default(false),
+  checklistJson: text("checklist_json").notNull().default("[]"),
+  acceptanceCriteria: text("acceptance_criteria").notNull().default(""),
+  verificationChecksJson: text("verification_checks_json").notNull().default("[]"),
+  blockerReason: text("blocker_reason").notNull().default(""),
+  relatedFilesJson: text("related_files_json").notNull().default("[]"),
+  relatedApiRequestIdsJson: text("related_api_request_ids_json").notNull().default("[]"),
+  verificationSummary: text("verification_summary").notNull().default(""),
+  orderIdx: integer("order_idx").notNull().default(0),
+  version: integer("version").notNull().default(1),
+  updatedByType: text("updated_by_type").notNull().default("USER"),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+  completedAt: text("completed_at"),
+});
+
 export const roles = sqliteTable("roles", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   code: text("code").notNull().unique(),

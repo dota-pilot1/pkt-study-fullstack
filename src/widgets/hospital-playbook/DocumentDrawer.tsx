@@ -1,10 +1,9 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clipboard, Copy, ExternalLink, GitBranch, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, GitBranch, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
-import { lexicalToMarkdown } from "../../features/hospital-playbook/lexicalToMarkdown";
 import { ApiError, getApiBase } from "../../shared/api/client";
 import { copyToClipboard } from "../../shared/lib/clipboard";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
@@ -67,9 +66,7 @@ function DocumentDrawer({
   const { showToast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [contentCopied, setContentCopied] = useState(false);
-  const [lookupCopied, setLookupCopied] = useState(false);
-  const [updateCopied, setUpdateCopied] = useState(false);
+  const [agentCopied, setAgentCopied] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
@@ -133,45 +130,36 @@ function DocumentDrawer({
     }
   };
 
-  const copyDocumentContent = async () => {
+  const copyAgentConnection = async () => {
+    const base = `${window.location.origin}${getApiBase()}/api/llm/hospital-playbook/documents/${document.id}`;
+    const value = [
+      `# ${document.title} 조회·수정 API`,
+      `documentId: ${document.id}`,
+      `parentId: ${document.parentId ?? "null"}`,
+      `expectedVersion: ${document.version}`,
+      "",
+      `GET ${base}`,
+      "수정 전에 제목·Lexical 본문·parentId·최신 version을 확인합니다.",
+      "",
+      `PATCH ${base}/content`,
+      "Content-Type: application/json",
+      "",
+      JSON.stringify({
+        title: document.title,
+        content: "Lexical EditorState JSON 문자열",
+        expectedVersion: document.version,
+        parentId: document.parentId,
+      }, null, 2),
+      "",
+      "409 충돌이면 GET으로 최신 version을 다시 확인한 뒤 PATCH합니다.",
+    ].join("\n");
     try {
-      const markdown = lexicalToMarkdown(document.content);
-      await copyToClipboard([`# ${document.title}`, "", markdown].join("\n"));
-      setContentCopied(true);
-      showToast("문서 내용을 복사했습니다.");
-      window.setTimeout(() => setContentCopied(false), 1800);
-    } catch (error) {
-      showToast(error instanceof ApiError ? `내용 복사 실패: ${error.message}` : "문서 내용을 클립보드에 복사하지 못했습니다.", "error");
-    }
-  };
-
-  const copyDocumentLookup = async () => {
-    const url = `${window.location.origin}${getApiBase()}/api/llm/hospital-playbook/documents/${document.id}`;
-    try {
-      await copyToClipboard([`GET ${url}`, "", "현재 문서의 제목·Lexical 본문·parentId·최신 version을 조회합니다."].join("\n"));
-      setLookupCopied(true);
-      showToast("문서 조회 URL과 설명을 복사했습니다.");
-      window.setTimeout(() => setLookupCopied(false), 1800);
+      await copyToClipboard(value);
+      setAgentCopied(true);
+      showToast("Agent용 문서 조회·수정 정보를 한 번에 복사했습니다.");
+      window.setTimeout(() => setAgentCopied(false), 1800);
     } catch {
-      showToast("문서 조회 정보를 클립보드에 복사하지 못했습니다.", "error");
-    }
-  };
-
-  const copyDocumentUpdate = async () => {
-    const url = `${window.location.origin}${getApiBase()}/api/llm/hospital-playbook/documents/${document.id}/content`;
-    try {
-      await copyToClipboard([
-        `PATCH ${url}`,
-        "",
-        "현재 문서의 제목과 Lexical 본문을 저장합니다.",
-        `expectedVersion: ${document.version}`,
-        `parentId: ${document.parentId ?? "null"}`,
-      ].join("\n"));
-      setUpdateCopied(true);
-      showToast("문서 수정 URL과 저장 정보를 복사했습니다.");
-      window.setTimeout(() => setUpdateCopied(false), 1800);
-    } catch {
-      showToast("문서 수정 정보를 클립보드에 복사하지 못했습니다.", "error");
+      showToast("Agent 연결 정보를 클립보드에 복사하지 못했습니다.", "error");
     }
   };
 
@@ -299,15 +287,8 @@ function DocumentDrawer({
             <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 API 링크 복사">
               {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
             </button>
-            <span className="ml-1 text-[10px] font-black text-text-muted">본문</span>
-            <button type="button" className="ui-icon-button size-8" onClick={() => void copyDocumentContent()} title="본문 내용 복사" aria-label="본문 내용 복사">
-              {contentCopied ? <Check className="size-3.5" /> : <Clipboard className="size-3.5" />}
-            </button>
-            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyDocumentLookup()} title="본문 조회 URL과 설명 복사" aria-label="본문 조회 URL과 설명 복사">
-              {lookupCopied ? <Check className="size-3.5" /> : <><span>조회</span><Copy className="size-3.5" /></>}
-            </button>
-            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyDocumentUpdate()} title="본문 수정 URL과 저장 정보 복사" aria-label="본문 수정 URL과 저장 정보 복사">
-              {updateCopied ? <Check className="size-3.5" /> : <><span>수정</span><Copy className="size-3.5" /></>}
+            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="Agent용 조회·수정 요청을 한 번에 복사" aria-label="Agent용 조회·수정 요청을 한 번에 복사">
+              {agentCopied ? <Check className="size-3.5" /> : <><span>Agent 복사</span><span className="font-mono text-xs leading-none">{"{}"}</span></>}
             </button>
             <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={onOpenContextApi} title="하위 문서 작업 API">
               <span>하위</span><span className="font-mono text-xs leading-none">{"{}"}</span>

@@ -122,15 +122,49 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
       </PageHeader>
 
       <main className="min-h-0 min-w-0 flex-1 overflow-y-auto bg-surface-muted">
-        <div className="w-full min-w-0 space-y-3 p-3 sm:px-4">
-          <section aria-labelledby="home-intro-title" className="flex items-center gap-3 rounded-xl border border-brand-border bg-surface-raised p-3 shadow-sm sm:gap-4">
-            <div className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-brand-glass/60 sm:size-20">
-              <Image src="/tikitaka-mascot.png" alt="로봇과 노트가 대화하는 티키타카 노트 마스코트" width={1254} height={1254} priority className="h-full w-full object-contain" />
+        <div className="w-full min-w-0 space-y-4 p-4 sm:p-5">
+          <section
+            aria-labelledby="home-intro-title"
+            className="flex items-center gap-4 sm:gap-5 rounded-xl border border-brand-border/70 bg-surface-raised p-4 sm:p-5 shadow-xs"
+          >
+            <div
+              className="relative flex shrink-0 items-center justify-center rounded-xl border border-brand-border/40 bg-brand-glass/60 p-2"
+              style={{ width: 88, height: 88, minWidth: 88, minHeight: 88 }}
+            >
+              <Image
+                src="/tikitaka-mascot.png"
+                alt="로봇과 노트가 대화하는 티키타카 노트 마스코트"
+                width={1254}
+                height={1254}
+                priority
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
             </div>
-            <div className="min-w-0 break-keep">
-              <h1 id="home-intro-title" className="text-[18px] font-black leading-snug tracking-tight text-text-primary">개발의 다음 단계를 이어가는 노트</h1>
-              <p className="mt-1 text-[12px] leading-5 text-text-secondary">개발의 기본기를 문서화하고, Agent가 문서를 추가·편집할 수 있습니다.</p>
-              <p className="text-[12px] leading-5 text-text-muted">프로토타입, 디버깅 노트, 라이브러리 활용, 클론 코딩 설계를 다룹니다.</p>
+            <div className="min-w-0 flex-1 break-keep">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-border/40 bg-brand-glass px-2 py-0.2 text-[10.5px] font-black text-brand-primary tracking-wide mb-1">
+                <span>TIKITAKA NOTE</span>
+                <span className="opacity-40">·</span>
+                <span>개발 & 아키텍처 학습 노트</span>
+              </div>
+              <h1
+                id="home-intro-title"
+                className="text-[19px] sm:text-[21px] font-black leading-snug tracking-tight text-text-primary"
+              >
+                개발의 다음 단계를 이어가는 노트
+              </h1>
+              <p className="mt-1 text-[13px] leading-5 text-text-secondary">
+                개발의 기본기를 문서화하고, Agent와 함께 지식을 추가·편집·체계화합니다.
+              </p>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {["프로토타입", "디버깅 노트", "라이브러리 활용", "클론 코딩", "도메인 설계"].map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-md border border-surface-border-soft bg-surface-muted px-2 py-0.5 text-[10.5px] font-bold text-text-muted"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
             </div>
           </section>
 

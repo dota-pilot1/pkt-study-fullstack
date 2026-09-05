@@ -168,7 +168,11 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
                   <td className="px-3 py-3"><span className={`rounded px-1.5 py-1 font-mono text-[10px] font-black ${methodClass[item.method]}`}>{item.method}</span></td>
                   <td className="break-words px-3 py-3 font-mono text-[11px] leading-5 text-text-primary [overflow-wrap:anywhere]">{item.endpoint}</td>
                   <td className="px-3 py-3 font-semibold leading-5 text-text-muted">{item.summary}</td>
-                  <td className="px-2 py-3 text-center"><button type="button" onClick={() => void copyItem(item)} aria-label={`${item.label} API URL과 설명 복사`} title="HTTP 메서드, 전체 URL, 설명 복사" className="ui-icon-button size-7 text-brand-primary">{copiedId === item.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button></td>
+                  <td className="!align-middle px-2 py-3 text-center">
+                    <div className="flex justify-center">
+                      <button type="button" onClick={() => void copyItem(item)} aria-label={`${item.label} API URL과 설명 복사`} title="HTTP 메서드, 전체 URL, 설명 복사" className="ui-icon-button size-7 text-brand-primary">{copiedId === item.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

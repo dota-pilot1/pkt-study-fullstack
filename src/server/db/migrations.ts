@@ -7,6 +7,7 @@ export function applyMigrations(sqlite: Database.Database) {
     CREATE TABLE IF NOT EXISTS proof_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, message TEXT NOT NULL, created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS lots (id INTEGER PRIMARY KEY AUTOINCREMENT, lot_code TEXT NOT NULL, process TEXT NOT NULL, product_code TEXT NOT NULL, product_name TEXT NOT NULL, status TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS learning_goals (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), group_name TEXT NOT NULL, task TEXT NOT NULL, skill TEXT NOT NULL, progress INTEGER NOT NULL DEFAULT 0, completed INTEGER NOT NULL DEFAULT 0, order_idx INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS work_todos (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), space_code TEXT NOT NULL DEFAULT 'COMMON', category_id INTEGER, category_title TEXT, topic_id INTEGER, topic_title TEXT, document_id INTEGER, document_title TEXT, workstream TEXT NOT NULL DEFAULT 'BACKEND', title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'TODO', important INTEGER NOT NULL DEFAULT 0, checklist_json TEXT NOT NULL DEFAULT '[]', acceptance_criteria TEXT NOT NULL DEFAULT '', verification_checks_json TEXT NOT NULL DEFAULT '[]', blocker_reason TEXT NOT NULL DEFAULT '', related_files_json TEXT NOT NULL DEFAULT '[]', related_api_request_ids_json TEXT NOT NULL DEFAULT '[]', verification_summary TEXT NOT NULL DEFAULT '', order_idx INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1, updated_by_type TEXT NOT NULL DEFAULT 'USER', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, completed_at TEXT);
     CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, description TEXT, system_role INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, username TEXT NOT NULL, role_id INTEGER NOT NULL REFERENCES roles(id), active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, description TEXT, category_id INTEGER REFERENCES permission_categories(id), created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
@@ -29,6 +30,7 @@ export function applyMigrations(sqlite: Database.Database) {
     "ALTER TABLE playbook_documents ADD COLUMN ai_edit_token_used_at TEXT",
     "ALTER TABLE playbook_documents ADD COLUMN sample_key TEXT",
     "ALTER TABLE learning_goals ADD COLUMN progress INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE work_todos ADD COLUMN verification_checks_json TEXT NOT NULL DEFAULT '[]'",
   ]) {
     try {
       sqlite.exec(statement);
@@ -40,4 +42,5 @@ export function applyMigrations(sqlite: Database.Database) {
   sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_playbook_documents_ai_edit_token_hash ON playbook_documents(ai_edit_token_hash)");
   sqlite.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_playbook_documents_sample_key ON playbook_documents(sample_key)");
   sqlite.exec("CREATE INDEX IF NOT EXISTS idx_learning_goals_user_order ON learning_goals(user_id, order_idx, id)");
+  sqlite.exec("CREATE INDEX IF NOT EXISTS idx_work_todos_user_scope ON work_todos(user_id, topic_id, workstream, status, order_idx, id)");
 }

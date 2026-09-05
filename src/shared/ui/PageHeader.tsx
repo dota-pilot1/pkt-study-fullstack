@@ -11,7 +11,7 @@ const getServerRuntimeSnapshot = () => false;
 
 function isInteractive(target: EventTarget | null) {
   return (
-    target instanceof HTMLElement &&
+    target instanceof Element &&
     !!target.closest("button, a, input, textarea, select, [contenteditable='true'], [data-no-drag]")
   );
 }
@@ -41,8 +41,9 @@ function PageHeader({ children, center, hideRefresh = false }: { children?: Reac
       {rail && (
         <button
           type="button"
+          onMouseDown={(event) => event.stopPropagation()}
           onClick={rail.toggle}
-          title={rail.collapsed ? "사이드바 열기" : "사이드바 접기"}
+          title={rail.collapsed ? "사이드바 열기 (본문 복원)" : "사이드바 접기 (본문 전체 확대)"}
           aria-label={rail.collapsed ? "사이드바 열기" : "사이드바 접기"}
           aria-expanded={!rail.collapsed}
           className="ui-icon-button -ml-1 h-7 w-7 shrink-0"
@@ -56,6 +57,7 @@ function PageHeader({ children, center, hideRefresh = false }: { children?: Reac
         {contentRefresh && !hideRefresh && (
           <button
             type="button"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={contentRefresh.refresh}
             disabled={contentRefresh.isRefreshing}
             className="ui-icon-button ml-1 h-7 w-7 shrink-0"
