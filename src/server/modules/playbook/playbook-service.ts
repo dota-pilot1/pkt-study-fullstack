@@ -30,6 +30,7 @@ export const renameCategory = repository.renameCategory;
 export const renameTopic = repository.renameTopic;
 export const reorderCategories = repository.reorderCategories;
 export const reorderTopics = repository.reorderTopics;
+export const reorderDocuments = repository.reorderDocuments;
 
 const SYSTEM_GALLERY_SPACES = new Set(["UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
 

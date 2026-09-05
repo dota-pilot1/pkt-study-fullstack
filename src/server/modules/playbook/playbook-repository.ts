@@ -248,6 +248,30 @@ export async function reorderCategories(ids: number[]) {
   return true;
 }
 
+export async function reorderDocuments(
+  topicId: number,
+  ids: number[],
+  parentId: number | null,
+) {
+  const documents = await listDocumentsByTopic(topicId);
+  const siblings = documents.filter((document) => document.parentId === parentId);
+  const siblingIds = new Set(siblings.map((document) => document.id));
+  if (ids.length !== siblings.length || ids.some((id) => !siblingIds.has(id))) {
+    return false;
+  }
+
+  const now = new Date().toISOString();
+  db.transaction((tx) => {
+    for (const [orderIdx, id] of ids.entries()) {
+      tx.update(playbookDocuments)
+        .set({ orderIdx, updatedAt: now })
+        .where(eq(playbookDocuments.id, id))
+        .run();
+    }
+  });
+  return true;
+}
+
 export async function createDocument(topicId: number, title: string, parentId: number | null, createdBy: number | null = null, content = emptyLexicalState, orderIdx = 0) {
   const now = new Date().toISOString();
   const [document] = await db.insert(playbookDocuments).values({

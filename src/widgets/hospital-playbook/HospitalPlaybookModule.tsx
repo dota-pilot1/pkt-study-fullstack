@@ -5,7 +5,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { arrayMove } from "@dnd-kit/helpers";
+import { documentOrderAfterDrop, documentSortableGroup } from "../../features/hospital-playbook/document-order";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Braces,
@@ -167,8 +167,9 @@ function SortableTreeDocumentRow({
     isDropTarget,
   } = useSortable({
     id: document.id,
-    // 부모별 group과 형제 index를 제공하면 최신 sortable의 낙관적 정렬이 같은 단계 안에서만 작동한다.
-    group: document.parentId ?? "root-documents",
+    group: documentSortableGroup(document),
+    type: documentSortableGroup(document),
+    accept: documentSortableGroup(document),
     index: indexPath.at(-1)! - 1,
   });
   const hasChildren = childCount > 0;
@@ -615,7 +616,10 @@ function HospitalPlaybookModule({
                 moving.map((document) => [document.id, document]),
               );
               const reordered = value.ids
-                .map((id) => byId.get(id))
+                .map((id, orderIdx) => {
+                  const document = byId.get(id);
+                  return document ? { ...document, orderIdx } : undefined;
+                })
                 .filter((document): document is PlaybookDocumentSummary =>
                   Boolean(document),
                 );
@@ -631,8 +635,9 @@ function HospitalPlaybookModule({
           })),
       );
     },
-    onError: () => {
+    onError: (error) => {
       void queryClient.invalidateQueries({ queryKey: playbookTreeKey(domain) });
+      mutationError(error, "문서 순서를 저장하지 못했습니다.");
     },
     onSuccess: invalidate,
   });
@@ -685,25 +690,9 @@ function HospitalPlaybookModule({
     setDrawerDocumentId(result.id);
   };
   const handleTreeDragEnd = (event: DragEndEvent) => {
-    // 최신 API는 취소 여부와 출발/도착 대상을 operation으로 전달한다.
-    if (event.canceled) return;
-    const sourceId = event.operation.source?.id;
-    const targetId = event.operation.target?.id;
-    if (!topic || !sourceId || !targetId || sourceId === targetId) return;
-    const source = documents.find((item) => item.id === sourceId);
-    const target = documents.find((item) => item.id === targetId);
-    if (!source || !target || source.parentId !== target.parentId) return;
-    const siblings = documents.filter(
-      (item) => item.parentId === source.parentId,
-    );
-    const from = siblings.findIndex((item) => item.id === source.id);
-    const to = siblings.findIndex((item) => item.id === target.id);
-    if (from < 0 || to < 0) return;
-    reorderDocuments.mutate({
-      topicId: topic.id,
-      ids: arrayMove(siblings, from, to).map((item) => item.id),
-      parentId: source.parentId,
-    });
+    if (!topic) return;
+    const order = documentOrderAfterDrop(documents, event);
+    if (order) reorderDocuments.mutate({ topicId: topic.id, ...order });
   };
 
   const flatDocuments = documentRows.map((row) => row.document);

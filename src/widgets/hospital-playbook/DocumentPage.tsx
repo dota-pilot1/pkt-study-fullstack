@@ -1,11 +1,10 @@
-/* eslint-disable react-hooks/set-state-in-effect -- document tree state synchronizes with fetched content. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
 import {
   DragDropProvider,
   type DragEndEvent,
 } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { arrayMove } from "@dnd-kit/helpers";
+import { documentOrderAfterDrop, documentSortableGroup } from "../../features/hospital-playbook/document-order";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -19,7 +18,7 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   playbookApi,
   type PlaybookCategory,
@@ -95,8 +94,9 @@ function SortableDocumentRow({
     isDropTarget,
   } = useSortable({
     id: document.id,
-    // 같은 부모를 group으로 묶어 다른 단계 문서에는 정렬 미리보기가 적용되지 않게 한다.
-    group: document.parentId ?? "root-documents",
+    group: documentSortableGroup(document),
+    type: documentSortableGroup(document),
+    accept: documentSortableGroup(document),
     index: indexPath.at(-1)! - 1,
   });
   const hasChildren = (children.get(document.id)?.length ?? 0) > 0;
@@ -115,6 +115,7 @@ function SortableDocumentRow({
         ref={handleRef}
         className="grid size-5 shrink-0 cursor-grab touch-none place-items-center text-text-muted active:cursor-grabbing"
         title="드래그하여 같은 단계에서 순서 변경"
+        aria-label={`${document.title} 드래그`}
       >
         <GripVertical className="size-3.5" />
       </button>
@@ -215,6 +216,7 @@ export default function DocumentPage({
       ),
   );
   const [locationOpen, setLocationOpen] = useState(false);
+  const collapsedTopicId = useRef(topicId);
   const [nextCategoryId, setNextCategoryId] = useState(categoryId);
   const [nextTopicId, setNextTopicId] = useState(topicId);
   const document = useQuery({
@@ -238,9 +240,14 @@ export default function DocumentPage({
         item.parentId === null ? [] : [item.parentId],
       ),
     );
-    setCollapsed((current) =>
-      sameSet(current, parentIds) ? current : parentIds,
-    );
+    const isNewTopic = collapsedTopicId.current !== topicId;
+    collapsedTopicId.current = topicId;
+    setCollapsed((current) => {
+      const next = isNewTopic
+        ? parentIds
+        : new Set([...current].filter((id) => parentIds.has(id)));
+      return sameSet(current, next) ? current : next;
+    });
   }, [topicId, documents]);
 
   const toggleCollapsed = (id: number) =>
@@ -275,24 +282,8 @@ export default function DocumentPage({
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    // 최신 API는 취소 여부와 출발/도착 대상을 하나의 operation으로 전달한다.
-    if (event.canceled) return;
-    const sourceId = event.operation.source?.id;
-    const targetId = event.operation.target?.id;
-    if (!sourceId || !targetId || sourceId === targetId) return;
-    const source = documents.find((item) => item.id === sourceId);
-    const target = documents.find((item) => item.id === targetId);
-    if (!source || !target || source.parentId !== target.parentId) return;
-    const siblings = documents.filter(
-      (item) => item.parentId === source.parentId,
-    );
-    const from = siblings.findIndex((item) => item.id === source.id);
-    const to = siblings.findIndex((item) => item.id === target.id);
-    if (from < 0 || to < 0) return;
-    await onReorder(
-      arrayMove(siblings, from, to).map((item) => item.id),
-      source.parentId,
-    );
+    const order = documentOrderAfterDrop(documents, event);
+    if (order) await onReorder(order.ids, order.parentId);
   };
 
   const refresh = async () => {
