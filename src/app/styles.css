@@ -358,8 +358,18 @@ body {
 .tailwind-tsx-code-panel .cm-scroller {
   overflow: auto;
 }
-  .editor-list-item-checked, .editor-list-item-unchecked { @apply relative list-none pl-6 text-text-primary; }
-  .editor-list-item-checked::before, .editor-list-item-unchecked::before { content: ""; @apply absolute left-0 top-[0.25em] size-4 rounded border border-surface-border bg-surface-raised; }
+  /* 체크리스트는 불릿 목록의 기본 여백과 분리한다. Lexical의 check list는
+     일반 ul이기도 하므로 테마 클래스가 없으면 체크 표시와 본문 시작선이 어긋난다. */
+  .editor-checklist { @apply mb-2 ml-0 list-none p-0; }
+  .editor-list-item-checked, .editor-list-item-unchecked { @apply relative mb-1 list-none pl-7 text-text-primary; }
+  .editor-list-item-checked::before, .editor-list-item-unchecked::before {
+    /* 목록의 line-height(1.75rem) 안에서 체크 상자(1.05rem)를 정확히 중앙에 둔다.
+       퍼센트 중앙 정렬은 여러 줄 항목에서 상자가 중간 줄로 내려가므로 쓰지 않는다. */
+    @apply absolute left-0 top-[calc((1.75rem-1.05rem)/2)] grid size-[1.05rem] place-items-center rounded-[0.3rem] border text-[0.7rem] font-black leading-none;
+  }
+  .editor-list-item-unchecked::before { content: ""; @apply border-surface-border bg-surface-raised; }
+  .editor-list-item-checked { @apply text-text-secondary line-through; }
+  .editor-list-item-checked::before { content: "✓"; @apply border-brand-primary bg-brand-primary text-text-on-brand; }
   .lexical-editor-input > code[data-language], .lexical-editor-input > code[data-highlight-language] { position: relative; padding-top: 1rem; }
   [data-code-copy-button] { position: fixed; top: .55rem; right: .55rem; z-index: 100; display: inline-flex; width: 1.75rem; height: 1.75rem; align-items: center; justify-content: center; border: 1px solid var(--surface-border-soft); border-radius: .375rem; background: var(--surface-raised); color: var(--text-secondary); cursor: pointer; }
   [data-code-copy-button] svg { display: block; width: .9rem; height: .9rem; fill: none; stroke: currentColor; stroke-width: 2; }

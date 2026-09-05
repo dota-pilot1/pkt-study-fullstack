@@ -2,7 +2,8 @@ export const WORKSTREAMS = ["POLICY", "BACKEND", "FRONTEND", "API", "DEVOPS"] as
 export type TodoWorkstream = (typeof WORKSTREAMS)[number];
 // API는 구현 작업의 담당 영역이 아니라 계약·검증 산출물이다.
 // 기존 API 분류 데이터는 Backend 작업 탭에서 호환해 보여 준다.
-export const TASK_WORKSTREAMS = ["POLICY", "BACKEND", "FRONTEND", "DEVOPS"] as const;
+// 작업은 구현 흐름을 먼저 보여 주고, 기준을 정하는 Policy는 마지막에 둔다.
+export const TASK_WORKSTREAMS = ["BACKEND", "FRONTEND", "DEVOPS", "POLICY"] as const;
 
 export const TODO_STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 export type TodoStatus = (typeof TODO_STATUSES)[number];

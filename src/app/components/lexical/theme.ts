@@ -19,6 +19,7 @@ export const editorTheme: EditorThemeClasses = {
   list: {
     ul: 'list-disc ml-5 mb-2',
     ol: 'list-decimal ml-5 mb-2',
+    checklist: 'editor-checklist',
     listitem: 'mb-0.5 text-text-primary',
     listitemChecked: 'editor-list-item-checked',
     listitemUnchecked: 'editor-list-item-unchecked',

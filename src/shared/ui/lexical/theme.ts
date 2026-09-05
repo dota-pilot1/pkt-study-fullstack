@@ -19,6 +19,9 @@ export const editorTheme: EditorThemeClasses = {
   list: {
     ul: 'list-disc ml-5 mb-2',
     ol: 'list-decimal ml-5 mb-2',
+    // 체크리스트는 일반 불릿의 여백을 물려받지 않는다. 항목의 체크 표시가
+    // 본문 시작선에 맞고, 텍스트만 일정한 간격으로 들여쓰기 된다.
+    checklist: 'editor-checklist',
     listitem: 'mb-0.5 text-text-primary',
     listitemChecked: 'editor-list-item-checked',
     listitemUnchecked: 'editor-list-item-unchecked',

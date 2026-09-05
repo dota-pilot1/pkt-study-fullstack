@@ -68,7 +68,7 @@ function PageHeader({ children, center, hideRefresh = false }: { children?: Reac
           </button>
         )}
       </div>
-      {center && <div className="absolute left-1/2 top-1/2 flex w-[min(38vw,30rem)] -translate-x-1/2 -translate-y-1/2 items-center">{center}</div>}
+      {center && <div className="absolute left-1/2 top-1/2 flex w-[min(46vw,42rem)] -translate-x-1/2 -translate-y-1/2 items-center">{center}</div>}
       {/* 창 조작 버튼은 헤더 오른쪽 끝에서 실제로 자리를 차지한다(예전 absolute 오버레이는 화면별 우측 버튼과 겹쳤다). */}
       {isTauri && (
         <div className="flex shrink-0 items-center self-stretch border-l border-surface-border-soft pl-2.5">

@@ -3,11 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUpRight, GraduationCap, LayoutDashboard, Newspaper, Pencil, Plus, Search, Trash2, type LucideIcon } from "lucide-react";
+import { ArrowUpRight, BookOpen, GraduationCap, LayoutDashboard, Newspaper, Pencil, Plus, Search, Trash2, type LucideIcon } from "lucide-react";
 import PageHeader from "@/shared/ui/PageHeader";
 import { Button } from "@/shared/ui/button";
 import { useToast } from "@/shared/ui/toast";
 import { LearningGoalDialog, type GoalDialogState, type LearningGoal, type LearningGoalInput } from "./LearningGoalDialog";
+import DocumentationMethodologyDialog from "@/widgets/hospital-playbook/DocumentationMethodologyDialog";
 
 const BOOKMARKS: Array<{ name: string; description: string; href: string; icon: LucideIcon }> = [
   { name: "긱뉴스", description: "개발자 뉴스와 기술 이야기", href: "https://news.hada.io/", icon: Newspaper },
@@ -28,6 +29,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [progressEdits, setProgressEdits] = useState<Record<number, number>>({});
   const [dialog, setDialog] = useState<GoalDialogState | null>(null);
+  const [documentationMethodologyOpen, setDocumentationMethodologyOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const mutationLock = useRef(false);
   const dialogOpener = useRef<HTMLButtonElement | null>(null);
@@ -166,6 +168,9 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
                 ))}
               </div>
             </div>
+            <button type="button" onClick={() => setDocumentationMethodologyOpen(true)} className="ui-icon-button h-9 shrink-0 gap-1.5 self-start px-3 text-[11px] font-black text-brand-primary sm:self-center" title="기획 방법론">
+              <BookOpen className="size-3.5" /> 기획 방법론
+            </button>
           </section>
 
           <div className="min-w-0">
@@ -263,6 +268,7 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
           </div>
         </div>
       </main>
+      {documentationMethodologyOpen && <DocumentationMethodologyDialog onClose={() => setDocumentationMethodologyOpen(false)} />}
       {dialog && <LearningGoalDialog
         key={dialog.kind === "create" ? "create" : `${dialog.kind}:${dialog.goal.id}`}
         state={dialog}
