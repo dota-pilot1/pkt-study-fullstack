@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, CheckCircle2, Circle, ClipboardCopy, FileCode2, GripVertical, ListTodo, Loader2, Plus, RefreshCw, Search, Star, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, CheckCircle2, ChevronDown, Circle, ClipboardCopy, Download, FileCode2, FolderOpen, GripVertical, ListTodo, Loader2, Plus, RefreshCw, Search, Star, Trash2, X } from "lucide-react";
 import { STATUS_META, TODO_STATUSES, TASK_WORKSTREAMS, WORKSTREAM_META, type TodoChecklistItem, type TodoItem, type TodoScope, type TodoStatus, type TodoVerificationCheck, type TodoWorkstream } from "./types";
 import { useTodos } from "./useTodos";
 import { copyToClipboard } from "@/shared/lib/clipboard";
@@ -16,6 +16,7 @@ import { useToast } from "@/shared/ui/toast";
 type StatusFilter = "ALL" | TodoStatus;
 
 const TODO_DRAWER_SIZE_KEY = "pkt-study-todo-drawer-size-v2";
+const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 const TODO_DRAWER_SIZES = [
   { label: "S", value: 40 },
   { label: "M", value: 60 },
@@ -146,18 +147,14 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
         <div className="mx-auto max-w-6xl space-y-5">
-          <div className="rounded-xl border border-brand-border/50 bg-brand-glass/20 p-4">
-            <p className="text-xs font-black text-brand-primary">세부 구현 계획</p>
-            <p className="mt-1 text-[11px] leading-5 text-text-secondary">구현 절차를 순서대로 정리합니다. 완료 후 확인할 조건은 아래 마지막 영역에서 별도로 관리합니다.</p>
-          </div>
           <div className="grid gap-4 lg:grid-cols-2">
-            <label className="block lg:col-span-2">
+            <label className="block">
               <span className="mb-1 block text-[10px] font-black text-text-secondary">작업 설명</span>
               <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="구현 범위와 작업 목적" className="min-h-36 w-full resize-y rounded-lg border border-surface-border bg-surface-raised p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
             </label>
-            <label className="block lg:col-span-2">
+            <label className="block">
               <span className="mb-1 block text-[10px] font-black text-text-secondary">막힘 / 결정 대기</span>
-              <input value={blockerReason} onChange={(event) => setBlockerReason(event.target.value)} placeholder="막힌 이유 또는 확인이 필요한 결정" className="h-9 w-full rounded-lg border border-surface-border bg-surface-raised px-3 text-xs text-text-primary outline-none focus:border-brand-border" />
+              <textarea value={blockerReason} onChange={(event) => setBlockerReason(event.target.value)} placeholder="막힌 이유 또는 확인이 필요한 결정" className="min-h-36 w-full resize-y rounded-lg border border-surface-border bg-surface-raised p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
             </label>
           </div>
 
@@ -589,6 +586,7 @@ function ApiSpecDialog({ scope, onClose }: { scope?: TodoScope; onClose: () => v
 
 export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpenChange: (open: boolean) => void; scope?: TodoScope }) {
   const { todos, isLoading, error, reload, addTodo, updateTodo, toggleComplete, toggleImportant, deleteTodo, reorderTodos, totalCount, completedCount, activeCount, progressPercent } = useTodos(scope);
+  const { showToast } = useToast();
   const [drawerSize, setDrawerSize] = useState(storedTodoDrawerSize);
   const [workstream, setWorkstream] = useState<TodoWorkstream>("BACKEND");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
@@ -599,6 +597,8 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
   const [agentGuideOpen, setAgentGuideOpen] = useState(false);
   const [apiSpecOpen, setApiSpecOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [exportDirectory, setExportDirectory] = useState<string | null>(null);
+  const [exportFolderMenuOpen, setExportFolderMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 
@@ -611,6 +611,117 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
   const visibleTodoIds = useMemo(() => visibleTodos.map((todo) => todo.id), [visibleTodos]);
   const allVisibleSelected = visibleTodoIds.length > 0 && visibleTodoIds.every((id) => selectedTodoIds.includes(id));
   const reorderDisabled = statusFilter !== "ALL" || Boolean(search.trim());
+
+  const exportVisibleTodos = async () => {
+    if (visibleTodos.length === 0) {
+      showToast("내보낼 작업이 없습니다.", "error");
+      return;
+    }
+
+    const ExcelJS = (await import("exceljs")).default;
+    const exportedAt = new Date().toLocaleString("ko-KR");
+    const taskRows = visibleTodos.map((todo) => [
+      todo.id,
+      WORKSTREAM_META[todo.workstream].label,
+      STATUS_META[todo.status].label,
+      todo.important ? "Y" : "N",
+      todo.title,
+      todo.description,
+      todo.blockerReason,
+      `${todo.checklist.filter((item) => item.completed).length}/${todo.checklist.length}`,
+      `${todo.verificationChecks.filter((item) => item.passed).length}/${todo.verificationChecks.length}`,
+      todo.relatedFiles.join("\n"),
+      todo.relatedApiRequestIds.join(", "),
+      todo.version,
+      new Date(todo.updatedAt).toLocaleString("ko-KR"),
+    ]);
+    const planRows = visibleTodos.flatMap((todo) => todo.checklist.map((item, index) => [
+      todo.id,
+      todo.title,
+      index + 1,
+      item.completed ? "완료" : "미완료",
+      item.layer,
+      item.text,
+    ]));
+    const verificationRows = visibleTodos.flatMap((todo) => todo.verificationChecks.map((item, index) => [
+      todo.id,
+      todo.title,
+      index + 1,
+      item.passed ? "충족" : "미충족",
+      item.text,
+      item.evidence,
+    ]));
+    const createSheet = (workbook: InstanceType<typeof ExcelJS.Workbook>, title: string, headers: string[], rows: Array<Array<string | number>>) => {
+      const sheet = workbook.addWorksheet(title, { views: [{ state: "frozen", ySplit: 4 }] });
+      sheet.addRow([title]);
+      sheet.addRow(["내보낸 시각", exportedAt]);
+      sheet.addRow([]);
+      const headerRow = sheet.addRow(headers);
+      headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F4E78" } };
+      rows.forEach((row) => sheet.addRow(row));
+      sheet.columns.forEach((column, index) => {
+        column.width = Math.min(Math.max(headers[index].length + 2, ...rows.map((row) => String(row[index] ?? "").split("\n").reduce((width, line) => Math.max(width, line.length), 0) + 2)), 42);
+      });
+      return sheet;
+    };
+
+    const workbook = new ExcelJS.Workbook();
+    createSheet(workbook, "작업 목록", ["ID", "작업 영역", "상태", "중요", "작업", "작업 설명", "막힘 / 결정 대기", "세부 계획", "조건 검증", "관련 파일", "연결 API", "버전", "수정 시각"], taskRows);
+    createSheet(workbook, "세부 계획", ["작업 ID", "작업", "순서", "완료", "구현 영역", "내용"], planRows);
+    createSheet(workbook, "조건 검증", ["작업 ID", "작업", "순서", "충족", "조건", "근거"], verificationRows);
+    const safeTitle = scopeTitle(scope).replace(/[\\/:*?"<>|]/g, "_");
+    const timestamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
+    const fileName = `${safeTitle}_작업_${timestamp}.xlsx`;
+    const contents = new Uint8Array(await workbook.xlsx.writeBuffer());
+    if (isTauri && exportDirectory) {
+      try {
+        const [{ join }, { writeFile }] = await Promise.all([
+          import("@tauri-apps/api/path"),
+          import("@tauri-apps/plugin-fs"),
+        ]);
+        const filePath = await join(exportDirectory, fileName);
+        await writeFile(filePath, contents);
+        showToast(`${visibleTodos.length}개 작업과 세부 정보를 지정한 폴더에 내보냈습니다.`, "success");
+        return;
+      } catch (error) {
+        showToast(`지정한 폴더에 저장하지 못했습니다: ${error instanceof Error ? error.message : String(error)}`, "error");
+        return;
+      }
+    }
+    const file = new Blob([contents], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const downloadUrl = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+    showToast(`${visibleTodos.length}개 작업과 세부 정보를 시스템 다운로드 폴더에 내보냈습니다.`, "success");
+  };
+
+  const chooseExportDirectory = async () => {
+    try {
+      const { open } = await import("@tauri-apps/plugin-dialog");
+      const selected = await open({ directory: true, multiple: false, title: "엑셀 저장 폴더 선택" });
+      if (selected) {
+        setExportDirectory(selected);
+        showToast("엑셀 저장 폴더를 지정했습니다.", "success");
+      }
+    } catch (error) {
+      showToast(`저장 폴더를 지정하지 못했습니다: ${error instanceof Error ? error.message : String(error)}`, "error");
+    }
+  };
+
+  const openExportDirectory = async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("open_directory", { directory: exportDirectory });
+    } catch (error) {
+      showToast(`저장 폴더를 열지 못했습니다: ${error instanceof Error ? error.message : String(error)}`, "error");
+    }
+  };
 
   useEffect(() => { if (!open) { setSelectedTodoId(null); setSelectedTodoIds([]); } }, [open]);
   useEffect(() => { if (open) void reload(); }, [open, reload]);
@@ -657,16 +768,6 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
     setSelectedTodoIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
   };
 
-  const moveTodo = (id: number, direction: -1 | 1) => {
-    if (reorderDisabled) return;
-    const index = visibleTodos.findIndex((todo) => todo.id === id);
-    const targetIndex = index + direction;
-    if (index < 0 || targetIndex < 0 || targetIndex >= visibleTodos.length) return;
-    const reordered = [...visibleTodos];
-    [reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]];
-    void reorderTodos(reordered.map((todo) => todo.id), workstream);
-  };
-
   const toggleAllVisible = () => {
     setSelectedTodoIds((ids) => allVisibleSelected ? ids.filter((id) => !visibleTodoIds.includes(id)) : [...new Set([...ids, ...visibleTodoIds])]);
   };
@@ -702,7 +803,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
 
         <form onSubmit={(event) => void submit(event)} className="border-b border-surface-border-soft p-3"><div className="flex gap-1.5"><input value={inputText} onChange={(event) => setInputText(event.target.value)} placeholder={`${WORKSTREAM_META[workstream].label} 작업 추가`} className="h-9 min-w-0 flex-1 rounded-md border border-surface-border bg-surface-muted px-2.5 text-xs font-semibold outline-none focus:border-brand-border" /><button type="button" onClick={() => setImportant((value) => !value)} className={`ui-icon-button size-9 ${important ? "text-amber-500" : "text-text-muted"}`}><Star className="size-4" fill={important ? "currentColor" : "none"} /></button><button type="submit" disabled={!inputText.trim()} className="rounded-md bg-brand-primary px-3 text-xs font-black text-white disabled:opacity-40"><Plus className="mr-0.5 inline size-3.5" />등록</button></div></form>
 
-        <div className="border-b border-surface-border-soft px-3 py-2"><div className="flex items-center gap-1 overflow-x-auto">{TASK_WORKSTREAMS.map((item) => { const count = todos.filter((todo) => (todo.workstream === item || (item === "BACKEND" && todo.workstream === "API")) && todo.status !== "DONE").length; return <button key={item} type="button" onClick={() => { setWorkstream(item); setSelectedTodoId(null); }} className={`rounded-md px-2.5 py-1 text-[11px] font-black ${workstream === item ? "bg-brand-primary text-white" : "bg-surface-muted text-text-secondary hover:text-text-primary"}`}>{WORKSTREAM_META[item].label} <span className="opacity-80">{count}</span></button>; })}</div><div className="mt-2 flex items-center justify-between gap-3"><div className="flex shrink-0 items-center gap-1">{(["ALL", ...TODO_STATUSES] as StatusFilter[]).map((item) => <button key={item} type="button" onClick={() => setStatusFilter(item)} className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusFilter === item ? "bg-brand-glass text-brand-primary" : "text-text-muted"}`}>{item === "ALL" ? "전체" : STATUS_META[item].label}</button>)}</div><label className="flex h-8 w-52 shrink-0 items-center gap-2 rounded-md border border-surface-border bg-surface-raised px-2.5 text-text-muted transition-colors focus-within:border-brand-border"><Search className="size-3.5 shrink-0" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="작업 검색" className="min-w-0 flex-1 bg-transparent text-[11px] text-text-primary outline-none placeholder:text-text-muted" /></label></div></div>
+        <div className="border-b border-surface-border-soft px-3 py-2"><div className="flex items-center gap-1 overflow-x-auto">{TASK_WORKSTREAMS.map((item) => { const count = todos.filter((todo) => (todo.workstream === item || (item === "BACKEND" && todo.workstream === "API")) && todo.status !== "DONE").length; return <button key={item} type="button" onClick={() => { setWorkstream(item); setSelectedTodoId(null); }} className={`rounded-md px-2.5 py-1 text-[11px] font-black ${workstream === item ? "bg-brand-primary text-white" : "bg-surface-muted text-text-secondary hover:text-text-primary"}`}>{WORKSTREAM_META[item].label} <span className="opacity-80">{count}</span></button>; })}</div><div className="mt-2 flex items-center justify-between gap-3"><div className="flex shrink-0 items-center gap-1">{(["ALL", ...TODO_STATUSES] as StatusFilter[]).map((item) => <button key={item} type="button" onClick={() => setStatusFilter(item)} className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${statusFilter === item ? "bg-brand-glass text-brand-primary" : "text-text-muted"}`}>{item === "ALL" ? "전체" : STATUS_META[item].label}</button>)}</div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={() => void exportVisibleTodos()} title="현재 목록과 상세 정보를 엑셀로 다운로드" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-surface-border bg-surface-raised px-2.5 text-[10px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary"><Download className="size-3.5" />엑셀 다운로드</button>{isTauri && <div className="relative"><button type="button" onClick={() => setExportFolderMenuOpen((value) => !value)} title="엑셀 저장 폴더 메뉴" aria-label="엑셀 저장 폴더 메뉴" aria-expanded={exportFolderMenuOpen} className="ui-icon-button inline-flex size-8 items-center justify-center gap-0.5 text-text-muted hover:text-brand-primary"><FolderOpen className="size-3.5" /><ChevronDown className="size-2.5" /></button>{exportFolderMenuOpen && <div className="absolute right-0 z-30 mt-1 w-44 overflow-hidden rounded-md border border-surface-border bg-surface-raised py-1 shadow-lg"><button type="button" onClick={() => { setExportFolderMenuOpen(false); void chooseExportDirectory(); }} className="w-full px-3 py-2 text-left text-[11px] font-bold text-text-secondary hover:bg-surface-muted">저장 폴더 지정…</button><button type="button" onClick={() => { setExportFolderMenuOpen(false); void openExportDirectory(); }} className="w-full px-3 py-2 text-left text-[11px] font-bold text-text-secondary hover:bg-surface-muted">{exportDirectory ? "지정한 폴더 열기" : "다운로드 폴더 열기"}</button>{exportDirectory && <button type="button" onClick={() => { setExportDirectory(null); setExportFolderMenuOpen(false); showToast("기본 다운로드 폴더를 사용합니다."); }} className="w-full px-3 py-2 text-left text-[11px] font-bold text-text-secondary hover:bg-surface-muted">기본 다운로드 폴더 사용</button>}</div>}</div>}<label className="flex h-8 w-52 items-center gap-2 rounded-md border border-surface-border bg-surface-raised px-2.5 text-text-muted transition-colors focus-within:border-brand-border"><Search className="size-3.5 shrink-0" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="작업 검색" className="min-w-0 flex-1 bg-transparent text-[11px] text-text-primary outline-none placeholder:text-text-muted" /></label></div></div></div>
 
         <div className="min-h-0 flex-1 overflow-auto p-3">
           {selectedTodoIds.length > 0 && (
@@ -735,7 +836,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
                       <div ref={ref} className={`border-t border-surface-border-soft first:border-t-0 transition-[background-color,box-shadow,opacity] duration-200 ${isDragSource ? "z-10 scale-[1.01] opacity-55 shadow-xl ring-2 ring-brand-border/50" : ""} ${isDropTarget && !isDragSource ? "bg-brand-glass ring-2 ring-brand-border/70" : ""}`}>
                         <div className={`grid cursor-pointer items-center gap-2 px-3 py-2.5 hover:bg-surface-muted/60 ${selectedTodoId === todo.id ? "bg-brand-glass/30" : ""}`} style={{ gridTemplateColumns: "32px minmax(190px, 1fr) 84px 42px 86px 58px" }} onClick={() => selectTodo(todo.id)}>
                           <label className="grid place-items-center" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={selectedTodoIds.includes(todo.id)} onChange={() => toggleTodoSelection(todo.id)} aria-label={`${todo.title} 선택`} className="size-3.5 accent-brand-primary" /></label>
-                          <div className="flex min-w-0 items-center gap-1.5"><div className="flex shrink-0 flex-col"><button type="button" disabled={reorderDisabled || index === 0} onClick={(event) => { event.stopPropagation(); moveTodo(todo.id, -1); }} title="작업 위로 이동" aria-label={`${todo.title} 위로 이동`} className="grid size-4 place-items-center text-text-muted hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-25"><ArrowUp className="size-3" /></button><button type="button" disabled={reorderDisabled || index === visibleTodos.length - 1} onClick={(event) => { event.stopPropagation(); moveTodo(todo.id, 1); }} title="작업 아래로 이동" aria-label={`${todo.title} 아래로 이동`} className="grid size-4 place-items-center text-text-muted hover:text-brand-primary disabled:cursor-not-allowed disabled:opacity-25"><ArrowDown className="size-3" /></button></div><button type="button" ref={handleRef} disabled={reorderDisabled} onClick={(event) => event.stopPropagation()} title={reorderDisabled ? "필터와 검색을 해제하면 순서를 바꿀 수 있습니다." : "드래그하여 작업 순서 변경"} aria-label={`${todo.title} 드래그`} className="grid size-5 shrink-0 cursor-grab touch-none place-items-center text-text-muted/70 hover:text-brand-primary active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-30"><GripVertical className="size-3.5" /></button><div className="min-w-0"><p className={`truncate text-xs font-bold ${todo.status === "DONE" ? "text-text-muted line-through" : "text-text-primary"}`}>{todo.title}</p><p className="mt-0.5 text-[10px] text-text-muted">{todo.checklist.filter((item) => item.completed).length}/{todo.checklist.length} 체크 · {todo.relatedApiRequestIds.length ? <><FileCode2 className="inline size-3" /> API {todo.relatedApiRequestIds.length}</> : "API 미연결"}</p></div></div>
+                          <div className="flex min-w-0 items-center gap-1.5"><button type="button" ref={handleRef} disabled={reorderDisabled} onClick={(event) => event.stopPropagation()} title={reorderDisabled ? "필터와 검색을 해제하면 순서를 바꿀 수 있습니다." : "드래그하여 작업 순서 변경"} aria-label={`${todo.title} 드래그`} className="grid size-5 shrink-0 cursor-grab touch-none place-items-center text-text-muted/70 hover:text-brand-primary active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-30"><GripVertical className="size-3.5" /></button><div className="min-w-0"><p className={`truncate text-xs font-bold ${todo.status === "DONE" ? "text-text-muted line-through" : "text-text-primary"}`}>{todo.title}</p><p className="mt-0.5 text-[10px] text-text-muted">{todo.checklist.filter((item) => item.completed).length}/{todo.checklist.length} 체크 · {todo.relatedApiRequestIds.length ? <><FileCode2 className="inline size-3" /> API {todo.relatedApiRequestIds.length}</> : "API 미연결"}</p></div></div>
                           <CompactSelect value={todo.status} onClick={(event) => event.stopPropagation()} onChange={(event) => void updateTodo(todo.id, { status: event.target.value as TodoStatus })} wrapperClassName="w-full" className={`h-8 min-h-8 rounded-md py-0 pr-6 text-[10px] font-black ${STATUS_META[todo.status].className}`} style={{ paddingLeft: "14px" }}>{TODO_STATUSES.map((status) => <option key={status} value={status}>{STATUS_META[status].label}</option>)}</CompactSelect>
                           <button type="button" onClick={(event) => { event.stopPropagation(); void toggleImportant(todo.id); }} className={`ui-icon-button size-7 ${todo.important ? "text-amber-500" : "text-text-muted"}`}><Star className="size-3.5" fill={todo.important ? "currentColor" : "none"} /></button>
                           <span className="text-[10px] text-text-muted">{new Date(todo.updatedAt).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" })}</span>

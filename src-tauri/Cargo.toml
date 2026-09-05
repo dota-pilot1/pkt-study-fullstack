@@ -1,6 +1,6 @@
 [package]
 name = "pkt-study-fullstack"
-version = "0.1.84"
+version = "0.1.85"
 description = "PKT Study desktop fullstack app"
 authors = ["CJ"]
 edition = "2021"
@@ -18,3 +18,5 @@ tauri-plugin-shell = "2"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
 serde_json = "1"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"

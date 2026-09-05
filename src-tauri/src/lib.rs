@@ -1,4 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    path::PathBuf,
+    process::Command,
+    sync::{Arc, Mutex},
+};
 
 // 배포 빌드에서 실행되는 Next sidecar 초기화에만 필요한 import다.
 // 개발 모드에서는 사용하지 않으므로 조건부로 가져와 Rust warning을 막는다.
@@ -13,11 +17,15 @@ use std::{fs::OpenOptions, io::Write, net::TcpListener};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_plugin_shell::process::CommandChild;
+#[cfg(not(debug_assertions))]
+use tauri_plugin_shell::ShellExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init());
 
     #[cfg(desktop)]
@@ -37,6 +45,7 @@ pub fn run() {
             window_toggle_maximize,
             window_close,
             window_is_maximized,
+            open_directory,
         ])
         .build(tauri::generate_context!())
         .expect("error while running PKT Study Fullstack");
@@ -87,6 +96,32 @@ fn window_close(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
 #[tauri::command]
 fn window_is_maximized(window: WebviewWindow) -> Result<bool, String> {
     window.is_maximized().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn open_directory(app: AppHandle, directory: Option<String>) -> Result<(), String> {
+    let directory = match directory {
+        Some(directory) => PathBuf::from(directory),
+        None => app
+            .path()
+            .download_dir()
+            .map_err(|error| error.to_string())?,
+    };
+    if !directory.is_dir() {
+        return Err("열 수 있는 폴더를 찾지 못했습니다.".to_string());
+    }
+    #[cfg(target_os = "macos")]
+    let mut command = Command::new("open");
+    #[cfg(target_os = "windows")]
+    let mut command = Command::new("explorer");
+    #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+    let mut command = Command::new("xdg-open");
+
+    command
+        .arg(directory)
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 struct NextServer {
