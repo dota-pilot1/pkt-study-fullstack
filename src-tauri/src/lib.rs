@@ -7,18 +7,13 @@ use std::{
 // 배포 빌드에서 실행되는 Next sidecar 초기화에만 필요한 import다.
 // 개발 모드에서는 사용하지 않으므로 조건부로 가져와 Rust warning을 막는다.
 #[cfg(any(not(debug_assertions), test))]
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::Path};
 
 #[cfg(not(debug_assertions))]
 use std::{fs::OpenOptions, io::Write, net::TcpListener};
 
 use tauri::{AppHandle, Manager, WebviewWindow};
 use tauri_plugin_shell::process::CommandChild;
-#[cfg(not(debug_assertions))]
-use tauri_plugin_shell::ShellExt;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
