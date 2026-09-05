@@ -84,6 +84,7 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
   const [visible, setVisible] = useState(false);
   const [agentGuideOpen, setAgentGuideOpen] = useState(false);
   const [instructionOpen, setInstructionOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     setDescription(todo.description);
@@ -159,7 +160,7 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
           </div>
 
           <div className="rounded-xl border border-surface-border bg-surface-raised p-4">
-            <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-xs font-black text-text-primary">세부 계획</p><p className="mt-0.5 text-[10px] text-text-muted">구현 절차와 작업 영역을 지정하고, 끝낸 단계만 체크합니다.</p></div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={() => setInstructionOpen(true)} className="rounded-md border border-brand-border bg-brand-glass px-2.5 py-1.5 text-[10px] font-black text-brand-primary hover:bg-brand-primary/10">지시 {"{}"}</button><span className="rounded-full bg-surface-muted px-2 py-1 text-[10px] font-black text-text-secondary">{checklist.filter((item) => item.completed).length}/{checklist.length}</span></div></div>
+            <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-xs font-black text-text-primary">세부 계획</p><p className="mt-0.5 text-[10px] text-text-muted">구현 절차와 작업 영역을 지정하고, 끝낸 단계만 체크합니다.</p></div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={() => setReviewOpen(true)} className="rounded-md border border-surface-border bg-surface-raised px-2.5 py-1.5 text-[10px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">리뷰 {"{}"}</button><button type="button" onClick={() => setInstructionOpen(true)} className="rounded-md border border-brand-border bg-brand-glass px-2.5 py-1.5 text-[10px] font-black text-brand-primary hover:bg-brand-primary/10">지시 {"{}"}</button><span className="rounded-full bg-surface-muted px-2 py-1 text-[10px] font-black text-text-secondary">{checklist.filter((item) => item.completed).length}/{checklist.length}</span></div></div>
             <DragDropProvider onDragEnd={(event) => {
               if (event.canceled) return;
               const reordered = move(checklist, event);
@@ -224,6 +225,7 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
       </footer>
       {agentGuideOpen && <AgentGuide scope={todo} todo={todo} onClose={() => setAgentGuideOpen(false)} />}
       {instructionOpen && <TaskInstructionDialog todo={{ ...todo, description, blockerReason, checklist, verificationChecks }} onClose={() => setInstructionOpen(false)} />}
+      {reviewOpen && <TaskReviewDialog todo={{ ...todo, description, blockerReason, checklist, verificationChecks }} onClose={() => setReviewOpen(false)} />}
     </section>
   );
 }
@@ -356,6 +358,93 @@ function TaskInstructionDialog({ todo, onClose }: { todo: TodoItem; onClose: () 
           <div className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-surface-muted/20 p-4">
             <div className="flex min-h-0 flex-1 flex-col"><div className="mb-1 flex items-center justify-between"><div><p className="text-[11px] font-black text-text-primary">Codex에 보낼 작업 지시</p><p className="text-[10px] text-text-muted">선택과 추가 지시에 따라 즉시 갱신됩니다.</p></div><button type="button" onClick={() => void copy(instruction, "Codex 작업 지시를 복사했습니다.")} className="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-black text-white"><ClipboardCopy className="mr-1 inline size-3.5" />전체 복사</button></div><textarea value={instruction} readOnly className="min-h-[390px] flex-1 resize-y rounded-lg border border-surface-border bg-surface-raised p-3 font-mono text-[11px] leading-5 text-text-secondary outline-none" /></div>
             <details className="shrink-0 rounded-lg border border-surface-border-soft"><summary className="cursor-pointer px-3 py-2 text-[11px] font-black text-text-secondary">TODO API 참고 ({apiEndpoints.length})</summary><div className="border-t border-surface-border-soft"><table className="w-full table-fixed text-left text-[11px]"><tbody>{apiEndpoints.map((endpoint) => <tr key={`${endpoint.method}:${endpoint.path}`} className="border-t border-surface-border-soft first:border-t-0"><td className="w-16 px-3 py-2 font-black text-brand-primary">{endpoint.method}</td><td className="break-all px-2 py-2 font-mono text-text-primary">{endpoint.path}</td><td className="w-36 px-2 py-2 text-text-muted">{endpoint.description}</td><td className="w-12 px-2 py-2 text-center"><button type="button" onClick={() => void copy(`${endpoint.method} ${origin}${endpoint.path}`, `${endpoint.method} 요청을 복사했습니다.`)} className="ui-icon-button size-7 text-brand-primary" title="요청 복사"><ClipboardCopy className="size-3.5" /></button></td></tr>)}</tbody></table></div></details>
+          </div>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  );
+}
+
+function TaskReviewDialog({ todo, onClose }: { todo: TodoItem; onClose: () => void }) {
+  const { showToast } = useToast();
+  const [reviewRequirements, setReviewRequirements] = useState("");
+  const completedPlans = todo.checklist.filter((item) => item.completed);
+  const passedVerificationChecks = todo.verificationChecks.filter((item) => item.passed);
+  const [selectedPlanIds, setSelectedPlanIds] = useState(() => new Set(completedPlans.map((item) => item.id)));
+  const [selectedVerificationIds, setSelectedVerificationIds] = useState(() => new Set(passedVerificationChecks.map((item) => item.id)));
+  const targetFolders = savedAgentTargetFolder(todo).trim() || todo.relatedFiles.join("\n");
+  const plans = completedPlans.filter((item) => selectedPlanIds.has(item.id));
+  const verificationChecks = passedVerificationChecks.filter((item) => selectedVerificationIds.has(item.id));
+  const toggleSelection = (id: string, selected: boolean, setSelection: Dispatch<SetStateAction<Set<string>>>) => {
+    setSelection((current) => {
+      const next = new Set(current);
+      if (selected) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+  const toggleAll = (items: { id: string }[], selected: boolean, setSelection: Dispatch<SetStateAction<Set<string>>>) => {
+    setSelection(selected ? new Set(items.map((item) => item.id)) : new Set());
+  };
+  const reviewRequest = useMemo(() => {
+    const planLines = plans.length
+      ? plans.map((item) => `- [x]${item.layer && item.layer !== "기타" ? ` (${item.layer})` : ""} ${item.text}`)
+      : ["- 선택한 완료 세부 계획 없음"];
+    const verificationLines = verificationChecks.length
+      ? verificationChecks.map((item) => `- [x] ${item.text}${item.evidence ? ` — 근거: ${item.evidence}` : ""}`)
+      : ["- 선택한 통과 조건 검증 없음"];
+    return [
+      "다음 구현 결과를 코드 리뷰해 주세요.",
+      "",
+      "## 작업 대상 폴더",
+      targetFolders || "- 작업 대상 폴더를 먼저 확인해 주세요.",
+      "",
+      "## 작업 개요",
+      `- 작업: ${todo.title}`,
+      todo.description ? `- 설명: ${todo.description}` : "",
+      "",
+      "## 검토할 완료 세부 계획",
+      ...planLines,
+      "",
+      "## 통과한 조건 검증",
+      ...verificationLines,
+      ...(reviewRequirements.trim() ? ["", "## 추가 리뷰 요구 사항", reviewRequirements.trim()] : []),
+      "",
+      "## 리뷰 방식",
+      "구현을 변경하지 말고, 요구사항 누락·API 계약 불일치·예외/경계 조건·테스트 충분성·회귀 위험을 검토하세요.",
+      "문제가 있으면 심각도, 관련 파일과 근거, 개선 제안을 정리하고, 문제가 없으면 검토 범위와 남은 위험을 보고하세요.",
+    ].join("\n");
+  }, [plans, reviewRequirements, targetFolders, todo.description, todo.title, verificationChecks]);
+  const copy = async () => {
+    try {
+      await copyToClipboard(reviewRequest);
+      showToast("Codex 리뷰 요청을 복사했습니다.");
+    } catch {
+      showToast("클립보드에 복사하지 못했습니다. 다시 시도해 주세요.", "error");
+    }
+  };
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/30 p-3 sm:p-6 backdrop-blur-[1px]" onMouseDown={onClose}>
+      <section style={{ width: "75vw", maxWidth: "1800px" }} className="flex h-[calc(100vh-1.5rem)] flex-col overflow-hidden rounded-xl border border-surface-border bg-surface-raised shadow-2xl sm:h-[calc(100vh-3rem)] sm:max-h-[860px]" onMouseDown={(event) => event.stopPropagation()}>
+        <header className="flex items-center justify-between border-b border-surface-border-soft px-4 py-3">
+          <div><p className="text-xs font-black text-brand-primary">리뷰 {"{}"}</p><h3 className="text-sm font-black text-text-primary">Codex 코드 리뷰 요청 만들기</h3></div>
+          <button type="button" onClick={onClose} className="ui-icon-button size-7" aria-label="코드 리뷰 요청 닫기"><X className="size-4" /></button>
+        </header>
+        <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-2 lg:grid-rows-1">
+          <div className="min-h-0 overflow-y-auto p-4 lg:border-r lg:border-surface-border-soft">
+            <div className="overflow-hidden rounded-lg border border-surface-border-soft">
+              <div className="flex items-center justify-between bg-surface-muted/50 px-3 py-2"><div><p className="text-[11px] font-black text-text-primary">리뷰 대상 선택</p><p className="text-[10px] text-text-muted">완료·통과 항목만 기본으로 선택해, 현재 구현 결과를 검토합니다.</p></div><span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-black text-brand-primary">{plans.length + verificationChecks.length}개 선택</span></div>
+              <div className="divide-y divide-surface-border-soft">
+                <InstructionSelectionGroup label="완료 세부 계획" items={completedPlans} selectedIds={selectedPlanIds} onToggle={(id, selected) => toggleSelection(id, selected, setSelectedPlanIds)} onToggleAll={(selected) => toggleAll(completedPlans, selected, setSelectedPlanIds)} renderMeta={(item) => item.layer && item.layer !== "기타" ? item.layer : "작업 영역 없음"} />
+                <InstructionSelectionGroup label="통과 조건 검증" items={passedVerificationChecks} selectedIds={selectedVerificationIds} onToggle={(id, selected) => toggleSelection(id, selected, setSelectedVerificationIds)} onToggleAll={(selected) => toggleAll(passedVerificationChecks, selected, setSelectedVerificationIds)} renderMeta={(item) => item.evidence ? "근거 있음" : "근거 없음"} />
+              </div>
+            </div>
+          </div>
+          <div className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-surface-muted/20 p-4">
+            <label className="block shrink-0"><span className="mb-1 block text-[11px] font-black text-text-primary">추가 리뷰 요구 사항</span><textarea value={reviewRequirements} onChange={(event) => setReviewRequirements(event.target.value)} placeholder="예: 성능 영향과 기존 API 호환성도 중점적으로 검토해 주세요." rows={3} className="w-full resize-y rounded-lg border border-surface-border bg-surface-raised p-2.5 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" /></label>
+            <div className="flex min-h-0 flex-1 flex-col"><div className="mb-1 flex items-center justify-between"><div><p className="text-[11px] font-black text-text-primary">Codex에 보낼 리뷰 요청</p><p className="text-[10px] text-text-muted">선택한 완료 항목과 추가 요구 사항에 따라 즉시 갱신됩니다.</p></div><button type="button" onClick={() => void copy()} className="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-black text-white"><ClipboardCopy className="mr-1 inline size-3.5" />전체 복사</button></div><textarea value={reviewRequest} readOnly className="min-h-[350px] flex-1 resize-y rounded-lg border border-surface-border bg-surface-raised p-3 font-mono text-[11px] leading-5 text-text-secondary outline-none" /></div>
           </div>
         </div>
       </section>
