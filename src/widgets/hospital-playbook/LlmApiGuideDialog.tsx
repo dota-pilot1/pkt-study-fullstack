@@ -15,6 +15,7 @@ type LlmApiGuideDialogProps = {
   domain: PlaybookDomain;
   topicId?: number | null;
   parentDocumentId?: number | null;
+  scope: "all" | "topic";
   onClose: () => void;
 };
 
@@ -33,12 +34,14 @@ const modes: Array<{ id: CopyMode; label: string; description: string }> = [
   { id: "all", label: "전체", description: "모든 API를 직접 선택할 때" },
 ];
 
-export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, onClose }: LlmApiGuideDialogProps) {
+export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, scope, onClose }: LlmApiGuideDialogProps) {
   const [mode, setMode] = useState<CopyMode>("default");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedApisCopied, setSelectedApisCopied] = useState(false);
+  const [additionalInstruction, setAdditionalInstruction] = useState("");
+  const [instructionCopied, setInstructionCopied] = useState(false);
   const { showToast } = useToast();
   const base = "/api/llm/hospital-playbook";
   const topic = String(topicId ?? "{topicId}");
@@ -108,18 +111,30 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
     review: ["tree", "topic", "topic-documents", "samples"],
     all: items.map((item) => item.id),
   };
-  const profiles: Record<CopyMode, string> = {
-    default: "# API 선택 안내\n- 현재 작업에 필요한 API만 표에서 직접 선택합니다.\n- 문서 위치와 기존 상태를 확인해야 하면 tree, topic, 주제 문서 트리 조회부터 선택합니다.",
-    document: "# 문서 작성 규칙\n- 정책·요구사항·설계 문서는 하나의 목적당 본문 문서 하나로 작성합니다.\n- 제목, 설명, 결정할 항목, 목록을 사용합니다. 구현 하위 문서와 실제 코드를 강제하지 않습니다.",
-    implementation: "# 구현 기록 규칙\n- TODO 하나를 본문 문서 하나로 작성합니다.\n- 작업이 길면 API 구현·Front 구현 하위 문서로 나누고, 각 문서 안에 Step을 작성합니다.\n- 구현이 끝난 뒤에만 실제 파일 경로, 코드, 테스트 결과를 기록합니다.",
-    review: "# 코드 리뷰 규칙\n- 먼저 현재 문서·구현 맥락을 조회합니다.\n- 문제점은 근거, 영향, 수정 방향을 함께 적습니다.\n- 리뷰만 할 때는 새 문서·하위 문서를 만들지 않습니다.",
-    all: "# 공통 작성 규칙\n- 현재 위치와 기존 문서를 먼저 조회하고, 같은 문서를 중복 생성하지 않습니다.\n- 수정 전 최신 version을 확인하고, 저장 후 GET으로 결과를 다시 확인합니다.",
-  };
-  const common = ["# PKT Playbook LLM API", "", "baseUrl: " + base, "spaceCode: " + domain, "topicId: " + topic, "", "작업 전 tree 또는 topic 조회로 현재 위치와 실제 ID를 확인합니다.", "content는 Markdown이나 HTML이 아닌 Lexical EditorState JSON 문자열입니다.", "제목은 heading, 설명은 quote, 목록은 list/listitem으로 저장합니다."].join("\n");
   const selectedItems = items.filter((item) => selectedIds.includes(item.id));
-  const selectedSamples = selectedSampleKeys.map((sampleKey) => ["# 작성 예제 참고", "GET " + base + "/samples/" + sampleKey, "", "이 예제의 Lexical 구조와 문서 분리 방식을 참고합니다. 전체 본문을 복사하지 말고 현재 작업에 맞게 작성합니다."].join("\n"));
-  const copyText = [common, profiles[mode], ...selectedItems.map((item) => "# " + item.label + "\n\n" + item.content), ...selectedSamples].join("\n\n---\n\n");
   const activeMode = modes.find((item) => item.id === mode) ?? modes[0];
+  const title = scope === "topic" ? "2차 주제 편집" : "전체 노트 편집";
+  const description = scope === "topic"
+    ? `선택한 2차 주제(${topicId ?? "ID 미확인"})의 문서·하위 문서를 조회·작성·수정합니다.`
+    : "현재 영역의 전체 노트 구조와 문서를 조회·작성·수정합니다.";
+  const instruction = [
+    "다음 작업을 진행해 주세요.",
+    "",
+    "## 작업 대상",
+    ...(scope === "topic" ? [`- 2차 주제 ID: ${topicId ?? "확인 필요"}`, `- spaceCode: ${domain}`] : [`- 전체 노트 영역: ${domain}`]),
+    "",
+    "## 작업 목표",
+    scope === "topic" ? "선택한 2차 주제의 기존 문서와 하위 문서를 확인한 뒤, 필요한 문서를 조회·작성·수정합니다." : "현재 영역의 메뉴·2차 주제·문서 구조를 확인한 뒤, 필요한 노트를 조회·작성·수정합니다.",
+    ...(additionalInstruction.trim() ? ["", "## 추가 지시", additionalInstruction.trim()] : []),
+    "",
+    "## 선택한 API",
+    ...(selectedItems.length ? selectedItems.flatMap((item) => [`### ${item.label}`, item.content, ""]) : ["- 선택한 API 없음"]),
+    "## 선택한 작성 샘플",
+    ...(selectedSampleKeys.length ? selectedSampleKeys.map((sampleKey) => `- GET ${base}/samples/${sampleKey}: ${sampleKey} Lexical 작성 구조 참고`) : ["- 선택한 샘플 없음"]),
+    "",
+    "## 작업 방식",
+    "먼저 현재 위치와 기존 문서를 조회해 중복 생성을 피하세요. 수정 전 최신 version을 확인하고, 저장 시 expectedVersion을 사용하세요. 충돌(409)이면 다시 조회한 최신 version으로 반영하세요.",
+  ].join("\n");
 
   const selectMode = (nextMode: CopyMode) => {
     setMode(nextMode);
@@ -167,22 +182,39 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
       showToast("클립보드에 복사하지 못했습니다.", "error");
     }
   };
+  const copyInstruction = async () => {
+    try {
+      await copyToClipboard(instruction);
+      setInstructionCopied(true);
+      showToast("Codex 작업 지시를 복사했습니다.");
+      window.setTimeout(() => setInstructionCopied(false), 1600);
+    } catch {
+      showToast("클립보드에 복사하지 못했습니다.", "error");
+    }
+  };
 
   return (
     <ApiGuideDialogShell
-      title="2차 주제 노트 작업 도우미"
-      description={"선택한 주제(" + (topicId ?? "ID 미확인") + ")에서 필요한 API만 골라 LLM에 전달합니다."}
-      copyText={copyText}
+      title={title}
+      description={description}
+      copyText={instruction}
       onClose={onClose}
-      ariaLabel="2차 주제 노트 작업 도우미"
-      contentAriaLabel="선택형 LLM API 안내"
-      previewAriaLabel="저장된 작성 예제"
-      preview={<ImplementationNoteSamplePreview selectedKeys={selectedSampleKeys} onSelectedKeysChange={setSelectedSampleKeys} />}
-      copyLabel={"선택 항목 복사 (" + (selectedItems.length + selectedSampleKeys.length) + ")"}
-      footer={<p><strong className="text-text-primary">선택 항목 복사</strong>는 공통 규칙과 현재 탭의 작성 규칙, 체크한 API·작성 예제 GET 주소만 복사합니다.</p>}
+      ariaLabel={title}
+      copyLabel="지시문 복사"
+      footer={<p>API와 작성 샘플을 선택하거나 추가 지시를 입력하면 오른쪽 작업 지시가 즉시 갱신됩니다.</p>}
     >
-      <div className="flex min-h-full min-w-0 flex-col bg-surface-raised">
-        <div className="shrink-0 border-b border-surface-border-soft px-4 py-3">
+      <div className="grid min-h-full min-w-0 grid-cols-1 lg:grid-cols-2">
+        <section className="min-h-0 overflow-auto border-b border-surface-border-soft bg-surface-raised p-5 lg:border-b-0 lg:border-r">
+          <label className="mb-5 block">
+            <span className="mb-1 block text-sm font-black text-text-primary">추가 지시</span>
+            <span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">선택한 API와 작성 샘플에 함께 넣을 작업 조건을 작성하세요.</span>
+            <textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={5} placeholder="예: 기존 문서 구조를 따르고, 중복 문서는 만들지 마세요." className="w-full resize-y rounded-lg border border-surface-border-soft bg-surface p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
+          </label>
+          <div className="mb-4 rounded-lg border border-brand-primary/20 bg-brand-primary/5 px-4 py-3">
+            <h3 className="text-base font-black text-text-primary">{activeMode.label}</h3>
+            <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">{activeMode.description} 탭을 누르면 필요한 API가 자동 선택됩니다. 표에서 원하는 항목만 추가하거나 뺄 수 있습니다.</p>
+          </div>
+          <div className="mb-4">
           <nav className="flex w-fit min-w-full gap-1 overflow-x-auto rounded-lg border border-surface-border-soft bg-surface-muted p-1" role="tablist" aria-label="작업 목적 선택">
             {modes.map((item) => (
               <button key={item.id} type="button" role="tab" aria-selected={mode === item.id} onClick={() => selectMode(item.id)} className={"shrink-0 rounded-md px-3 py-2 text-xs font-black transition " + (mode === item.id ? "bg-brand-primary text-white shadow-sm" : "bg-surface-raised text-text-muted hover:bg-white hover:text-text-primary")}>
@@ -190,11 +222,6 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
               </button>
             ))}
           </nav>
-        </div>
-        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-5">
-          <div className="mb-4 rounded-lg border border-brand-primary/20 bg-brand-primary/5 px-4 py-3">
-            <h3 className="text-base font-black text-text-primary">{activeMode.label}</h3>
-            <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">{activeMode.description} 탭을 누르면 필요한 API가 자동 선택됩니다. 표에서 원하는 항목만 추가하거나 뺄 수 있습니다.</p>
           </div>
           <div className="mb-2 flex justify-end">
             <button type="button" onClick={() => void copySelectedApis()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">
@@ -225,7 +252,18 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
               </tbody>
             </table>
           </div>
-        </div>
+          <details className="mt-4 rounded-lg border border-surface-border-soft" open>
+            <summary className="cursor-pointer px-3 py-2 text-xs font-black text-text-primary">작성 샘플 참고</summary>
+            <div className="border-t border-surface-border-soft"><ImplementationNoteSamplePreview selectedKeys={selectedSampleKeys} onSelectedKeysChange={setSelectedSampleKeys} showInlinePreview={false} /></div>
+          </details>
+        </section>
+        <section aria-label="Codex 작업 지시 미리보기" className="flex min-h-0 flex-col bg-surface-muted/20 p-5">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div><h3 className="text-sm font-black text-text-primary">Codex에 보낼 작업 지시</h3><p className="mt-1 text-[11px] font-semibold text-text-muted">선택 항목과 추가 지시에 따라 즉시 갱신됩니다.</p></div>
+            <button type="button" onClick={() => void copyInstruction()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">{instructionCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{instructionCopied ? "복사됨" : "전체 복사"}</button>
+          </div>
+          <textarea value={instruction} readOnly aria-label="생성된 Codex 작업 지시" className="min-h-[560px] flex-1 resize-y rounded-lg border border-surface-border-soft bg-surface-raised p-3 font-mono text-[11px] leading-5 text-text-secondary outline-none" />
+        </section>
       </div>
     </ApiGuideDialogShell>
   );

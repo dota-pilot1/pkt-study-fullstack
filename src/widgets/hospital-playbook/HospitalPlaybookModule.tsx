@@ -321,6 +321,7 @@ function HospitalPlaybookModule({
     number | null
   >(null);
   const [llmApiGuideOpen, setLlmApiGuideOpen] = useState(false);
+  const [llmApiGuideScope, setLlmApiGuideScope] = useState<"all" | "topic">("all");
   const [todoDrawerOpen, setTodoDrawerOpen] = useState(false);
   const [contextApiDocument, setContextApiDocument] =
     useState<PlaybookDocumentSummary | null>(null);
@@ -776,11 +777,14 @@ function HospitalPlaybookModule({
             </div>
             <button
               type="button"
-              onClick={() => setLlmApiGuideOpen(true)}
+              onClick={() => {
+                setLlmApiGuideScope("all");
+                setLlmApiGuideOpen(true);
+              }}
               className="ui-icon-button h-9 shrink-0 gap-1.5 px-2.5 text-[11px] font-black text-brand-primary"
-              title="전체 노트 관리 {}"
+              title="전체 노트 편집 {}"
             >
-              <span>전체 노트 관리</span>{" "}
+              <span>전체 노트 편집</span>{" "}
               <span className="font-mono text-xs leading-none">{"{}"}</span>
             </button>
             <button
@@ -965,12 +969,15 @@ function HospitalPlaybookModule({
                   <button
                     type="button"
                     disabled={!topic}
-                    onClick={() => setLlmApiGuideOpen(true)}
+                    onClick={() => {
+                      setLlmApiGuideScope("topic");
+                      setLlmApiGuideOpen(true);
+                    }}
                     className="ui-icon-button h-9 shrink-0 gap-1.5 px-2.5 text-[11px] font-black disabled:opacity-40"
-                    title="2차 주제 관리 {}"
-                    aria-label="2차 주제 관리 {}"
+                    title="2차 주제 편집 {}"
+                    aria-label="2차 주제 편집 {}"
                   >
-                    <span>2차 주제 관리</span>
+                    <span>2차 주제 편집</span>
                     <span className="font-mono text-xs leading-none">
                       {"{}"}
                     </span>
@@ -1157,6 +1164,7 @@ function HospitalPlaybookModule({
           domain={domain}
           topicId={topicId}
           parentDocumentId={drawerDocumentId}
+          scope={llmApiGuideScope}
           onClose={() => setLlmApiGuideOpen(false)}
         />
       )}
