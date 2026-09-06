@@ -287,8 +287,8 @@ function DocumentDrawer({
             <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 API 링크 복사">
               {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
             </button>
-            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="Agent용 조회·수정 요청을 한 번에 복사" aria-label="Agent용 조회·수정 요청을 한 번에 복사">
-              {agentCopied ? <Check className="size-3.5" /> : <><span>Agent 복사</span><span className="font-mono text-xs leading-none">{"{}"}</span></>}
+            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="본문 조회 + 수정 지시를 한 번에 복사" aria-label="본문 조회 + 수정 지시를 한 번에 복사">
+              {agentCopied ? <Check className="size-3.5" /> : <><span>본문 조회 + 수정</span><span className="font-mono text-xs leading-none">{"{}"}</span></>}
             </button>
             <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={onOpenContextApi} title="본문 편집 지시" aria-label="본문 편집 지시">
               <span>본문 편집</span><span className="font-mono text-xs leading-none">{"{}"}</span>
