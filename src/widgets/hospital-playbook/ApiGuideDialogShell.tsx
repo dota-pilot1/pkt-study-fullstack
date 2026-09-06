@@ -15,6 +15,7 @@ type ApiGuideDialogShellProps = {
   contentAriaLabel?: string;
   previewAriaLabel?: string;
   copyLabel?: string;
+  headerActions?: ReactNode;
 };
 
 export default function ApiGuideDialogShell({
@@ -31,6 +32,7 @@ export default function ApiGuideDialogShell({
   contentAriaLabel,
   previewAriaLabel,
   copyLabel = "전체 복사",
+  headerActions,
 }: ApiGuideDialogShellProps) {
   const [copied, setCopied] = useState(false);
   const hasPreview = preview !== undefined;
@@ -73,6 +75,7 @@ export default function ApiGuideDialogShell({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {headerActions}
             <button
               type="button"
               onClick={copy}

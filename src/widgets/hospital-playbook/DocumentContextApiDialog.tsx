@@ -23,8 +23,9 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [preset, setPreset] = useState<ApiPreset>("default");
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
+  const [additionalInstruction, setAdditionalInstruction] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedCopied, setSelectedCopied] = useState(false);
+  const [instructionCopied, setInstructionCopied] = useState(false);
   const base = "/api/llm/hospital-playbook";
   const items = useMemo<ApiItem[]>(() => [
     {
@@ -81,6 +82,26 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
     ...selectedItems.flatMap((item) => [`# ${item.label}`, "", item.content, ""]),
     ...selectedSampleKeys.flatMap((sampleKey) => ["# 작성 샘플 참고", "", `GET ${base}/samples/${sampleKey}`, "", `${sampleKey} 샘플의 Lexical 작성 구조를 조회합니다.`, ""]),
   ].join("\n");
+  const instruction = [
+    "다음 작업을 진행해 주세요.",
+    "",
+    "## 작업 대상",
+    `- 상위 문서: ${documentTitle}`,
+    `- parentDocumentId: ${documentId}`,
+    `- topicId: ${topicId}`,
+    "",
+    "## 작업 목표",
+    "현재 본문 아래에 구현 상세를 하위 문서로 기록합니다. 새 문서를 만들기 전 기존 하위 문서를 확인해 중복 생성을 피하세요.",
+    ...(additionalInstruction.trim() ? ["", "## 추가 지시", additionalInstruction.trim()] : []),
+    "",
+    "## 선택한 API",
+    ...(selectedItems.length ? selectedItems.flatMap((item) => [`### ${item.label}`, item.content, ""]) : ["- 선택한 API 없음"]),
+    "## 선택한 작성 샘플",
+    ...(selectedSampleKeys.length ? selectedSampleKeys.map((sampleKey) => `- GET ${base}/samples/${sampleKey}: ${sampleKey} Lexical 작성 구조 참고`) : ["- 선택한 샘플 없음"]),
+    "",
+    "## 작업 방식",
+    "먼저 최신 context와 version을 조회하고, 저장 시 expectedVersion을 사용하세요. 충돌(409)이면 다시 조회한 최신 version으로 반영하세요.",
+  ].join("\n");
 
   const applyPreset = (nextPreset: Exclude<ApiPreset, "custom">) => {
     setPreset(nextPreset);
@@ -104,17 +125,12 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
       showToast("클립보드에 복사하지 못했습니다.", "error");
     }
   };
-  const copySelected = async () => {
-    if (selectedItems.length === 0) {
-      showToast("복사할 API를 선택하세요.", "info");
-      return;
-    }
-    const text = selectedItems.map((item) => [`# ${item.label}`, `${item.method} ${fullUrl(item.endpoint)}`, "", item.summary].join("\n")).join("\n\n---\n\n");
+  const copyInstruction = async () => {
     try {
-      await copyToClipboard(text);
-      setSelectedCopied(true);
-      showToast("선택한 하위 문서 API를 복사했습니다.");
-      window.setTimeout(() => setSelectedCopied(false), 1600);
+      await copyToClipboard(instruction);
+      setInstructionCopied(true);
+      showToast("Codex 작업 지시를 복사했습니다.");
+      window.setTimeout(() => setInstructionCopied(false), 1600);
     } catch {
       showToast("클립보드에 복사하지 못했습니다.", "error");
     }
@@ -128,56 +144,48 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
       onClose={onClose}
       ariaLabel="하위 문서 작업 API"
       contentAriaLabel="하위 문서 API 선택"
-      previewAriaLabel="하위 문서 작성 샘플 관리"
-      previewTitle="하위 문서 작성 샘플"
-      previewDescription="샘플을 조회하고, 재사용할 작성 형식은 등록·수정할 수 있습니다."
-      preview={<ImplementationNoteSamplePreview selectedKeys={selectedSampleKeys} onSelectedKeysChange={setSelectedSampleKeys} />}
       copyLabel={`선택 항목 복사 (${selectedItems.length + selectedSampleKeys.length})`}
+      headerActions={
+        <button type="button" onClick={() => void copyInstruction()} className="ui-icon-button h-8 gap-1.5 px-3 text-xs font-black text-brand-primary">
+          {instructionCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          {instructionCopied ? "지시문 복사됨" : "지시문 복사"}
+        </button>
+      }
       footer="본문은 목표·범위·완료 조건만 관리합니다. 실제 구현 기록은 하위 문서에 작성합니다."
     >
-      <div className="flex min-h-full min-w-0 flex-col bg-surface-raised p-5">
-        <div className="rounded-lg border border-brand-primary/20 bg-brand-primary/5 px-4 py-3">
-          <h3 className="text-base font-black text-text-primary">하위 문서 작업</h3>
-          <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">필요한 API를 체크한 뒤 복사하세요. 각 행의 복사 버튼은 전체 URL과 사용 설명을 함께 복사합니다.</p>
-        </div>
-        <div className="mb-2 mt-4 flex items-center justify-between gap-3">
-          <div className="flex rounded-lg border border-surface-border-soft bg-surface-muted p-1" role="group" aria-label="하위 문서 API 선택 프리셋">
-            <button type="button" onClick={() => applyPreset("default")} className={`rounded-md px-3 py-1.5 text-[11px] font-black transition ${preset === "default" ? "bg-brand-primary text-white shadow-sm" : "text-text-muted hover:bg-white hover:text-text-primary"}`}>디폴트</button>
-            <button type="button" onClick={() => applyPreset("basic-edit")} className={`rounded-md px-3 py-1.5 text-[11px] font-black transition ${preset === "basic-edit" ? "bg-brand-primary text-white shadow-sm" : "text-text-muted hover:bg-white hover:text-text-primary"}`}>기본 편집 (4)</button>
+      <div className="grid min-h-full min-w-0 grid-cols-1 lg:grid-cols-2">
+        <section className="min-h-0 overflow-auto border-b border-surface-border-soft bg-surface-raised p-5 lg:border-b-0 lg:border-r">
+          <label className="block">
+            <span className="mb-1 block text-sm font-black text-text-primary">추가 지시</span>
+            <span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">선택한 API와 샘플에 함께 넣을 작업 조건을 작성하세요.</span>
+            <textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={5} placeholder="예: 기존 문서 구조를 따르고, 중복 하위 문서는 만들지 마세요." className="w-full resize-y rounded-lg border border-surface-border-soft bg-surface p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
+          </label>
+
+          <div className="mb-2 mt-5 flex items-center justify-between gap-3">
+            <h3 className="text-sm font-black text-text-primary">하위 문서 API</h3>
+            <div className="flex rounded-lg border border-surface-border-soft bg-surface-muted p-1" role="group" aria-label="하위 문서 API 선택 프리셋">
+              <button type="button" onClick={() => applyPreset("default")} className={`rounded-md px-3 py-1.5 text-[11px] font-black transition ${preset === "default" ? "bg-brand-primary text-white shadow-sm" : "text-text-muted hover:bg-white hover:text-text-primary"}`}>디폴트</button>
+              <button type="button" onClick={() => applyPreset("basic-edit")} className={`rounded-md px-3 py-1.5 text-[11px] font-black transition ${preset === "basic-edit" ? "bg-brand-primary text-white shadow-sm" : "text-text-muted hover:bg-white hover:text-text-primary"}`}>기본 편집 (4)</button>
+            </div>
           </div>
-          <button type="button" onClick={() => void copySelected()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">
-            {selectedCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-            선택 API 복사 ({selectedItems.length})
-          </button>
-        </div>
-        <div className="overflow-x-auto rounded-lg border border-surface-border-soft">
-          <table className="w-full min-w-[760px] border-collapse text-left text-xs">
-            <thead className="bg-surface-muted text-text-secondary">
-              <tr>
-                <th scope="col" className="w-12 px-3 py-3 text-center font-black"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="모든 API 선택" className="size-4 accent-brand-primary" /></th>
-                <th scope="col" className="w-16 px-3 py-3 font-black">방식</th>
-                <th scope="col" className="min-w-48 px-3 py-3 font-black">API</th>
-                <th scope="col" className="min-w-52 px-3 py-3 font-black">하는 일</th>
-                <th scope="col" className="w-16 px-3 py-3 text-center font-black">복사</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="border-t border-surface-border-soft align-top hover:bg-surface-muted/60">
-                  <td className="!align-middle px-3 py-3 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleItem(item.id)} aria-label={`${item.label} 선택`} className="size-4 accent-brand-primary" /></td>
-                  <td className="px-3 py-3"><span className={`rounded px-1.5 py-1 font-mono text-[10px] font-black ${methodClass[item.method]}`}>{item.method}</span></td>
-                  <td className="break-words px-3 py-3 font-mono text-[11px] leading-5 text-text-primary [overflow-wrap:anywhere]">{item.endpoint}</td>
-                  <td className="px-3 py-3 font-semibold leading-5 text-text-muted">{item.summary}</td>
-                  <td className="!align-middle px-2 py-3 text-center">
-                    <div className="flex justify-center">
-                      <button type="button" onClick={() => void copyItem(item)} aria-label={`${item.label} API URL과 설명 복사`} title="HTTP 메서드, 전체 URL, 설명 복사" className="ui-icon-button size-7 text-brand-primary">{copiedId === item.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          <div className="overflow-x-auto rounded-lg border border-surface-border-soft">
+            <table className="w-full min-w-[760px] border-collapse text-left text-xs">
+              <thead className="bg-surface-muted text-text-secondary">
+                <tr><th scope="col" className="w-12 px-3 py-3 text-center font-black"><input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="모든 API 선택" className="size-4 accent-brand-primary" /></th><th scope="col" className="w-16 px-3 py-3 font-black">방식</th><th scope="col" className="min-w-48 px-3 py-3 font-black">API</th><th scope="col" className="min-w-52 px-3 py-3 font-black">하는 일</th><th scope="col" className="w-16 px-3 py-3 text-center font-black">복사</th></tr>
+              </thead>
+              <tbody>{items.map((item) => <tr key={item.id} className="border-t border-surface-border-soft align-top hover:bg-surface-muted/60"><td className="!align-middle px-3 py-3 text-center"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleItem(item.id)} aria-label={`${item.label} 선택`} className="size-4 accent-brand-primary" /></td><td className="px-3 py-3"><span className={`rounded px-1.5 py-1 font-mono text-[10px] font-black ${methodClass[item.method]}`}>{item.method}</span></td><td className="break-words px-3 py-3 font-mono text-[11px] leading-5 text-text-primary [overflow-wrap:anywhere]">{item.endpoint}</td><td className="px-3 py-3 font-semibold leading-5 text-text-muted">{item.summary}</td><td className="!align-middle px-2 py-3 text-center"><button type="button" onClick={() => void copyItem(item)} aria-label={`${item.label} API URL과 설명 복사`} title="HTTP 메서드, 전체 URL, 설명 복사" className="ui-icon-button size-7 text-brand-primary">{copiedId === item.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button></td></tr>)}</tbody>
+            </table>
+          </div>
+
+          <details className="mt-4 rounded-lg border border-surface-border-soft" open>
+            <summary className="cursor-pointer px-3 py-2 text-xs font-black text-text-primary">작성 샘플 참고</summary>
+            <div className="border-t border-surface-border-soft"><ImplementationNoteSamplePreview selectedKeys={selectedSampleKeys} onSelectedKeysChange={setSelectedSampleKeys} showInlinePreview={false} /></div>
+          </details>
+        </section>
+        <section aria-label="Codex 작업 지시 미리보기" className="flex min-h-0 flex-col bg-surface-muted/20 p-5">
+          <div className="mb-2 flex items-center justify-between gap-3"><div><h3 className="text-sm font-black text-text-primary">Codex에 보낼 작업 지시</h3><p className="mt-1 text-[11px] font-semibold text-text-muted">선택 항목과 추가 지시에 따라 즉시 갱신됩니다.</p></div><button type="button" onClick={() => void copyInstruction()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">{instructionCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{instructionCopied ? "복사됨" : "전체 복사"}</button></div>
+          <textarea value={instruction} readOnly aria-label="생성된 Codex 작업 지시" className="min-h-[560px] flex-1 resize-y rounded-lg border border-surface-border-soft bg-surface-raised p-3 font-mono text-[11px] leading-5 text-text-secondary outline-none" />
+        </section>
       </div>
     </ApiGuideDialogShell>
   );

@@ -250,10 +250,10 @@ function SortableTreeDocumentRow({
             type="button"
             onClick={onOpenContextApi}
             className="ui-icon-button h-7 gap-1 px-2 text-[10px] font-black text-brand-primary"
-            title="하위 문서 작업 API"
-            aria-label="하위 문서 작업 API"
+            title="본문 편집 지시"
+            aria-label="본문 편집 지시"
           >
-            <span>하위</span>
+            <span>본문 편집</span>
             <Braces className="size-3.5" />
           </button>
         )}
