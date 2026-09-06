@@ -28,3 +28,8 @@ export const playbookModules: Record<string, { domain: "SPRING_BOOT" | "SPRING_S
   "모니터링": { domain: "MONITORING", title: "모니터링" },
   "환경·인프라": { domain: "INFRASTRUCTURE", title: "환경·인프라" },
 };
+
+/** 공간 코드를 셸이 인식하는 노트 모듈 이름으로 바꾼다. */
+export function playbookModuleLabelForDomain(domain: string) {
+  return Object.entries(playbookModules).find(([, module]) => module.domain === domain)?.[0] ?? null;
+}

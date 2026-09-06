@@ -327,6 +327,7 @@ function HospitalPlaybookModule({
     useState<PlaybookDocumentSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const expandedTopicId = useRef<number | null>(null);
+  const openedDeepLinkRef = useRef<string | null>(null);
   const categoryWidth = usePlaybookLayoutStore((state) => state.categoryWidth);
   const topicWidth = usePlaybookLayoutStore((state) => state.topicWidth);
   const categoryCollapsed = usePlaybookLayoutStore(
@@ -361,6 +362,24 @@ function HospitalPlaybookModule({
       window.sessionStorage.removeItem("pkt-study-menu-search-target");
     } catch {
       window.sessionStorage.removeItem("pkt-study-menu-search-target");
+    }
+  }, [categories, domain]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const documentId = Number(params.get("playbookDocument"));
+    const spaceCode = params.get("spaceCode");
+    const linkKey = `${spaceCode}:${documentId}`;
+    if (spaceCode !== domain || !Number.isInteger(documentId) || documentId <= 0 || openedDeepLinkRef.current === linkKey) return;
+
+    for (const nextCategory of categories) {
+      for (const nextTopic of nextCategory.topics) {
+        if (!nextTopic.documents.some((document) => document.id === documentId)) continue;
+        openedDeepLinkRef.current = linkKey;
+        setCategoryId(nextCategory.id);
+        setTopicId(nextTopic.id);
+        setPageDocumentId(documentId);
+        return;
+      }
     }
   }, [categories, domain]);
   const category = useMemo(
@@ -723,6 +742,7 @@ function HospitalPlaybookModule({
     return (
       <DocumentPage
         documentId={pageDocumentId}
+        domain={domain}
         title={title}
         categoryTitle={category.title}
         topicTitle={topic.title}
@@ -1109,6 +1129,7 @@ function HospitalPlaybookModule({
       {detail && (
         <DocumentDrawer
           document={detail}
+          domain={domain}
           loading={drawerDocument.isPending}
           previous={
             previous

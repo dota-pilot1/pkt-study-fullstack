@@ -1,4 +1,5 @@
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
+import { buildDocumentDeepLink } from "@/features/hospital-playbook/document-deep-link";
 import {
   DragDropProvider,
   type DragEndEvent,
@@ -14,7 +15,6 @@ import {
   GripVertical,
   Loader2,
   MapPin,
-  Pencil,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -23,9 +23,12 @@ import {
   playbookApi,
   type PlaybookCategory,
   type PlaybookDocumentSummary,
+  type PlaybookDomain,
 } from "../../features/hospital-playbook/api";
+import { copyToClipboard } from "../../shared/lib/clipboard";
 import PageHeader from "../../shared/ui/PageHeader";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
+import { useToast } from "../../shared/ui/toast";
 
 type DocumentRow = {
   document: PlaybookDocumentSummary;
@@ -166,6 +169,7 @@ function SortableDocumentRow({
 /** 목록 화면에서 독립적으로 읽고, 위치를 옮기고, 순서를 조절하는 전체 문서 보기. */
 export default function DocumentPage({
   documentId,
+  domain,
   title,
   categoryTitle,
   topicTitle,
@@ -185,6 +189,7 @@ export default function DocumentPage({
   canDelete = true,
 }: {
   documentId: number;
+  domain: PlaybookDomain;
   title: string;
   categoryTitle: string;
   topicTitle: string;
@@ -207,6 +212,7 @@ export default function DocumentPage({
   reordering?: boolean;
   canDelete?: boolean;
 }) {
+  const { showToast } = useToast();
   const [collapsed, setCollapsed] = useState<Set<number>>(
     () =>
       new Set(
@@ -216,6 +222,7 @@ export default function DocumentPage({
       ),
   );
   const [locationOpen, setLocationOpen] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const collapsedTopicId = useRef(topicId);
   const [nextCategoryId, setNextCategoryId] = useState(categoryId);
   const [nextTopicId, setNextTopicId] = useState(topicId);
@@ -262,6 +269,17 @@ export default function DocumentPage({
     setNextCategoryId(categoryId);
     setNextTopicId(topicId);
     setLocationOpen(true);
+  };
+  const copyDocumentLink = async () => {
+    const url = buildDocumentDeepLink(documentId, document.data?.location?.spaceCode ?? domain);
+    if (!url) {
+      showToast("문서 링크를 만들지 못했습니다.", "error");
+      return;
+    }
+    await copyToClipboard(url);
+    setLinkCopied(true);
+    showToast("이 문서를 여는 앱 링크를 복사했습니다.");
+    window.setTimeout(() => setLinkCopied(false), 1800);
   };
 
   const handleCategory = (id: number) => {
@@ -391,11 +409,20 @@ export default function DocumentPage({
                     <BookmarkButton document={document.data} />
                     <button
                       type="button"
+                      onClick={() => void copyDocumentLink()}
+                      className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black"
+                      title="앱 문서 링크 복사"
+                      aria-label="앱 문서 링크 복사"
+                    >
+                      {linkCopied ? "복사됨" : "링크 복사"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => onEdit(documentId)}
-                      className="ui-icon-button-brand size-8"
+                      className="ui-icon-button-brand h-8 min-w-[58px] justify-center px-2.5 text-[11px] font-black"
                       title="수정"
                     >
-                      <Pencil className="size-3.5" />
+                      수정
                     </button>
                     {canDelete ? (
                       <button

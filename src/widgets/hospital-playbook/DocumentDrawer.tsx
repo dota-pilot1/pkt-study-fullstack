@@ -1,8 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
-import { Check, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ExternalLink, GitBranch, Link2, Loader2, Pencil, Search, Trash2, X } from "lucide-react";
+import { buildDocumentDeepLink } from "@/features/hospital-playbook/document-deep-link";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
+import type { PlaybookDomain } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
 import { ApiError, getApiBase } from "../../shared/api/client";
 import { copyToClipboard } from "../../shared/lib/clipboard";
@@ -28,6 +30,7 @@ function storedDrawerSize() {
 /** 문서를 읽고 같은 드로어 안에서 바로 수정할 수 있는 우측 드로어. */
 function DocumentDrawer({
   document,
+  domain,
   previous,
   next,
   onNavigate,
@@ -44,6 +47,7 @@ function DocumentDrawer({
   canDelete = true,
 }: {
   document: PlaybookDocument;
+  domain: PlaybookDomain;
   previous?: PlaybookDocument;
   next?: PlaybookDocument;
   onNavigate: (document: PlaybookDocument) => void;
@@ -66,6 +70,7 @@ function DocumentDrawer({
   const { showToast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [agentCopied, setAgentCopied] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,6 +133,18 @@ function DocumentDrawer({
     } finally {
       setIsSharing(false);
     }
+  };
+
+  const copyDocumentLink = async () => {
+    const url = buildDocumentDeepLink(document.id, document.location?.spaceCode ?? domain);
+    if (!url) {
+      showToast("문서 링크를 만들지 못했습니다.", "error");
+      return;
+    }
+    await copyToClipboard(url);
+    setLinkCopied(true);
+    showToast("이 문서를 여는 앱 링크를 복사했습니다.");
+    window.setTimeout(() => setLinkCopied(false), 1800);
   };
 
   const copyAgentConnection = async () => {
@@ -263,42 +280,47 @@ function DocumentDrawer({
             <p className="text-[11px] font-black text-brand-primary">개발 노트 · {isEditing ? "수정" : "상세 보기"}</p>
             {!isEditing && <h2 className="mt-0.5 truncate text-lg font-black text-text-primary">{document.title}</h2>}
           </div>
-          <div className="drawer-action-group flex shrink-0 items-center gap-1">
-            <BookmarkButton document={document} />
-            <button
-              type="button"
-              className={`ui-icon-button size-8 ${isEditing ? "bg-brand-primary text-white" : ""}`}
-              onClick={() => {
-                closeSearch();
-                setIsEditing(true);
-              }}
-              title="수정"
-            >
-              <Pencil className="size-4" />
-            </button>
-            <button type="button" className="ui-icon-button size-8" onClick={() => setLocationDialogOpen(true)} disabled={isEditing} title="문서 위치 이동" aria-label="문서 위치 이동">
-              <GitBranch className="size-4" />
-            </button>
-            {onOpenPage && <button type="button" className="ui-icon-button size-8" onClick={onOpenPage} title="전체 페이지로 보기">
-              <ExternalLink className="size-4" />
-            </button>}
-          </div>
-          <div className="drawer-action-group flex shrink-0 items-center gap-1">
-            <button type="button" className="ui-icon-button size-8 text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 API 링크 복사">
-              {shareCopied ? <Check className="size-4" /> : <Link2 className="size-4" />}
-            </button>
-            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="본문 조회 + 수정 지시를 한 번에 복사" aria-label="본문 조회 + 수정 지시를 한 번에 복사">
-              {agentCopied ? <Check className="size-3.5" /> : <><span>본문 조회 + 수정</span><span className="font-mono text-xs leading-none">{"{}"}</span></>}
-            </button>
-            <button type="button" className="ui-icon-button h-8 gap-1 px-2 text-[10px] font-black text-brand-primary" onClick={onOpenContextApi} title="본문 편집 지시" aria-label="본문 편집 지시">
-              <span>본문 편집</span><span className="font-mono text-xs leading-none">{"{}"}</span>
-            </button>
-          </div>
-          <div className="drawer-action-group drawer-action-group-danger flex shrink-0 items-center gap-1">
-            {canDelete ? <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제"><Trash2 className="size-4" /></button> : null}
-            <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
-              <X className="size-4" />
-            </button>
+          <div className="flex max-w-[650px] shrink-0 flex-wrap justify-end gap-1.5">
+            <div className="flex items-center gap-1.5">
+              <BookmarkButton document={document} />
+              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black" onClick={() => void copyDocumentLink()} title="앱 문서 링크 복사" aria-label="앱 문서 링크 복사">
+                {linkCopied ? "복사됨" : "링크 복사"}
+              </button>
+              <button
+                type="button"
+                className={`ui-icon-button h-8 min-w-[58px] justify-center px-2.5 text-[11px] font-black ${isEditing ? "bg-brand-primary text-white" : ""}`}
+                onClick={() => {
+                  closeSearch();
+                  setIsEditing(true);
+                }}
+                title="수정"
+              >
+                수정
+              </button>
+              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black" onClick={() => setLocationDialogOpen(true)} disabled={isEditing} title="문서 위치 이동" aria-label="문서 위치 이동">
+                위치 이동
+              </button>
+              {onOpenPage && <button type="button" className="ui-icon-button h-8 min-w-[64px] justify-center px-2.5 text-[11px] font-black" onClick={onOpenPage} title="전체 페이지로 보기">
+                전체 보기
+              </button>}
+            </div>
+            <div className="flex items-center gap-1.5 border-l border-surface-border pl-1.5">
+              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 공유 링크 복사">
+                {shareCopied ? "복사됨" : "공유 링크"}
+              </button>
+              <button type="button" className="ui-icon-button h-8 min-w-[102px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="본문 조회 + 수정 지시를 한 번에 복사" aria-label="본문 조회 + 수정 지시를 한 번에 복사">
+                {agentCopied ? "복사됨" : "본문 조회·수정"}
+              </button>
+              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContextApi} title="본문 편집 지시" aria-label="본문 편집 지시">
+                본문 편집
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 border-l border-surface-border pl-1.5">
+              {canDelete ? <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제"><Trash2 className="size-4" /></button> : null}
+              <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
+                <X className="size-4" />
+              </button>
+            </div>
           </div>
         </header>
 
