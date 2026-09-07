@@ -304,13 +304,13 @@ function DocumentDrawer({
             <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
-                className="ui-icon-button size-7 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40"
+                className="ui-icon-button size-8 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40"
                 onClick={() => void refreshDocument()}
                 disabled={isRefreshing}
                 title="문서 새로고침"
                 aria-label="문서 새로고침"
               >
-                <RefreshCw className={`size-3.5 ${isRefreshing ? "refresh-icon-spin" : ""}`} />
+                <RefreshCw className={`size-4 ${isRefreshing ? "refresh-icon-spin" : ""}`} />
               </button>
               <BookmarkButton document={document} />
               <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black" onClick={() => void copyDocumentLink()} title="앱 문서 링크 복사" aria-label="앱 문서 링크 복사">
