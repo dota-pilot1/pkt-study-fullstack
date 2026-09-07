@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
 import { buildDocumentDeepLink } from "@/features/hospital-playbook/document-deep-link";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, Search, Trash2, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import type { PlaybookDomain } from "../../features/hospital-playbook/api";
@@ -39,6 +39,7 @@ function DocumentDrawer({
   onOpenPage,
   onOpenContextApi,
   onChanged,
+  onRefresh,
   documents,
   onMove,
   deleting = false,
@@ -56,6 +57,7 @@ function DocumentDrawer({
   onOpenPage?: () => void;
   onOpenContextApi: () => void;
   onChanged: () => void;
+  onRefresh: () => Promise<unknown>;
   documents: PlaybookDocumentSummary[];
   onMove: (parentId: number | null) => Promise<void>;
   deleting?: boolean;
@@ -77,6 +79,7 @@ function DocumentDrawer({
   const [searchMatchIndex, setSearchMatchIndex] = useState(0);
   const [searchMatchCount, setSearchMatchCount] = useState(0);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -116,6 +119,23 @@ function DocumentDrawer({
 
   const moveSearchMatch = (direction: 1 | -1) => {
     selectSearchMatch(searchMatchIndex + direction);
+  };
+
+  const refreshDocument = async () => {
+    if (isRefreshing) return;
+    const startedAt = performance.now();
+    setIsRefreshing(true);
+    try {
+      await onRefresh();
+      showToast("문서를 새로고침했습니다.");
+    } catch {
+      showToast("문서를 새로고침하지 못했습니다.", "error");
+    } finally {
+      // 빠른 로컬 응답에서도 상단 새로고침과 같은 한 번의 회전 피드백을 끝까지 보여 준다.
+      const remaining = 650 - (performance.now() - startedAt);
+      if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+      setIsRefreshing(false);
+    }
   };
 
   const copyShareLink = async () => {
@@ -280,8 +300,18 @@ function DocumentDrawer({
             <p className="text-[11px] font-black text-brand-primary">개발 노트 · {isEditing ? "수정" : "상세 보기"}</p>
             {!isEditing && <h2 className="mt-0.5 truncate text-lg font-black text-text-primary">{document.title}</h2>}
           </div>
-          <div className="flex max-w-[650px] shrink-0 flex-wrap justify-end gap-1.5">
-            <div className="flex items-center gap-1.5">
+          <div className="flex max-w-full shrink-0 flex-nowrap justify-end gap-1.5 overflow-x-auto [scrollbar-width:thin]">
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                className="ui-icon-button size-7 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40"
+                onClick={() => void refreshDocument()}
+                disabled={isRefreshing}
+                title="문서 새로고침"
+                aria-label="문서 새로고침"
+              >
+                <RefreshCw className={`size-3.5 ${isRefreshing ? "refresh-icon-spin" : ""}`} />
+              </button>
               <BookmarkButton document={document} />
               <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black" onClick={() => void copyDocumentLink()} title="앱 문서 링크 복사" aria-label="앱 문서 링크 복사">
                 {linkCopied ? "복사됨" : "링크 복사"}
@@ -304,7 +334,7 @@ function DocumentDrawer({
                 전체 보기
               </button>}
             </div>
-            <div className="flex items-center gap-1.5 border-l border-surface-border pl-1.5">
+            <div className="flex shrink-0 items-center gap-1.5 border-l border-surface-border pl-1.5">
               <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 공유 링크 복사">
                 {shareCopied ? "복사됨" : "공유 링크"}
               </button>
@@ -315,7 +345,7 @@ function DocumentDrawer({
                 본문 편집
               </button>
             </div>
-            <div className="flex items-center gap-1.5 border-l border-surface-border pl-1.5">
+            <div className="flex shrink-0 items-center gap-1.5 border-l border-surface-border pl-1.5">
               {canDelete ? <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제"><Trash2 className="size-4" /></button> : null}
               <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
                 <X className="size-4" />

@@ -1141,6 +1141,7 @@ function HospitalPlaybookModule({
           }
           onNavigate={(target) => setDrawerDocumentId(target.id)}
           onChanged={invalidate}
+          onRefresh={() => drawerDocument.refetch()}
           documents={documents}
           onMove={async (parentId) => {
             const moved = await playbookApi.updateDocument(detail.id, { parentId });
