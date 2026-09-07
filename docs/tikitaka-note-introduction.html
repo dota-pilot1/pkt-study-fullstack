@@ -458,12 +458,12 @@
       </header>
 
       <section id="workflow">
-        <h2>할 일 → 개발 → 리뷰 → 노트 정리</h2>
-        <p>업데이트된 할 일 관리를 시작점으로, 목표·범위·완료 기준을 명확히 한 뒤 개발하고 리뷰합니다. 리뷰에서 확인한 개선점, 선택의 이유, 새로 배운 내용을 다시 노트로 정리해 다음 학습과 개발의
+        <h2>할 일 → 구현 → 리뷰 → 노트 정리</h2>
+        <p>업데이트된 할 일 관리를 시작점으로 목표·범위·완료 기준을 정하고, Agent에게 구체적인 구현 지시를 전달해 개발과 검증을 진행합니다. 이어서 완료 계획과 통과 조건을 바탕으로 코드를 리뷰하고, 확인한 개선점과 새로 배운 내용을 다시 노트로 정리해 다음 학습과 개발의
           출발점으로 만듭니다.</p>
         <div class="workflow">
           <div>1. 할 일 정의</div>
-          <div>2. 개발·검증</div>
+          <div>2. 구현 지시·검증</div>
           <div>3. 코드 리뷰</div>
           <div>4. 노트 정리</div>
         </div>
@@ -494,26 +494,26 @@
       </section>
 
       <section id="screens">
-        <h2>노트·할 일·리뷰가 한 흐름으로 이어집니다</h2>
-        <p>아래는 실제 티키타카 개발 노트에서 SKT Nova 프로토타입을 정리하고 실행하는 화면입니다. 이미지를 선택하면 원본 크기로 자세히 확인할 수 있습니다.</p>
+        <h2>할 일·구현·리뷰·노트가 한 흐름으로 이어집니다</h2>
+        <p>아래는 실제 티키타카 개발 노트에서 SKT Nova 프로토타입을 실행하고 지식으로 남기는 순서입니다. 이미지를 선택하면 원본 크기로 자세히 확인할 수 있습니다.</p>
         <div class="screens">
           <figure>
-            <a class="shot-link" href="assets/tikitaka-note-structure.png" target="_blank" rel="noreferrer">
-              <img class="shot" src="assets/tikitaka-note-structure.png" alt="NOVA BSS 프로토타입의 요금제 API 설계 및 코드 리뷰 문서를 계층형으로 정리한 티키타카 노트 화면" />
+            <a class="shot-link" href="assets/tikitaka-todo-management.png" target="_blank" rel="noreferrer">
+              <img class="shot" src="assets/tikitaka-todo-management.png" alt="Backend, Frontend, DevOps, Policy 작업과 진행률을 관리하는 티키타카 할 일 화면" />
             </a>
             <figcaption>
-              <strong><span class="shot-kicker">NOTE</span>프로젝트와 구현 맥락을 계층형 노트로 정리</strong>
-              NOVA BSS 프로토타입 아래에 JPA·DB 연동, 요금제 API 설계, 백엔드 구현과 세부 코드 리뷰를 1차 메뉴 → 2차 주제 → 본문·하위 문서 구조로 연결합니다.
+              <strong><span class="shot-kicker">01 · TODO</span>목표와 완료 기준을 실행 가능한 할 일로 정의</strong>
+              Backend·Frontend·DevOps·Policy별 작업 수와 전체 완료율을 확인하고, 상태·중요도·체크리스트·API 연결 여부를 관리합니다. 무엇을 왜 만들어야 하는지 먼저 명확히 합니다.
             </figcaption>
           </figure>
 
           <figure>
-            <a class="shot-link" href="assets/tikitaka-todo-management.png" target="_blank" rel="noreferrer">
-              <img class="shot" src="assets/tikitaka-todo-management.png" alt="Backend, Frontend, DevOps, Policy 작업과 진행률을 관리하는 티키타카 할 일 화면" loading="lazy" />
+            <a class="shot-link" href="assets/tikitaka-implementation-instruction.png" target="_blank" rel="noreferrer">
+              <img class="shot" src="assets/tikitaka-implementation-instruction.png" alt="TODO API와 작업 대상 폴더를 선택해 Codex에 전달할 구현 지시를 만드는 티키타카 화면" loading="lazy" />
             </a>
             <figcaption>
-              <strong><span class="shot-kicker">TODO</span>개발 범위와 진행 상황을 실행 가능한 할 일로 관리</strong>
-              Backend·Frontend·DevOps·Policy별 작업 수와 전체 완료율을 확인하고, 상태·중요도·체크리스트·API 연결 여부를 관리합니다. API Spec과 Agent용 작업 지침도 같은 화면에서 꺼낼 수 있습니다.
+              <strong><span class="shot-kicker">02 · IMPLEMENT</span>for Agent로 구현 범위와 API를 정확히 전달</strong>
+              선택한 TODO의 상태·세부 계획·검증 조건 API와 백엔드·프론트 작업 폴더를 하나의 구현 지시로 만듭니다. Agent는 이 지시를 따라 구현하고 진행 상태와 검증 근거를 다시 기록합니다.
             </figcaption>
           </figure>
 
@@ -522,8 +522,18 @@
               <img class="shot" src="assets/tikitaka-code-review.png" alt="완료 세부 계획과 통과 조건을 선택해 Codex 코드 리뷰 요청을 만드는 티키타카 리뷰 화면" loading="lazy" />
             </a>
             <figcaption>
-              <strong><span class="shot-kicker">REVIEW</span>완료 기준과 검증 근거를 담아 Codex 리뷰로 연결</strong>
-              구현이 끝난 세부 계획과 통과 조건을 선택하면 백엔드·프론트 작업 경로, API 계약, 페이지네이션 조건과 테스트 근거가 포함된 리뷰 요청을 생성합니다. 리뷰 결과는 다시 노트에 반영됩니다.
+              <strong><span class="shot-kicker">03 · REVIEW</span>완료 기준과 검증 근거를 담아 Codex 리뷰로 연결</strong>
+              구현이 끝난 세부 계획과 통과 조건을 선택하면 백엔드·프론트 작업 경로, API 계약, 페이지네이션 조건과 테스트 근거가 포함된 리뷰 요청을 생성합니다.
+            </figcaption>
+          </figure>
+
+          <figure>
+            <a class="shot-link" href="assets/tikitaka-note-structure.png" target="_blank" rel="noreferrer">
+              <img class="shot" src="assets/tikitaka-note-structure.png" alt="NOVA BSS 프로토타입의 요금제 API 설계 및 코드 리뷰 문서를 계층형으로 정리한 티키타카 노트 화면" loading="lazy" />
+            </a>
+            <figcaption>
+              <strong><span class="shot-kicker">04 · NOTE</span>구현과 리뷰의 맥락을 재사용 가능한 노트로 정리</strong>
+              NOVA BSS 프로토타입 아래에 요금제 API 설계, 백엔드 구현과 세부 코드 리뷰를 1차 메뉴 → 2차 주제 → 본문·하위 문서 구조로 연결합니다. 정리된 지식은 다음 할 일의 출발점이 됩니다.
             </figcaption>
           </figure>
         </div>
@@ -565,12 +575,13 @@
   <script>
     const links = [...document.querySelectorAll('nav a')];
     const targets = links.map((link) => document.querySelector(link.getAttribute('href'))).filter(Boolean);
-    const observer = new IntersectionObserver((entries) => {
-      const current = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (current) links.forEach((link) => link.classList.toggle('active', link.hash === `#${current.target.id}`));
-    }, { rootMargin: '-15% 0px -65% 0px', threshold: [0, .2, .6] });
-    targets.forEach((target) => observer.observe(target));
-    if (links[0]) links[0].classList.add('active');
+    const updateActiveLink = () => {
+      const current = [...targets].reverse().find((target) => target.getBoundingClientRect().top <= 170) || targets[0];
+      links.forEach((link) => link.classList.toggle('active', link.hash === `#${current.id}`));
+    };
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+    window.addEventListener('hashchange', updateActiveLink);
+    updateActiveLink();
   </script>
 </body>
 
