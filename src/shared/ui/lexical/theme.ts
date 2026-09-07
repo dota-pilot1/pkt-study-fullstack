@@ -30,11 +30,13 @@ export const editorTheme: EditorThemeClasses = {
     },
   },
   link: 'text-brand-primary underline hover:brightness-110 cursor-pointer',
-  table: 'w-full border-collapse my-5 table-fixed',
+  // The scroll wrapper owns vertical spacing. Giving both wrapper and table `my-*`
+  // doubled the gap between a heading and its table.
+  table: 'w-full border-collapse table-fixed',
   tableRow: '',
   tableCell: 'border border-surface-border px-5 py-4 text-sm leading-6 text-text-primary align-top min-w-[80px] break-words whitespace-normal [&_p]:whitespace-pre-wrap',
   tableCellHeader: 'border border-surface-border px-5 py-4 text-sm leading-6 font-semibold text-text-primary text-center align-top break-words whitespace-normal [&_p]:whitespace-pre-wrap',
-  tableScrollableWrapper: 'overflow-x-auto my-5',
+  tableScrollableWrapper: 'overflow-x-auto mt-2 mb-5',
   code: 'block bg-surface-muted text-text-primary font-mono text-sm p-3 rounded-lg my-4 whitespace-pre overflow-x-auto border border-surface-border-soft',
   codeHighlight: {
     // These are deliberately stable CSS classes. Tailwind cannot reliably

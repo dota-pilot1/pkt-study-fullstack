@@ -1,9 +1,10 @@
-export const WORKSTREAMS = ["POLICY", "BACKEND", "FRONTEND", "API", "DEVOPS"] as const;
+// Security는 인증·인가처럼 Backend·Frontend·Policy를 함께 가로지르는 작업 축이다.
+export const WORKSTREAMS = ["SECURITY", "BACKEND", "FRONTEND", "API", "DEVOPS", "POLICY"] as const;
 export type TodoWorkstream = (typeof WORKSTREAMS)[number];
 // API는 구현 작업의 담당 영역이 아니라 계약·검증 산출물이다.
 // 기존 API 분류 데이터는 Backend 작업 탭에서 호환해 보여 준다.
-// 작업은 구현 흐름을 먼저 보여 주고, 기준을 정하는 Policy는 마지막에 둔다.
-export const TASK_WORKSTREAMS = ["BACKEND", "FRONTEND", "DEVOPS", "POLICY"] as const;
+// API는 Backend 탭에 호환해 보여 주고, Security는 우선 작업 축으로 먼저 노출한다.
+export const TASK_WORKSTREAMS = ["SECURITY", "BACKEND", "FRONTEND", "DEVOPS", "POLICY"] as const;
 
 export const TODO_STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 export type TodoStatus = (typeof TODO_STATUSES)[number];
@@ -71,11 +72,12 @@ export const TODO_CATEGORIES: Array<{ id: TodoCategory; label: string; badgeClas
 ];
 
 export const WORKSTREAM_META: Record<TodoWorkstream, { label: string; badgeClass: string }> = {
-  POLICY: { label: "Policy", badgeClass: "bg-rose-500/10 text-rose-700 border-rose-200" },
+  SECURITY: { label: "Security", badgeClass: "bg-red-500/10 text-red-700 border-red-200" },
   BACKEND: { label: "Backend", badgeClass: "bg-sky-500/10 text-sky-700 border-sky-200" },
   FRONTEND: { label: "Frontend", badgeClass: "bg-violet-500/10 text-violet-700 border-violet-200" },
   API: { label: "API", badgeClass: "bg-emerald-500/10 text-emerald-700 border-emerald-200" },
   DEVOPS: { label: "DevOps", badgeClass: "bg-amber-500/10 text-amber-700 border-amber-200" },
+  POLICY: { label: "Policy", badgeClass: "bg-rose-500/10 text-rose-700 border-rose-200" },
 };
 
 export const STATUS_META: Record<TodoStatus, { label: string; className: string }> = {

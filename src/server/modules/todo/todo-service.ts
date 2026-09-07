@@ -4,7 +4,8 @@ import { and, asc, eq, like, max, or } from "drizzle-orm";
 import { users, workTodos } from "@/db/schema";
 import { db } from "@/server/database";
 
-export const WORKSTREAMS = ["POLICY", "BACKEND", "FRONTEND", "API", "DEVOPS"] as const;
+// Security는 인증·인가처럼 여러 구현 계층을 가로지르는 독립 작업 축이다.
+export const WORKSTREAMS = ["SECURITY", "BACKEND", "FRONTEND", "API", "DEVOPS", "POLICY"] as const;
 export type Workstream = (typeof WORKSTREAMS)[number];
 export const TODO_STATUSES = ["TODO", "IN_PROGRESS", "BLOCKED", "DONE"] as const;
 export type TodoStatus = (typeof TODO_STATUSES)[number];

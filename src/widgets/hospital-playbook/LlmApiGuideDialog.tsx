@@ -7,7 +7,6 @@ import { useToast } from "../../shared/ui/toast";
 import ApiGuideDialogShell from "./ApiGuideDialogShell";
 import ImplementationNoteSamplePreview from "./ImplementationNoteSamplePreview";
 
-type CopyMode = "default" | "document" | "implementation" | "review" | "all";
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 type ApiItem = { id: string; label: string; method: HttpMethod; endpoint: string; summary: string; content: string };
 
@@ -26,16 +25,7 @@ const methodClass: Record<HttpMethod, string> = {
   DELETE: "bg-rose-100 text-rose-700",
 };
 
-const modes: Array<{ id: CopyMode; label: string; description: string }> = [
-  { id: "default", label: "기본", description: "필요한 API만 직접 골라 LLM에 전달할 때" },
-  { id: "document", label: "문서 작성", description: "정책·요구사항·설계 문서를 새로 쓰거나 고칠 때" },
-  { id: "implementation", label: "구현 기록", description: "실제 API·프론트 구현 과정과 검증을 기록할 때" },
-  { id: "review", label: "코드 리뷰", description: "기존 문서와 구현 맥락을 읽고 검토할 때" },
-  { id: "all", label: "전체", description: "모든 API를 직접 선택할 때" },
-];
-
 export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, scope, onClose }: LlmApiGuideDialogProps) {
-  const [mode, setMode] = useState<CopyMode>("default");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -104,15 +94,7 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
     },
   ];
 
-  const presets: Record<CopyMode, string[]> = {
-    default: [],
-    document: ["tree", "topic", "topic-documents", "create-document", "patch-content"],
-    implementation: ["tree", "topic", "topic-documents", "samples", "create-document", "patch-content", "create-child", "reorder"],
-    review: ["tree", "topic", "topic-documents", "samples"],
-    all: items.map((item) => item.id),
-  };
   const selectedItems = items.filter((item) => selectedIds.includes(item.id));
-  const activeMode = modes.find((item) => item.id === mode) ?? modes[0];
   const title = scope === "topic" ? "2차 주제 편집" : "전체 노트 편집";
   const description = scope === "topic"
     ? `선택한 2차 주제(${topicId ?? "ID 미확인"})의 문서·하위 문서를 조회·작성·수정합니다.`
@@ -136,10 +118,7 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
     "먼저 현재 위치와 기존 문서를 조회해 중복 생성을 피하세요. 수정 전 최신 version을 확인하고, 저장 시 expectedVersion을 사용하세요. 충돌(409)이면 다시 조회한 최신 version으로 반영하세요.",
   ].join("\n");
 
-  const selectMode = (nextMode: CopyMode) => {
-    setMode(nextMode);
-    setSelectedIds(presets[nextMode]);
-  };
+  const applyQuickSelection = (ids: string[]) => setSelectedIds(ids);
   const toggleItem = (id: string) => {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
@@ -210,21 +189,15 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
             <span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">선택한 API와 작성 샘플에 함께 넣을 작업 조건을 작성하세요.</span>
             <textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={5} placeholder="예: 기존 문서 구조를 따르고, 중복 문서는 만들지 마세요." className="w-full resize-y rounded-lg border border-surface-border-soft bg-surface p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
           </label>
-          <div className="mb-4 rounded-lg border border-brand-primary/20 bg-brand-primary/5 px-4 py-3">
-            <h3 className="text-base font-black text-text-primary">{activeMode.label}</h3>
-            <p className="mt-1 text-xs font-semibold leading-5 text-text-muted">{activeMode.description} 탭을 누르면 필요한 API가 자동 선택됩니다. 표에서 원하는 항목만 추가하거나 뺄 수 있습니다.</p>
-          </div>
-          <div className="mb-4">
-          <nav className="flex w-fit min-w-full gap-1 overflow-x-auto rounded-lg border border-surface-border-soft bg-surface-muted p-1" role="tablist" aria-label="작업 목적 선택">
-            {modes.map((item) => (
-              <button key={item.id} type="button" role="tab" aria-selected={mode === item.id} onClick={() => selectMode(item.id)} className={"shrink-0 rounded-md px-3 py-2 text-xs font-black transition " + (mode === item.id ? "bg-brand-primary text-white shadow-sm" : "bg-surface-raised text-text-muted hover:bg-white hover:text-text-primary")}>
-                {item.label}
-              </button>
-            ))}
-          </nav>
-          </div>
-          <div className="mb-2 flex justify-end">
-            <button type="button" onClick={() => void copySelectedApis()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-1.5" aria-label="자주 쓰는 API 빠른 선택">
+              <span className="mr-1 text-[11px] font-black text-text-muted">빠른 선택</span>
+              <button type="button" onClick={() => applyQuickSelection(scope === "topic" ? ["topic", "topic-documents"] : ["tree"])} className="rounded-md border border-surface-border-soft bg-surface-raised px-2.5 py-1.5 text-[11px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">현재 위치 확인</button>
+              <button type="button" onClick={() => applyQuickSelection(["tree", "topic", "topic-documents", "create-document", "patch-content"])} className="rounded-md border border-surface-border-soft bg-surface-raised px-2.5 py-1.5 text-[11px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">문서 편집</button>
+              <button type="button" onClick={() => applyQuickSelection(["tree", "topic", "topic-documents", "samples", "create-child"])} className="rounded-md border border-surface-border-soft bg-surface-raised px-2.5 py-1.5 text-[11px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">구현 기록</button>
+              <button type="button" onClick={() => applyQuickSelection([])} className="rounded-md px-2 py-1.5 text-[11px] font-black text-text-muted hover:text-text-primary">초기화</button>
+            </div>
+            <button type="button" onClick={() => void copySelectedApis()} className="ui-icon-button-brand h-8 shrink-0 gap-1.5 px-2.5 text-[11px] font-black">
               {selectedApisCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
               선택 API 복사 ({selectedItems.length})
             </button>
