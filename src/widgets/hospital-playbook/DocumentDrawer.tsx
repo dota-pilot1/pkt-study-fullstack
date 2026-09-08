@@ -37,7 +37,7 @@ function DocumentDrawer({
   onDelete,
   onClose,
   onOpenPage,
-  onOpenContextApi,
+  onOpenContentApi,
   onOpenApiDesign,
   onChanged,
   onRefresh,
@@ -56,7 +56,7 @@ function DocumentDrawer({
   onDelete: () => void;
   onClose: () => void;
   onOpenPage?: () => void;
-  onOpenContextApi: () => void;
+  onOpenContentApi: () => void;
   onOpenApiDesign: () => void;
   onChanged: () => void;
   onRefresh: () => Promise<unknown>;
@@ -346,7 +346,7 @@ function DocumentDrawer({
               <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center gap-1 px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenApiDesign} title="API 설계 작업 지시" aria-label="API 설계 작업 지시">
                 API 설계 <Braces className="size-3.5" />
               </button>
-              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContextApi} title="본문 편집 지시" aria-label="본문 편집 지시">
+              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContentApi} title="본문 편집 지시" aria-label="본문 편집 지시">
                 본문 편집
               </button>
             </div>

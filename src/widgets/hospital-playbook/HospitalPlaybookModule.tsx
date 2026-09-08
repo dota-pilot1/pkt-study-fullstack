@@ -40,7 +40,7 @@ import {
 import DocumentDrawer from "./DocumentDrawer";
 import DocumentPage from "./DocumentPage";
 import DocumentPane from "./DocumentPane";
-import DocumentContextApiDialog from "./DocumentContextApiDialog";
+import DocumentContentApiDialog from "./DocumentContentApiDialog";
 import ApiDesignDocumentDialog from "./ApiDesignDocumentDialog";
 import ListColumn from "./ListColumn";
 import LlmApiGuideDialog from "./LlmApiGuideDialog";
@@ -148,7 +148,7 @@ function SortableTreeDocumentRow({
   onToggle,
   onAddChild,
   onOpenPage,
-  onOpenContextApi,
+  onOpenContentApi,
 }: {
   document: PlaybookDocumentSummary;
   depth: number;
@@ -159,7 +159,7 @@ function SortableTreeDocumentRow({
   onToggle: () => void;
   onAddChild: () => void;
   onOpenPage: () => void;
-  onOpenContextApi: () => void;
+  onOpenContentApi: () => void;
 }) {
   const {
     ref,
@@ -249,7 +249,7 @@ function SortableTreeDocumentRow({
         {depth === 0 && (
           <button
             type="button"
-            onClick={onOpenContextApi}
+            onClick={onOpenContentApi}
             className="ui-icon-button h-7 gap-1 px-2 text-[10px] font-black text-brand-primary"
             title="본문 편집 지시"
             aria-label="본문 편집 지시"
@@ -324,7 +324,7 @@ function HospitalPlaybookModule({
   const [llmApiGuideOpen, setLlmApiGuideOpen] = useState(false);
   const [llmApiGuideScope, setLlmApiGuideScope] = useState<"all" | "topic">("all");
   const [todoDrawerOpen, setTodoDrawerOpen] = useState(false);
-  const [contextApiDocument, setContextApiDocument] =
+  const [contentApiDocument, setContentApiDocument] =
     useState<PlaybookDocumentSummary | null>(null);
   const [apiDesignDocument, setApiDesignDocument] =
     useState<PlaybookDocumentSummary | null>(null);
@@ -1110,8 +1110,8 @@ function HospitalPlaybookModule({
                               onOpenPage={() =>
                                 setPageDocumentId(document.id)
                               }
-                              onOpenContextApi={() =>
-                                setContextApiDocument(document)
+                              onOpenContentApi={() =>
+                                setContentApiDocument(document)
                               }
                             />
                           ) : null,
@@ -1157,7 +1157,7 @@ function HospitalPlaybookModule({
             setPageDocumentId(detail.id);
           }}
           onOpenApiDesign={() => setApiDesignDocument(detail)}
-          onOpenContextApi={() => setContextApiDocument(detail)}
+          onOpenContentApi={() => setContentApiDocument(detail)}
           onDelete={() => deleteDocument.mutate(detail.id)}
           onClose={() => setDrawerDocumentId(null)}
           deleting={deleteDocument.isPending}
@@ -1194,12 +1194,11 @@ function HospitalPlaybookModule({
           onClose={() => setLlmApiGuideOpen(false)}
         />
       )}
-      {contextApiDocument && (
-        <DocumentContextApiDialog
-          documentId={contextApiDocument.id}
-          topicId={contextApiDocument.topicId}
-          documentTitle={contextApiDocument.title}
-          onClose={() => setContextApiDocument(null)}
+      {contentApiDocument && (
+        <DocumentContentApiDialog
+          documentId={contentApiDocument.id}
+          documentTitle={contentApiDocument.title}
+          onClose={() => setContentApiDocument(null)}
         />
       )}
       {apiDesignDocument && (
