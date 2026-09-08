@@ -1,13 +1,14 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
 import { buildDocumentDeepLink } from "@/features/hospital-playbook/document-deep-link";
-import { Braces, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Braces, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, MoreHorizontal, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import type { PlaybookDomain } from "../../features/hospital-playbook/api";
 import { playbookApi } from "../../features/hospital-playbook/api";
 import { ApiError, getApiBase } from "../../shared/api/client";
 import { copyToClipboard } from "../../shared/lib/clipboard";
+import { DropdownMenu, DropdownMenuItem, DropdownMenuSeparator } from "../../shared/ui/dropdown-menu";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
 import DocumentComments from "./DocumentComments";
@@ -82,6 +83,7 @@ function DocumentDrawer({
   const [searchMatchCount, setSearchMatchCount] = useState(0);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [moreActionsOpen, setMoreActionsOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,7 +94,17 @@ function DocumentDrawer({
     setSearchQuery("");
     setSearchMatchIndex(0);
     setSearchMatchCount(0);
+    setMoreActionsOpen(false);
   }, [document.id]);
+
+  const drawerWidth =
+    drawerSize === 40
+      ? "clamp(620px, 46vw, 800px)"
+      : drawerSize === 60
+        ? "clamp(760px, 62vw, 1080px)"
+        : drawerSize === 80
+          ? "clamp(900px, 80vw, 1440px)"
+          : "clamp(1040px, 92vw, 1680px)";
 
   const handleClose = useCallback(() => {
     setIsClosing(true);
@@ -241,7 +253,7 @@ function DocumentDrawer({
         className={`relative flex h-full w-full max-w-[760px] flex-col border-l border-surface-border bg-surface-raised shadow-2xl transition-[width] duration-300 ease-in-out ${
           isClosing ? "animate-drawer-slide-out" : "animate-drawer-slide-in"
         }`}
-        style={{ width: `${drawerSize}vw`, maxWidth: "none" }}
+        style={{ width: drawerWidth, maxWidth: "100vw" }}
       >
         {loading && (
           <div className="absolute inset-0 z-30 grid place-items-center bg-surface-raised/75 backdrop-blur-[1px]">
@@ -251,110 +263,36 @@ function DocumentDrawer({
             </div>
           </div>
         )}
-        {/* 패널 사이드 일체형 도구 레일 */}
-        <div
-          className="absolute left-0 top-28 z-20 flex -translate-x-full flex-col items-center rounded-l-xl border border-r-0 border-surface-border bg-surface-raised p-1 shadow-[-4px_0_14px_rgba(0,0,0,0.07)]"
-          aria-label="상세 패널 도구"
-        >
-          <button
-            type="button"
-            className={`grid size-7.5 place-items-center rounded-lg text-xs font-black transition-all ${
-              searchOpen
-                ? "border border-emerald-500 bg-white text-emerald-600 shadow-xs scale-105"
-                : "border border-transparent text-text-muted hover:bg-surface-muted hover:text-text-primary"
-            }`}
-            onClick={searchOpen ? closeSearch : openSearch}
-            disabled={isEditing || !document.content.trim()}
-            title="본문 검색 (⌘/Ctrl+F)"
-            aria-label="본문 검색"
-            aria-pressed={searchOpen}
-          >
-            <Search className="size-3.5" />
-          </button>
-          <div className="my-1 h-px w-5 bg-surface-border-soft" />
-          {DRAWER_SIZES.map((size) => {
-            const selected = drawerSize === size.value;
-            return (
-              <button
-                key={size.label}
-                type="button"
-                aria-label={`드로워 크기 ${size.label} (${size.value}%)`}
-                title={`너비 ${size.label} (${size.value}%)`}
-                aria-pressed={selected}
-                onClick={() => {
-                  setDrawerSize(size.value);
-                  window.localStorage.setItem(DRAWER_SIZE_KEY, String(size.value));
-                }}
-                className={`grid size-7.5 place-items-center rounded-lg text-xs font-black transition-all ${
-                  selected
-                    ? "bg-brand-primary text-white shadow-xs scale-105"
-                    : "text-text-muted hover:bg-surface-muted hover:text-text-primary"
-                }`}
-              >
-                {size.label}
-              </button>
-            );
-          })}
-
+        <div className="absolute left-0 z-20 flex -translate-x-full -translate-y-1/2 flex-col items-center gap-0.5 rounded-l-xl border border-r-0 border-surface-border bg-surface-raised p-1.5 shadow-[-4px_0_14px_rgba(0,0,0,0.07)]" style={{ top: "26%" }} aria-label="상세 보기 너비">
+          {DRAWER_SIZES.map((size) => <button key={size.label} type="button" aria-label={`드로어 크기 ${size.label}`} title={`너비 ${size.label} (${size.value}%)`} aria-pressed={drawerSize === size.value} onClick={() => { setDrawerSize(size.value); window.localStorage.setItem(DRAWER_SIZE_KEY, String(size.value)); }} className={`grid size-8 place-items-center rounded-lg text-[11px] font-black transition-all ${drawerSize === size.value ? "bg-brand-primary text-white shadow-xs" : "text-text-muted hover:bg-surface-muted hover:text-text-primary"}`}>{size.label}</button>)}
         </div>
-        <header className="flex shrink-0 items-center gap-3 border-b border-surface-border px-5 py-3.5">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-black text-brand-primary">개발 노트 · {isEditing ? "수정" : "상세 보기"}</p>
-            {!isEditing && <h2 className="mt-0.5 truncate text-lg font-black text-text-primary">{document.title}</h2>}
-          </div>
-          <div className="flex max-w-full shrink-0 flex-nowrap justify-end gap-1.5 overflow-x-auto [scrollbar-width:thin]">
+        <header className="relative shrink-0 border-b border-surface-border bg-surface-raised">
+          <div className="flex min-h-[64px] items-center gap-3 px-5 py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-black text-brand-primary">개발 노트 · {isEditing ? "수정" : "상세 보기"}</p>
+              {!isEditing && <h2 className="mt-0.5 truncate text-lg font-black text-text-primary">{document.title}</h2>}
+            </div>
             <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                type="button"
-                className="ui-icon-button size-8 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40"
-                onClick={() => void refreshDocument()}
-                disabled={isRefreshing}
-                title="문서 새로고침"
-                aria-label="문서 새로고침"
-              >
-                <RefreshCw className={`size-4 ${isRefreshing ? "refresh-icon-spin" : ""}`} />
-              </button>
+              <button type="button" className={`ui-icon-button size-8 ${searchOpen ? "border-emerald-500 bg-emerald-50 text-emerald-600" : "text-text-muted"}`} onClick={searchOpen ? closeSearch : openSearch} disabled={isEditing || !document.content.trim()} title="본문 검색 (⌘/Ctrl+F)" aria-label="본문 검색" aria-pressed={searchOpen}><Search className="size-3.5" /></button>
+              <button type="button" className="ui-icon-button size-8 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40" onClick={() => void refreshDocument()} disabled={isRefreshing} title="문서 새로고침" aria-label="문서 새로고침"><RefreshCw className={`size-4 ${isRefreshing ? "refresh-icon-spin" : ""}`} /></button>
               <BookmarkButton document={document} />
-              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black" onClick={() => void copyDocumentLink()} title="앱 문서 링크 복사" aria-label="앱 문서 링크 복사">
-                {linkCopied ? "복사됨" : "링크 복사"}
-              </button>
-              <button
-                type="button"
-                className={`ui-icon-button h-8 min-w-[58px] justify-center px-2.5 text-[11px] font-black ${isEditing ? "bg-brand-primary text-white" : ""}`}
-                onClick={() => {
-                  closeSearch();
-                  setIsEditing(true);
-                }}
-                title="수정"
+              <button type="button" className={`ui-icon-button h-8 px-2.5 text-[11px] font-black ${isEditing ? "bg-brand-primary text-white" : ""}`} onClick={() => { closeSearch(); setIsEditing(true); }} title="수정">수정</button>
+              <DropdownMenu
+                open={moreActionsOpen}
+                onOpenChange={setMoreActionsOpen}
+                trigger={<button type="button" className="ui-icon-button size-8" title="추가 도구" aria-label="추가 도구"><MoreHorizontal className="size-4" /></button>}
               >
-                수정
-              </button>
-              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black" onClick={() => setLocationDialogOpen(true)} disabled={isEditing} title="문서 위치 이동" aria-label="문서 위치 이동">
-                위치 이동
-              </button>
-              {onOpenPage && <button type="button" className="ui-icon-button h-8 min-w-[64px] justify-center px-2.5 text-[11px] font-black" onClick={onOpenPage} title="전체 페이지로 보기">
-                전체 보기
-              </button>}
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5 border-l border-surface-border pl-1.5">
-              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={() => void copyShareLink()} disabled={isSharing} title="로그인 없이 읽는 공유 링크 복사">
-                {shareCopied ? "복사됨" : "공유 링크"}
-              </button>
-              <button type="button" className="ui-icon-button h-8 min-w-[102px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="본문 조회 + 수정 지시를 한 번에 복사" aria-label="본문 조회 + 수정 지시를 한 번에 복사">
-                {agentCopied ? "복사됨" : "본문 조회·수정"}
-              </button>
-              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center gap-1 px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenApiDesign} title="API 설계 작업 지시" aria-label="API 설계 작업 지시">
-                API 설계 <Braces className="size-3.5" />
-              </button>
-              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContentApi} title="본문 편집 지시" aria-label="본문 편집 지시">
-                본문 편집
-              </button>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5 border-l border-surface-border pl-1.5">
-              {canDelete ? <button type="button" className="ui-icon-button size-8 text-destructive" onClick={() => setDeleteConfirmOpen(true)} title="삭제"><Trash2 className="size-4" /></button> : null}
-              <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기">
-                <X className="size-4" />
-              </button>
+                <DropdownMenuItem onAction={() => setLocationDialogOpen(true)} disabled={isEditing}>위치 이동</DropdownMenuItem>
+                {onOpenPage && <DropdownMenuItem onAction={onOpenPage}>전체 보기</DropdownMenuItem>}
+                <DropdownMenuItem onAction={() => void copyDocumentLink()}>{linkCopied ? "앱 링크 복사됨" : "앱 링크 복사"}</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-brand-primary" onAction={() => void copyShareLink()} disabled={isSharing}>{shareCopied ? "공유 링크 복사됨" : "공유 링크"}</DropdownMenuItem>
+                <DropdownMenuItem className="text-brand-primary" onAction={() => void copyAgentConnection()}>{agentCopied ? "Agent 정보 복사됨" : "본문 조회·수정"}</DropdownMenuItem>
+                <DropdownMenuItem className="gap-1 text-brand-primary" onAction={onOpenApiDesign}>API 설계 <Braces className="size-3.5" /></DropdownMenuItem>
+                <DropdownMenuItem className="text-brand-primary" onAction={onOpenContentApi}>본문 편집</DropdownMenuItem>
+                {canDelete ? <><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onAction={() => setDeleteConfirmOpen(true)}><Trash2 className="mr-1 size-3.5" />삭제</DropdownMenuItem></> : null}
+              </DropdownMenu>
+              <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기" aria-label="닫기"><X className="size-4" /></button>
             </div>
           </div>
         </header>
@@ -391,7 +329,7 @@ function DocumentDrawer({
           </div>
         )}
 
-        <div ref={contentRef} className="drawer-document-scroll min-h-0 flex-1 overflow-y-auto px-6 py-6">
+        <div ref={contentRef} className="drawer-document-scroll min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
           {isEditing ? (
             <DocumentPane
               documentId={document.id}
@@ -400,7 +338,7 @@ function DocumentDrawer({
               onCancel={() => setIsEditing(false)}
             />
           ) : document.content.trim() ? (
-            <div className="drawer-document-content overflow-hidden rounded-lg border border-surface-border-soft bg-white">
+            <div className="drawer-document-content mx-auto max-w-[960px] overflow-hidden rounded-xl border border-surface-border-soft bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <LexicalEditor
                 key={`${document.id}-${document.version}`}
                 initialState={document.content}

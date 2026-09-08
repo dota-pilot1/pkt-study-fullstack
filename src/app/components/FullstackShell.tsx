@@ -220,7 +220,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
   return (
     <ToastProvider><QueryClientProvider client={queryClient}><ShellUserContext.Provider value={user}><ActiveModuleContext.Provider value={active}><BookmarkProvider userId={user.email}>
       <div className="relative flex h-screen overflow-hidden">
-        <div ref={railMenuRef} className={"relative z-50 flex shrink-0 overflow-hidden will-change-[width] transition-[width] duration-300 ease-in-out " + (railCollapsed ? "w-0" : "w-[108px]")}>
+        <div ref={railMenuRef} className={"relative z-50 flex shrink-0 will-change-[width] transition-[width] duration-300 ease-in-out " + (accountOpen ? "overflow-visible " : "overflow-hidden ") + (railCollapsed ? "w-0" : "w-[108px]")}>
         <nav aria-hidden={railCollapsed} className={"relative flex h-full w-[108px] shrink-0 flex-col items-center text-text-on-brand will-change-transform transition-[transform,opacity] duration-300 ease-in-out " + (railCollapsed ? "pointer-events-none -translate-x-full opacity-0" : "translate-x-0 opacity-100")} style={{ backgroundImage: "linear-gradient(180deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 82%, black) 100%)" }}>
           <button type="button" onClick={() => selectModule("노트 홈")} className="flex h-12 w-full shrink-0 items-center justify-center border-b transition-colors hover:bg-white/10" style={{ borderColor: railTint(10) }}>
             <span className="text-[10px] font-black tracking-[0.06em] text-white">TIKITAKA</span>

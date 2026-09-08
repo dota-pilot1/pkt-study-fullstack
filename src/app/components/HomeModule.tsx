@@ -174,25 +174,25 @@ export function HomeModule(_props: { userName?: string; email?: string }) {
           </section>
 
           <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
-            <nav className="flex items-center gap-1" aria-label="홈 콘텐츠">
-              <button type="button" onClick={() => setActiveTab("goals")} className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12.5px] font-bold transition-all ${activeTab === "goals" ? "bg-brand-primary text-text-on-brand shadow-sm" : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"}`}>
-                <GraduationCap className="size-3.5" /> 현재 계획
-                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${activeTab === "goals" ? "bg-white/20" : "bg-surface-raised text-text-muted"}`}>{learningGoals.length}</span>
-              </button>
-              <button type="button" onClick={() => setActiveTab("news")} className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12.5px] font-bold transition-all ${activeTab === "news" ? "bg-brand-primary text-text-on-brand shadow-sm" : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"}`}>
-                <Newspaper className="size-3.5" /> 뉴스
-              </button>
-            </nav>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <nav className="flex items-center gap-1" aria-label="홈 콘텐츠">
+                <button type="button" onClick={() => setActiveTab("goals")} className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12.5px] font-bold transition-all ${activeTab === "goals" ? "bg-brand-primary text-text-on-brand shadow-sm" : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"}`}>
+                  <GraduationCap className="size-3.5" /> 현재 계획
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-black ${activeTab === "goals" ? "bg-white/20" : "bg-surface-raised text-text-muted"}`}>{learningGoals.length}</span>
+                </button>
+                <button type="button" onClick={() => setActiveTab("news")} className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-[12.5px] font-bold transition-all ${activeTab === "news" ? "bg-brand-primary text-text-on-brand shadow-sm" : "text-text-secondary hover:bg-surface-raised hover:text-text-primary"}`}>
+                  <Newspaper className="size-3.5" /> 뉴스
+                </button>
+              </nav>
 
-            {activeTab === "goals" && <div className="flex w-full items-center gap-2 sm:w-auto">
+              {activeTab === "goals" && <div className="ml-auto flex w-full items-center gap-2 sm:w-auto">
                 <label className="relative min-w-0 flex-1 sm:w-64">
                   <span className="sr-only">현재 계획 검색</span>
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-text-muted" />
                   <input type="search" placeholder="과제명, 스킬 검색..." value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="h-8 w-full rounded-lg border border-surface-border bg-surface-raised pl-8 pr-3 text-[11.5px] text-text-primary placeholder:text-text-muted focus:border-brand-border focus:outline-none focus:ring-1 focus:ring-brand-border" />
                 </label>
                 <Button ref={addButton} size="sm" disabled={pending || goalsQuery.isLoading || goalsQuery.isError} onClick={(event) => openDialog({ kind: "create" }, event.currentTarget)}><Plus className="size-4" />새 계획</Button>
-            </div>}
+              </div>}
             </div>
 
             {activeTab === "goals" && (

@@ -113,7 +113,7 @@ export function SpeechInputPlugin() {
   if (!browserSupported) return null;
   const active = phase !== 'idle';
   return <div className="relative ml-1 inline-flex shrink-0">
-    <button type="button" title={active ? '음성 입력 종료' : '말해서 바로 입력'} aria-label={active ? '음성 입력 종료' : '말해서 바로 입력'} aria-pressed={active} onMouseDown={event => event.preventDefault()} onClick={active ? stop : () => void start()} className={`${active ? 'ui-icon-button-danger h-8 gap-1.5 px-3 text-xs font-black' : 'ui-icon-button-brand size-8'} relative shadow-sm`}>
+    <button type="button" title={active ? '음성 입력 종료' : '말해서 바로 입력'} aria-label={active ? '음성 입력 종료' : '말해서 바로 입력'} aria-pressed={active} onMouseDown={event => event.preventDefault()} onClick={active ? stop : () => void start()} className={active ? 'ui-icon-button-danger relative h-8 gap-1.5 px-3 text-xs font-black shadow-sm' : 'ui-icon-button size-8 text-text-muted hover:text-brand-primary'}>
       {phase === 'listening' ? <Square className="size-3.5" /> : <Mic className="size-4" />}
       {phase === 'listening' && <>듣는 중<span aria-hidden="true" className="size-2 animate-pulse rounded-full bg-white" /></>}
     </button>
