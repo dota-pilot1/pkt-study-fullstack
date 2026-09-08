@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { DragDropProvider } from "@dnd-kit/react";
 import { move } from "@dnd-kit/helpers";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, CheckCircle2, ChevronDown, Circle, ClipboardCopy, Download, FileCode2, FolderOpen, GripVertical, ListTodo, Loader2, Pencil, Plus, RefreshCw, Search, Star, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CheckCircle2, ChevronDown, Circle, ClipboardCopy, Download, FileCode2, FolderOpen, GripVertical, ListTodo, Loader2, Pencil, Plus, RefreshCw, Search, Star, Trash2, X } from "lucide-react";
 import { STATUS_META, TODO_STATUSES, TASK_WORKSTREAMS, WORKSTREAM_META, type TodoChecklistItem, type TodoItem, type TodoScope, type TodoStatus, type TodoVerificationCheck, type TodoWorkstream } from "./types";
 import { useTodos } from "./useTodos";
 import { copyToClipboard } from "@/shared/lib/clipboard";
@@ -163,7 +163,6 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: Tod
     <section className={`absolute inset-0 z-40 flex flex-col bg-surface-raised will-change-transform ${isClosing ? "animate-drawer-slide-out" : "animate-drawer-slide-in"}`}>
       <header className="flex shrink-0 items-center justify-between border-b border-surface-border-soft px-5 py-4">
         <div className="min-w-0">
-          <button type="button" onClick={closeDetail} className="mb-1 inline-flex items-center gap-1 text-[11px] font-bold text-text-muted hover:text-brand-primary"><ArrowLeft className="size-3.5" />작업 목록</button>
           <h3 className="truncate text-base font-black text-text-primary">{title || "작업 편집"}</h3>
           <p className="mt-0.5 text-[10px] text-text-muted">v{todo.version} · {todo.updatedByType === "AGENT" ? "Agent 수정" : "사용자 수정"} · {new Date(todo.updatedAt).toLocaleString("ko-KR")}</p>
         </div>

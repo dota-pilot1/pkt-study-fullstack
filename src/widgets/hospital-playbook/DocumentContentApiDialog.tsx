@@ -10,6 +10,13 @@ type DocumentContentApiDialogProps = {
 
 type WorkMode = "content" | "children";
 
+const DOCUMENT_WRITING_GUIDELINES = [
+  "- 일반 설명은 인용문이 아닌 일반 문단으로 작성합니다.",
+  "- 문서 첫 소개는 필요한 경우에만 인용문으로 한 번 작성합니다.",
+  "- 경고·결론처럼 꼭 강조할 내용에만 인용문 또는 형광펜을 사용합니다.",
+  "- 코드와 설명 사이는 일반 문단의 기본 여백으로 구분합니다.",
+];
+
 /** 본문 편집과 하위 문서 작업을 한 화면에서 전환해 각각에 맞는 API 지시문을 만든다. */
 export default function DocumentContentApiDialog({
   documentId,
@@ -37,6 +44,9 @@ export default function DocumentContentApiDialog({
             "새 하위 문서는 parentId에 상위 문서 ID를 사용합니다. 기존 하위 문서를 수정할 때는 해당 문서를 다시 조회해 최신 version과 parentId를 확인합니다.",
           ]
         : ["먼저 현재 문서와 최신 version을 조회합니다. 수정할 때는 조회 결과의 version을 expectedVersion으로 사용하고, parentId는 조회 결과의 값을 그대로 유지합니다."]),
+      "",
+      "## 문서 작성 기본 지침",
+      ...DOCUMENT_WRITING_GUIDELINES,
       ...(additionalInstruction.trim()
         ? ["", "## 추가 지시", additionalInstruction.trim()]
         : []),
