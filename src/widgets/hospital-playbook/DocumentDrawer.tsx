@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
 import { buildDocumentDeepLink } from "@/features/hospital-playbook/document-deep-link";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { Braces, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import type { PlaybookDomain } from "../../features/hospital-playbook/api";
@@ -38,6 +38,7 @@ function DocumentDrawer({
   onClose,
   onOpenPage,
   onOpenContextApi,
+  onOpenApiDesign,
   onChanged,
   onRefresh,
   documents,
@@ -56,6 +57,7 @@ function DocumentDrawer({
   onClose: () => void;
   onOpenPage?: () => void;
   onOpenContextApi: () => void;
+  onOpenApiDesign: () => void;
   onChanged: () => void;
   onRefresh: () => Promise<unknown>;
   documents: PlaybookDocumentSummary[];
@@ -340,6 +342,9 @@ function DocumentDrawer({
               </button>
               <button type="button" className="ui-icon-button h-8 min-w-[102px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={() => void copyAgentConnection()} title="본문 조회 + 수정 지시를 한 번에 복사" aria-label="본문 조회 + 수정 지시를 한 번에 복사">
                 {agentCopied ? "복사됨" : "본문 조회·수정"}
+              </button>
+              <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center gap-1 px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenApiDesign} title="API 설계 작업 지시" aria-label="API 설계 작업 지시">
+                API 설계 <Braces className="size-3.5" />
               </button>
               <button type="button" className="ui-icon-button h-8 min-w-[76px] justify-center px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContextApi} title="본문 편집 지시" aria-label="본문 편집 지시">
                 본문 편집

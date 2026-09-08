@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, FileJson, ListTree } from "lucide-react";
 import type { PlaybookDomain, PlaybookSampleKey } from "../../features/hospital-playbook/api";
 import { getApiBase } from "../../shared/api/client";
 import { copyToClipboard } from "../../shared/lib/clipboard";
 import { useToast } from "../../shared/ui/toast";
+import { ViewModeToggle } from "../../shared/ui/view-mode-toggle";
 import ApiGuideDialogShell from "./ApiGuideDialogShell";
 import ImplementationNoteSamplePreview from "./ImplementationNoteSamplePreview";
 
@@ -26,8 +27,10 @@ const methodClass: Record<HttpMethod, string> = {
 };
 
 export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, scope, onClose }: LlmApiGuideDialogProps) {
+  const [mode, setMode] = useState<"general" | "api-design">("general");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
+  const [apiDesignTitle, setApiDesignTitle] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedApisCopied, setSelectedApisCopied] = useState(false);
   const [additionalInstruction, setAdditionalInstruction] = useState("");
@@ -95,18 +98,22 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
   ];
 
   const selectedItems = items.filter((item) => selectedIds.includes(item.id));
-  const title = scope === "topic" ? "2차 주제 편집" : "전체 노트 편집";
-  const description = scope === "topic"
+  const isApiDesignMode = scope === "topic" && mode === "api-design";
+  const title = isApiDesignMode ? "API 설계 문서 추가" : scope === "topic" ? "2차 주제 편집" : "전체 노트 편집";
+  const description = isApiDesignMode
+    ? `선택한 2차 주제(${topicId ?? "ID 미확인"})에 API 설계 본문을 추가하거나, 같은 목적의 기존 문서를 보강합니다.`
+    : scope === "topic"
     ? `선택한 2차 주제(${topicId ?? "ID 미확인"})의 문서·하위 문서를 조회·작성·수정합니다.`
     : "현재 영역의 전체 노트 구조와 문서를 조회·작성·수정합니다.";
   const instruction = [
-    "다음 작업을 진행해 주세요.",
+    isApiDesignMode ? "다음 API 설계 문서를 작성하거나 보강해 주세요." : "다음 작업을 진행해 주세요.",
     "",
     "## 작업 대상",
     ...(scope === "topic" ? [`- 2차 주제 ID: ${topicId ?? "확인 필요"}`, `- spaceCode: ${domain}`] : [`- 전체 노트 영역: ${domain}`]),
     "",
-    "## 작업 목표",
-    scope === "topic" ? "선택한 2차 주제의 기존 문서와 하위 문서를 확인한 뒤, 필요한 문서를 조회·작성·수정합니다." : "현재 영역의 메뉴·2차 주제·문서 구조를 확인한 뒤, 필요한 노트를 조회·작성·수정합니다.",
+    isApiDesignMode ? "## API 설계 목표" : "## 작업 목표",
+    isApiDesignMode ? "선택한 2차 주제의 기존 API 설계 문서를 먼저 확인합니다. 같은 목적의 문서가 있으면 최신 version을 기준으로 보강하고, 없으면 API 엔드포인트 하나당 본문 문서 하나를 만듭니다. 하위 문서는 만들지 않습니다." : scope === "topic" ? "선택한 2차 주제의 기존 문서와 하위 문서를 확인한 뒤, 필요한 문서를 조회·작성·수정합니다." : "현재 영역의 메뉴·2차 주제·문서 구조를 확인한 뒤, 필요한 노트를 조회·작성·수정합니다.",
+    ...(isApiDesignMode ? ["", "## 새 API 설계 문서", `- 제목: ${apiDesignTitle.trim() || "미작성 — API 목적에 맞는 제목을 제안해 주세요."}`, "", "## API 설계 문서 기준", "- API의 목적, 범위·제외 범위, 요청 계약, 성공 응답, 서버 처리 규칙, 오류 응답 기준, 구현·검증 연결을 작성합니다.", "- 요청·성공 응답은 JSON 코드 블록으로 작성합니다.", "- 일반 설명은 기본 본문 텍스트·제목·목록으로 구성하고, 인용문은 경고·예외·결정 보류처럼 특별히 강조할 내용에만 사용합니다."] : []),
     ...(additionalInstruction.trim() ? ["", "## 추가 지시", additionalInstruction.trim()] : []),
     "",
     "## 선택한 API",
@@ -115,10 +122,14 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
     ...(selectedSampleKeys.length ? selectedSampleKeys.map((sampleKey) => `- GET ${base}/samples/${sampleKey}: ${sampleKey} Lexical 작성 구조 참고`) : ["- 선택한 샘플 없음"]),
     "",
     "## 작업 방식",
-    "먼저 현재 위치와 기존 문서를 조회해 중복 생성을 피하세요. 수정 전 최신 version을 확인하고, 저장 시 expectedVersion을 사용하세요. 충돌(409)이면 다시 조회한 최신 version으로 반영하세요.",
+    isApiDesignMode ? "먼저 현재 위치와 기존 문서를 조회해 중복 생성을 피하세요. 같은 목적의 문서가 있으면 해당 본문을 GET으로 다시 조회한 뒤 최신 expectedVersion으로 저장하고, 없으면 새 본문을 만드세요. 인용문 대신 일반 본문·제목·목록·JSON 코드 블록으로 문서 위계를 구성하세요. 409 충돌이면 최신 version을 다시 조회해 반영하세요." : "먼저 현재 위치와 기존 문서를 조회해 중복 생성을 피하세요. 수정 전 최신 version을 확인하고, 저장 시 expectedVersion을 사용하세요. 충돌(409)이면 다시 조회한 최신 version으로 반영하세요.",
   ].join("\n");
 
   const applyQuickSelection = (ids: string[]) => setSelectedIds(ids);
+  const switchMode = (nextMode: "general" | "api-design") => {
+    setMode(nextMode);
+    setSelectedIds(nextMode === "api-design" ? ["tree", "topic", "topic-documents", "create-document", "patch-content"] : []);
+  };
   const toggleItem = (id: string) => {
     setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
@@ -180,10 +191,12 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
       onClose={onClose}
       ariaLabel={title}
       copyLabel="지시문 복사"
-      footer={<p>API와 작성 샘플을 선택하거나 추가 지시를 입력하면 오른쪽 작업 지시가 즉시 갱신됩니다.</p>}
+      headerActions={scope === "topic" ? <ViewModeToggle value={mode} onChange={switchMode} ariaLabel="2차 주제 편집 모드" items={[{ value: "general", label: "일반 편집", icon: ListTree }, { value: "api-design", label: "API 설계", icon: FileJson }]} /> : undefined}
+      footer={<p>{isApiDesignMode ? "API 설계 문서는 엔드포인트 하나당 본문 하나로 관리합니다. 실제 구현 기록은 별도 TODO에서 이어갑니다." : "API와 작성 샘플을 선택하거나 추가 지시를 입력하면 오른쪽 작업 지시가 즉시 갱신됩니다."}</p>}
     >
       <div className="grid min-h-full min-w-0 grid-cols-1 lg:grid-cols-2">
         <section className="min-h-0 overflow-auto border-b border-surface-border-soft bg-surface-raised p-5 lg:border-b-0 lg:border-r">
+          {isApiDesignMode && <label className="mb-5 block"><span className="mb-1 block text-sm font-black text-text-primary">API 설계 문서 제목</span><span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">예: 회원 가입 API 설계 — 요청·응답과 처리 흐름</span><input value={apiDesignTitle} onChange={(event) => setApiDesignTitle(event.target.value)} placeholder="API 설계 문서 제목" className="h-10 w-full rounded-lg border border-surface-border-soft bg-surface px-3 text-sm text-text-primary outline-none focus:border-brand-border" /></label>}
           <label className="mb-5 block">
             <span className="mb-1 block text-sm font-black text-text-primary">추가 지시</span>
             <span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">선택한 API와 작성 샘플에 함께 넣을 작업 조건을 작성하세요.</span>
@@ -232,7 +245,7 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
         </section>
         <section aria-label="Codex 작업 지시 미리보기" className="flex min-h-0 flex-col bg-surface-muted/20 p-5">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <div><h3 className="text-sm font-black text-text-primary">Codex에 보낼 작업 지시</h3><p className="mt-1 text-[11px] font-semibold text-text-muted">선택 항목과 추가 지시에 따라 즉시 갱신됩니다.</p></div>
+            <div><h3 className="text-sm font-black text-text-primary">{isApiDesignMode ? "Codex에 보낼 API 설계 요청" : "Codex에 보낼 작업 지시"}</h3><p className="mt-1 text-[11px] font-semibold text-text-muted">선택 항목과 추가 지시에 따라 즉시 갱신됩니다.</p></div>
             <button type="button" onClick={() => void copyInstruction()} className="ui-icon-button-brand h-8 gap-1.5 px-2.5 text-[11px] font-black">{instructionCopied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{instructionCopied ? "복사됨" : "전체 복사"}</button>
           </div>
           <textarea value={instruction} readOnly aria-label="생성된 Codex 작업 지시" className="min-h-[560px] flex-1 resize-y rounded-lg border border-surface-border-soft bg-surface-raised p-3 font-mono text-[11px] leading-5 text-text-secondary outline-none" />

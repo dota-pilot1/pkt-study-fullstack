@@ -70,18 +70,19 @@ function savedAgentTargetFolder(scope?: TodoScope) {
   return window.localStorage.getItem(agentTargetFolderStorageKey(scope)) ?? "";
 }
 
-function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onClose: () => void; onSave: (patch: Partial<TodoItem>) => Promise<unknown>; onRefresh: () => Promise<unknown> }) {
+function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: TodoItem; isClosing: boolean; onClose: () => void; onSave: (patch: Partial<TodoItem>) => Promise<unknown>; onRefresh: () => Promise<unknown> }) {
   const { showToast } = useToast();
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description);
   const [checklist, setChecklist] = useState(todo.checklist);
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [newChecklistLayer, setNewChecklistLayer] = useState("");
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [isChecklistBulkEditing, setIsChecklistBulkEditing] = useState(false);
   const [verificationChecks, setVerificationChecks] = useState(todo.verificationChecks);
   const [newVerificationCheck, setNewVerificationCheck] = useState("");
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [visible, setVisible] = useState(false);
   const [agentGuideOpen, setAgentGuideOpen] = useState(false);
   const [instructionOpen, setInstructionOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -91,23 +92,13 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
     setDescription(todo.description);
     setChecklist(todo.checklist);
     setVerificationChecks(todo.verificationChecks);
+    setEditingChecklistId(null);
+    setIsChecklistBulkEditing(false);
   }, [todo]);
 
-  useEffect(() => {
-    let secondFrame = 0;
-    const firstFrame = window.requestAnimationFrame(() => {
-      secondFrame = window.requestAnimationFrame(() => setVisible(true));
-    });
-    return () => {
-      window.cancelAnimationFrame(firstFrame);
-      if (secondFrame) window.cancelAnimationFrame(secondFrame);
-    };
-  }, []);
-
   const closeDetail = useCallback(() => {
-    setVisible(false);
-    window.setTimeout(onClose, 400);
-  }, [onClose]);
+    if (!isClosing) onClose();
+  }, [isClosing, onClose]);
 
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -169,7 +160,7 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
   };
 
   return (
-    <section className="absolute inset-0 z-40 flex flex-col bg-surface-raised will-change-transform" style={{ transform: visible ? "translateX(0)" : "translateX(100%)", transition: "transform 400ms cubic-bezier(0.22, 1, 0.36, 1)" }}>
+    <section className={`absolute inset-0 z-40 flex flex-col bg-surface-raised will-change-transform ${isClosing ? "animate-drawer-slide-out" : "animate-drawer-slide-in"}`}>
       <header className="flex shrink-0 items-center justify-between border-b border-surface-border-soft px-5 py-4">
         <div className="min-w-0">
           <button type="button" onClick={closeDetail} className="mb-1 inline-flex items-center gap-1 text-[11px] font-bold text-text-muted hover:text-brand-primary"><ArrowLeft className="size-3.5" />작업 목록</button>
@@ -191,35 +182,36 @@ function TodoDetail({ todo, onClose, onSave, onRefresh }: { todo: TodoItem; onCl
           </label>
 
           <div className="rounded-xl border border-surface-border bg-surface-raised p-4">
-            <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-xs font-black text-text-primary">세부 계획</p><p className="mt-0.5 text-[10px] text-text-muted">구현 절차와 작업 영역을 지정하고, 끝낸 단계만 체크합니다.</p></div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={() => setReviewOpen(true)} className="inline-flex h-8 items-center rounded-md border border-surface-border bg-surface-raised px-2.5 text-[10px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">리뷰 {"{}"}</button><button type="button" onClick={() => setInstructionOpen(true)} className="inline-flex h-8 items-center rounded-md border border-brand-border bg-brand-glass px-2.5 text-[10px] font-black text-brand-primary hover:bg-brand-primary/10">지시 {"{}"}</button><span className="inline-flex h-8 items-center rounded-full bg-surface-muted px-2 text-[10px] font-black text-text-secondary">{checklist.filter((item) => item.completed).length}/{checklist.length}</span></div></div>
+            <div className="mb-3 flex items-center justify-between gap-3"><div><p className="text-xs font-black text-text-primary">세부 계획</p><p className="mt-0.5 text-[10px] text-text-muted">평소에는 행 단위로 수정하고, 순서·항목을 함께 바꿀 때만 전체 수정 모드를 사용합니다.</p></div><div className="flex shrink-0 items-center gap-2"><button type="button" onClick={() => { setIsChecklistBulkEditing((value) => !value); setEditingChecklistId(null); }} className={`inline-flex h-8 items-center rounded-md border px-2.5 text-[10px] font-black ${isChecklistBulkEditing ? "border-brand-primary bg-brand-primary text-white" : "border-surface-border bg-surface-raised text-text-secondary hover:border-brand-border hover:text-brand-primary"}`}>{isChecklistBulkEditing ? "전체 수정 완료" : "계획 전체 수정"}</button><button type="button" onClick={() => setReviewOpen(true)} className="inline-flex h-8 items-center rounded-md border border-surface-border bg-surface-raised px-2.5 text-[10px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">리뷰 {"{}"}</button><button type="button" onClick={() => setInstructionOpen(true)} className="inline-flex h-8 items-center rounded-md border border-brand-border bg-brand-glass px-2.5 text-[10px] font-black text-brand-primary hover:bg-brand-primary/10">지시 {"{}"}</button><span className="inline-flex h-8 items-center rounded-full bg-surface-muted px-2 text-[10px] font-black text-text-secondary">{checklist.filter((item) => item.completed).length}/{checklist.length}</span></div></div>
             <DragDropProvider onDragEnd={(event) => {
               if (event.canceled) return;
               const reordered = move(checklist, event);
               if (!reordered.every((item, index) => item.id === checklist[index]?.id)) setChecklist(reordered);
             }}>
               <div className="space-y-2">
-                {checklist.map((item, index) => (
-                  <SortableChecklistRow key={item.id} item={item} index={index}>
+                {checklist.map((item, index) => {
+                  const isEditingRow = isChecklistBulkEditing || editingChecklistId === item.id;
+                  return <SortableChecklistRow key={item.id} item={item} index={index}>
                     {({ ref, handleRef, isDragSource }) => (
                       <div ref={ref} className={`flex items-center gap-3 rounded-lg border border-surface-border-soft px-3 py-2.5 text-xs text-text-secondary hover:bg-surface-muted/50 ${isDragSource ? "opacity-55 ring-2 ring-brand-border/50" : ""}`}>
-                        <button type="button" ref={handleRef} title="드래그하여 계획 순서 변경" aria-label={`${item.text} 드래그`} className="grid size-5 shrink-0 cursor-grab touch-none place-items-center text-text-muted hover:text-brand-primary active:cursor-grabbing"><GripVertical className="size-4" /></button>
+                        {isChecklistBulkEditing ? <button type="button" ref={handleRef} title="드래그하여 계획 순서 변경" aria-label={`${item.text} 드래그`} className="grid size-5 shrink-0 cursor-grab touch-none place-items-center text-text-muted hover:text-brand-primary active:cursor-grabbing"><GripVertical className="size-4" /></button> : <span className="size-5 shrink-0" />}
                         <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand-glass text-[10px] font-black text-brand-primary">{index + 1}</span>
                         <input type="checkbox" checked={item.completed} onChange={() => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, completed: !current.completed } : current))} className="size-4 accent-brand-primary" />
-                        <span className={`min-w-0 flex-1 ${item.completed ? "line-through text-text-muted" : ""}`}>{item.text}</span>
-                        <input value={item.layer === "기타" ? "" : item.layer} onChange={(event) => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, layer: event.target.value } : current))} aria-label="구현 영역" placeholder="영역" className="h-7 w-24 shrink-0 rounded-md border border-surface-border bg-surface-raised px-2 text-[10px] font-bold text-brand-primary outline-none focus:border-brand-border" />
-                        <button type="button" onClick={() => setChecklist((items) => items.filter((current) => current.id !== item.id))} className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-destructive" aria-label="세부 계획 삭제"><X className="size-3.5" /></button>
+                        {isEditingRow ? <input value={item.text} onChange={(event) => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, text: event.target.value } : current))} aria-label="세부 계획 내용" className="h-8 min-w-0 flex-1 rounded-md border border-surface-border bg-surface-raised px-2 text-xs text-text-primary outline-none focus:border-brand-border" /> : <span className={`min-w-0 flex-1 ${item.completed ? "line-through text-text-muted" : ""}`}>{item.text}</span>}
+                        {isEditingRow ? <input value={item.layer === "기타" ? "" : item.layer} onChange={(event) => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, layer: event.target.value } : current))} aria-label="구현 영역" placeholder="영역" className="h-7 w-28 shrink-0 rounded-md border border-surface-border bg-surface-raised px-2 text-[10px] font-bold text-brand-primary outline-none focus:border-brand-border" /> : <span className="w-28 shrink-0 truncate rounded-md border border-surface-border bg-surface-muted px-2 py-1 text-[10px] font-black text-brand-primary">{item.layer === "기타" ? "미분류" : item.layer}</span>}
+                        {isChecklistBulkEditing ? <button type="button" onClick={() => setChecklist((items) => items.filter((current) => current.id !== item.id))} className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-destructive" aria-label="세부 계획 삭제"><X className="size-3.5" /></button> : <button type="button" onClick={() => setEditingChecklistId((id) => id === item.id ? null : item.id)} className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-brand-primary" aria-label="세부 계획 수정">{editingChecklistId === item.id ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}</button>}
                       </div>
                     )}
                   </SortableChecklistRow>
-                ))}
+                })}
               </div>
             </DragDropProvider>
             {checklist.length === 0 && <p className="mt-2 rounded-lg border border-dashed border-surface-border px-3 py-4 text-center text-[11px] text-text-muted">아직 등록된 세부 계획이 없습니다.</p>}
-            <form onSubmit={(event) => { event.preventDefault(); const value = newChecklistItem.trim(); if (!value) return; setChecklist((items) => [...items, { id: `step-${Date.now()}`, text: value, completed: false, layer: newChecklistLayer.trim() || "기타" }]); setNewChecklistItem(""); setNewChecklistLayer(""); }} className="mt-3 flex gap-2">
+            {isChecklistBulkEditing && <form onSubmit={(event) => { event.preventDefault(); const value = newChecklistItem.trim(); if (!value) return; setChecklist((items) => [...items, { id: `step-${Date.now()}`, text: value, completed: false, layer: newChecklistLayer.trim() || "기타" }]); setNewChecklistItem(""); setNewChecklistLayer(""); }} className="mt-3 flex gap-2">
               <input value={newChecklistItem} onChange={(event) => setNewChecklistItem(event.target.value)} placeholder="예: 요청 DTO와 입력 검증을 구현한다" className="h-9 min-w-0 flex-1 rounded-lg border border-surface-border bg-surface-muted px-3 text-xs outline-none focus:border-brand-border" />
               <input value={newChecklistLayer} onChange={(event) => setNewChecklistLayer(event.target.value)} aria-label="새 계획의 작업 영역" placeholder="예: Controller" className="h-9 w-28 shrink-0 rounded-lg border border-surface-border bg-surface-muted px-2 text-[11px] font-bold text-brand-primary outline-none focus:border-brand-border" />
               <button type="submit" className="rounded-lg bg-surface-muted px-3 text-[11px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">계획 추가</button>
-            </form>
+            </form>}
           </div>
 
           <div className="rounded-xl border border-surface-border bg-surface-raised p-4">
@@ -747,6 +739,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
   const [inputText, setInputText] = useState("");
   const [important, setImportant] = useState(false);
   const [selectedTodoId, setSelectedTodoId] = useState<number | null>(null);
+  const [isDetailClosing, setIsDetailClosing] = useState(false);
   const [selectedTodoIds, setSelectedTodoIds] = useState<number[]>([]);
   const [agentGuideOpen, setAgentGuideOpen] = useState(false);
   const [apiSpecOpen, setApiSpecOpen] = useState(false);
@@ -758,6 +751,15 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const selectedTodo = todos.find((todo) => todo.id === selectedTodoId) ?? null;
+
+  const closeDetail = useCallback(() => {
+    if (selectedTodoId === null || isDetailClosing) return;
+    setIsDetailClosing(true);
+    window.setTimeout(() => {
+      setSelectedTodoId(null);
+      setIsDetailClosing(false);
+    }, 200);
+  }, [isDetailClosing, selectedTodoId]);
   const streamTodos = useMemo(() => todos.filter((todo) => todo.workstream === workstream || (workstream === "BACKEND" && todo.workstream === "API")), [todos, workstream]);
   const visibleTodos = useMemo(() => streamTodos.filter((todo) => {
     if (statusFilter !== "ALL" && todo.status !== statusFilter) return false;
@@ -974,7 +976,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
       // 세부 화면이 열린 동안 바깥을 누르면 한 단계만 닫는다.
       // 이전에는 이 클릭이 곧바로 작업 드로어까지 닫아 버렸다.
       if (selectedTodoId !== null) {
-        setSelectedTodoId(null);
+        closeDetail();
         return;
       }
       close();
@@ -1039,7 +1041,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
             )}
           </div>
         </div>
-        {selectedTodo && <TodoDetail todo={selectedTodo} onClose={() => setSelectedTodoId(null)} onSave={(patch) => updateTodo(selectedTodo.id, patch)} onRefresh={reload} />}
+        {selectedTodo && <TodoDetail todo={selectedTodo} isClosing={isDetailClosing} onClose={closeDetail} onSave={(patch) => updateTodo(selectedTodo.id, patch)} onRefresh={reload} />}
         {agentGuideOpen && <AgentGuide scope={scope} onClose={() => setAgentGuideOpen(false)} />}
         {apiSpecOpen && <ApiSpecDialog scope={scope} onClose={() => setApiSpecOpen(false)} />}
       </aside>

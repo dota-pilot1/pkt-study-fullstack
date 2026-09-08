@@ -41,6 +41,7 @@ import DocumentDrawer from "./DocumentDrawer";
 import DocumentPage from "./DocumentPage";
 import DocumentPane from "./DocumentPane";
 import DocumentContextApiDialog from "./DocumentContextApiDialog";
+import ApiDesignDocumentDialog from "./ApiDesignDocumentDialog";
 import ListColumn from "./ListColumn";
 import LlmApiGuideDialog from "./LlmApiGuideDialog";
 import { useToast } from "../../shared/ui/toast";
@@ -324,6 +325,8 @@ function HospitalPlaybookModule({
   const [llmApiGuideScope, setLlmApiGuideScope] = useState<"all" | "topic">("all");
   const [todoDrawerOpen, setTodoDrawerOpen] = useState(false);
   const [contextApiDocument, setContextApiDocument] =
+    useState<PlaybookDocumentSummary | null>(null);
+  const [apiDesignDocument, setApiDesignDocument] =
     useState<PlaybookDocumentSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const expandedTopicId = useRef<number | null>(null);
@@ -1153,6 +1156,7 @@ function HospitalPlaybookModule({
             setDrawerDocumentId(null);
             setPageDocumentId(detail.id);
           }}
+          onOpenApiDesign={() => setApiDesignDocument(detail)}
           onOpenContextApi={() => setContextApiDocument(detail)}
           onDelete={() => deleteDocument.mutate(detail.id)}
           onClose={() => setDrawerDocumentId(null)}
@@ -1196,6 +1200,14 @@ function HospitalPlaybookModule({
           topicId={contextApiDocument.topicId}
           documentTitle={contextApiDocument.title}
           onClose={() => setContextApiDocument(null)}
+        />
+      )}
+      {apiDesignDocument && (
+        <ApiDesignDocumentDialog
+          documentId={apiDesignDocument.id}
+          topicId={apiDesignDocument.topicId}
+          documentTitle={apiDesignDocument.title}
+          onClose={() => setApiDesignDocument(null)}
         />
       )}
       <TodoDrawer open={todoDrawerOpen} onOpenChange={setTodoDrawerOpen} scope={todoScope} />

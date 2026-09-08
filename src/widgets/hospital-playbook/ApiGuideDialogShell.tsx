@@ -79,7 +79,7 @@ export default function ApiGuideDialogShell({
             <button
               type="button"
               onClick={copy}
-              className="ui-icon-button-brand h-8 gap-1.5 px-3 text-xs font-black"
+              className="ui-icon-button-brand box-border h-[30px] min-h-[30px] shrink-0 gap-1.5 px-3 text-xs font-black"
             >
               {copied ? <Check className="size-3.5" /> : <Clipboard className="size-3.5" />}
               {copied ? "복사됨" : copyLabel}
@@ -88,7 +88,8 @@ export default function ApiGuideDialogShell({
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="ui-icon-button size-8"
+              className="ui-icon-button box-border size-8 shrink-0 p-0"
+              style={{ flex: "0 0 32px" }}
             >
               <X className="size-4" />
             </button>

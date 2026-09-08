@@ -50,8 +50,11 @@ import {
   AlignRight,
   Baseline,
   Bold,
+  Check,
   Code,
+  Copy,
   Eraser,
+  FileJson,
   Heading1,
   Heading2,
   Heading3,
@@ -523,6 +526,7 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
       <ToolbarButton onClick={formatCodeBlock} title="Code block">
         <span className="px-1 font-mono text-[10px] font-semibold">{'{ }'}</span>
       </ToolbarButton>
+      <ApiSpecInsertButton />
       <MarkdownInsertButton />
       <MermaidInsertButton />
       <HtmlPreviewInsertButton />
@@ -562,6 +566,183 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
       <YoutubeInsertButton />
       <ToolbarHelp variant="full" hasImageUpload={Boolean(onImageUpload)} />
       <SpeechInputPlugin />
+    </div>
+  )
+}
+
+/** API 계약을 일정한 heading·quote·JSON code block 구조로 삽입한다. */
+function ApiSpecInsertButton() {
+  const [editor] = useLexicalComposerContext()
+  const [open, setOpen] = useState(false)
+  const [agentRequestOpen, setAgentRequestOpen] = useState(false)
+  const [method, setMethod] = useState('POST')
+  const [path, setPath] = useState('/signup')
+  const [summary, setSummary] = useState('새 사용자를 등록한다.')
+  const [requestBody, setRequestBody] = useState('{\n  "loginId": "",\n  "password": "",\n  "displayName": ""\n}')
+  const [successStatus, setSuccessStatus] = useState('201 Created')
+  const [responseBody, setResponseBody] = useState('{\n  "id": 1,\n  "loginId": "",\n  "displayName": ""\n}')
+  const [errorCases, setErrorCases] = useState('400 Bad Request: 요청 값이 올바르지 않음\n409 Conflict: 중복된 식별값')
+  const [scope, setScope] = useState('')
+  const [serverRules, setServerRules] = useState('')
+  const [verification, setVerification] = useState('')
+
+  const appendApiSpec = () => {
+    const normalizedPath = path.trim()
+    if (!normalizedPath) return
+
+    editor.focus()
+    editor.update(() => {
+      const nodes: LexicalNode[] = [
+        $createHeadingNode('h2').append($createTextNode(`${method} ${normalizedPath}`)),
+        $createQuoteNode().append($createTextNode(summary.trim() || 'API의 목적을 설명합니다.')),
+        $createHeadingNode('h3').append($createTextNode('요청')),
+        $createCodeNode('json').append($createTextNode(requestBody.trim() || '{}')),
+        $createHeadingNode('h3').append($createTextNode(`성공 응답 · ${successStatus.trim() || '200 OK'}`)),
+        $createCodeNode('json').append($createTextNode(responseBody.trim() || '{}')),
+        $createHeadingNode('h3').append($createTextNode('오류 응답')),
+        $createQuoteNode().append($createTextNode(errorCases.trim() || '오류 조건을 작성합니다.')),
+      ]
+      if (scope.trim()) {
+        nodes.push(
+          $createHeadingNode('h3').append($createTextNode('API 범위')),
+          $createQuoteNode().append($createTextNode(scope.trim())),
+        )
+      }
+      if (serverRules.trim()) {
+        nodes.push(
+          $createHeadingNode('h3').append($createTextNode('서버 처리 규칙')),
+          $createQuoteNode().append($createTextNode(serverRules.trim())),
+        )
+      }
+      if (verification.trim()) {
+        nodes.push(
+          $createHeadingNode('h3').append($createTextNode('구현·검증 연결')),
+          $createQuoteNode().append($createTextNode(verification.trim())),
+        )
+      }
+      const selection = $getSelection()
+      if ($isRangeSelection(selection)) selection.insertNodes(nodes)
+      else $getRoot().append(...nodes)
+    })
+    setOpen(false)
+  }
+
+  return (
+    <>
+      <ToolbarButton onClick={() => setOpen(true)} title="API 설계 블록 삽입">
+        <FileJson className="size-3.5" />
+      </ToolbarButton>
+      <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-[240] bg-black/35" />
+          <Dialog.Content
+            className="fixed left-1/2 top-1/2 z-[241] flex -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-surface-border-soft bg-surface-raised shadow-2xl"
+            style={{ width: 'calc(100vw - 4rem)', maxWidth: '1560px', height: 'calc(100vh - 4rem)' }}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-surface-border-soft px-5 py-4">
+              <div>
+                <Dialog.Title className="text-base font-semibold text-text-primary">API 설계 블록 삽입</Dialog.Title>
+                <Dialog.Description className="mt-1 text-xs text-text-muted">요청·응답 계약을 입력하면 표준 Lexical 제목, 설명, JSON 코드 블록으로 문서에 넣습니다.</Dialog.Description>
+              </div>
+              <div className="flex items-center gap-2"><Button variant="secondary" size="sm" onClick={() => setAgentRequestOpen(true)}>API 설계 요청 {"{}"}</Button><Dialog.Close asChild><Button variant="ghost" size="icon" aria-label="닫기"><X className="size-4" /></Button></Dialog.Close></div>
+            </div>
+            <div
+              className="grid min-h-0 flex-1 overflow-hidden"
+              style={{ gridTemplateColumns: 'minmax(360px, 0.8fr) minmax(560px, 1.2fr)' }}
+            >
+              <section className="min-h-0 space-y-5 overflow-y-auto border-r border-surface-border-soft p-6">
+                <div><p className="text-sm font-black text-text-primary">API 정보</p><p className="mt-1 text-xs text-text-muted">식별 정보와 오류 정책을 먼저 정의합니다.</p></div>
+                <div className="space-y-4 rounded-lg border border-surface-border-soft bg-surface-muted/30 p-4">
+                <div className="grid gap-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                  <label className="space-y-1.5"><span className="text-xs font-black text-text-secondary">Method</span><CompactSelect value={method} onChange={(event) => setMethod(event.target.value)} wrapperClassName="w-full"><option>GET</option><option>POST</option><option>PATCH</option><option>PUT</option><option>DELETE</option></CompactSelect></label>
+                  <label className="space-y-1.5"><span className="text-xs font-black text-text-secondary">Path</span><input value={path} onChange={(event) => setPath(event.target.value)} className="h-9 w-full rounded-md border border-surface-border-soft bg-surface-raised px-3 font-mono text-sm text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" placeholder="/signup" /></label>
+                </div>
+                <label className="block space-y-1.5"><span className="text-xs font-black text-text-secondary">설명</span><input value={summary} onChange={(event) => setSummary(event.target.value)} className="h-10 w-full rounded-md border border-surface-border-soft bg-surface-raised px-3 text-sm text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" placeholder="이 API가 하는 일" /></label>
+                </div>
+                <label className="flex min-h-[180px] flex-col gap-1.5"><span className="text-xs font-black text-text-secondary">오류 응답 <span className="font-medium text-text-muted">(한 줄에 하나)</span></span><textarea value={errorCases} onChange={(event) => setErrorCases(event.target.value)} className="min-h-0 flex-1 resize-y rounded-md border border-surface-border-soft bg-surface-raised p-3 text-sm leading-6 text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label>
+                <div className="space-y-4 border-t border-surface-border-soft pt-5"><div><p className="text-sm font-black text-text-primary">설계 보강 <span className="text-xs font-semibold text-text-muted">(선택)</span></p><p className="mt-1 text-xs text-text-muted">구현 범위·처리 규칙·테스트 기준까지 문서화할 때 작성합니다.</p></div><label className="block space-y-1.5"><span className="text-xs font-black text-text-secondary">API 범위</span><textarea value={scope} onChange={(event) => setScope(event.target.value)} rows={3} placeholder="예: 로그인과 토큰 발급은 별도 API에서 다룬다." className="w-full resize-y rounded-md border border-surface-border-soft bg-surface-raised p-3 text-sm leading-6 text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label><label className="block space-y-1.5"><span className="text-xs font-black text-text-secondary">서버 처리 규칙</span><textarea value={serverRules} onChange={(event) => setServerRules(event.target.value)} rows={4} placeholder="예: 비밀번호는 해시로 저장하고, 기본 역할 부여까지 하나의 트랜잭션으로 처리한다." className="w-full resize-y rounded-md border border-surface-border-soft bg-surface-raised p-3 text-sm leading-6 text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label><label className="block space-y-1.5"><span className="text-xs font-black text-text-secondary">구현·검증 연결</span><textarea value={verification} onChange={(event) => setVerification(event.target.value)} rows={3} placeholder="예: 정상 가입, 중복 ID, 유효성 실패, 롤백을 통합 테스트로 확인한다." className="w-full resize-y rounded-md border border-surface-border-soft bg-surface-raised p-3 text-sm leading-6 text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label></div>
+              </section>
+              <section className="flex min-h-0 flex-col overflow-y-auto p-6"><div className="mb-5"><p className="text-sm font-black text-text-primary">요청·응답 계약</p><p className="mt-1 text-xs text-text-muted">클라이언트가 보내는 값과 서버가 반환하는 값을 위에서 아래로 정의합니다.</p></div><div className="flex min-h-[680px] flex-1 flex-col gap-5"><label className="flex min-h-[280px] flex-1 flex-col gap-1.5"><span className="text-xs font-black text-text-secondary">요청 JSON</span><textarea value={requestBody} onChange={(event) => setRequestBody(event.target.value)} spellCheck={false} className="min-h-0 flex-1 resize-y rounded-md border border-surface-border-soft bg-surface-raised p-3 font-mono text-xs leading-6 text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label><div className="flex min-h-[320px] flex-1 flex-col gap-3 border-t border-surface-border-soft pt-5"><label className="space-y-1.5"><span className="text-xs font-black text-text-secondary">성공 상태</span><input value={successStatus} onChange={(event) => setSuccessStatus(event.target.value)} className="h-9 w-full rounded-md border border-surface-border-soft bg-surface-raised px-3 text-sm text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label><label className="flex min-h-0 flex-1 flex-col gap-1.5"><span className="text-xs font-black text-text-secondary">성공 응답 JSON</span><textarea value={responseBody} onChange={(event) => setResponseBody(event.target.value)} spellCheck={false} className="min-h-0 flex-1 resize-y rounded-md border border-surface-border-soft bg-surface-raised p-3 font-mono text-xs leading-6 text-text-primary outline-none transition-colors focus:border-brand-border focus:ring-1 focus:ring-brand-border/15" /></label></div></div></section>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-surface-border-soft bg-surface-muted/60 px-6 py-4"><Button variant="secondary" size="sm" onClick={() => setOpen(false)}>취소</Button><Button size="sm" onClick={appendApiSpec} disabled={!path.trim()}>문서에 삽입</Button></div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      {agentRequestOpen && <ApiDesignAgentRequestDialog method={method} path={path} summary={summary} requestBody={requestBody} successStatus={successStatus} responseBody={responseBody} errorCases={errorCases} scope={scope} serverRules={serverRules} verification={verification} onClose={() => setAgentRequestOpen(false)} />}
+    </>
+  )
+}
+
+type ApiDesignAgentRequestDialogProps = {
+  method: string
+  path: string
+  summary: string
+  requestBody: string
+  successStatus: string
+  responseBody: string
+  errorCases: string
+  scope: string
+  serverRules: string
+  verification: string
+  onClose: () => void
+}
+
+/** API 계약 초안을 검토·보완하도록 Codex에 전달할 요청문을 만든다. */
+function ApiDesignAgentRequestDialog({ method, path, summary, requestBody, successStatus, responseBody, errorCases, scope, serverRules, verification, onClose }: ApiDesignAgentRequestDialogProps) {
+  const [additionalInstruction, setAdditionalInstruction] = useState('')
+  const [includeBasic, setIncludeBasic] = useState(true)
+  const [includeRequest, setIncludeRequest] = useState(true)
+  const [includeResponse, setIncludeResponse] = useState(true)
+  const [includeErrors, setIncludeErrors] = useState(true)
+  const [includeScope, setIncludeScope] = useState(true)
+  const [includeServerRules, setIncludeServerRules] = useState(true)
+  const [includeVerification, setIncludeVerification] = useState(true)
+  const [copied, setCopied] = useState(false)
+
+  const instruction = [
+    '다음 API 설계 초안을 검토하고 보완해 주세요.',
+    '',
+    '## 작업 목표',
+    '회원가입 등 현재 기능의 HTTP 계약을 일관되게 설계합니다. 확정되지 않은 구현 세부사항은 사실처럼 단정하지 말고, 필요한 결정 항목으로 구분해 주세요.',
+    '',
+    '## 현재 API 설계 초안',
+    ...(includeBasic ? [`- Method: ${method}`, `- Path: ${path}`, `- 설명: ${summary || '미작성'}`] : []),
+    ...(includeRequest ? ['', '### 요청 JSON', '```json', requestBody || '{}', '```'] : []),
+    ...(includeResponse ? ['', `### 성공 응답 · ${successStatus || '미작성'}`, '```json', responseBody || '{}', '```'] : []),
+    ...(includeErrors ? ['', '### 오류 응답', errorCases || '미작성'] : []),
+    ...(includeScope ? ['', '### API 범위', scope || '미작성 — 현재 기능 문맥을 기준으로 포함·제외 범위를 제안해 주세요.'] : []),
+    ...(includeServerRules ? ['', '### 서버 처리 규칙', serverRules || '미작성 — 검증, 트랜잭션, 보안·영속성 규칙을 제안해 주세요.'] : []),
+    ...(includeVerification ? ['', '### 구현·검증 연결', verification || '미작성 — 계층별 구현 순서와 핵심 테스트 케이스를 제안해 주세요.'] : []),
+    ...(additionalInstruction.trim() ? ['', '## 추가 지시', additionalInstruction.trim()] : []),
+    '',
+    '## 응답 방식',
+    '- API 범위, 요청·응답 계약, 서버 처리 규칙, 오류 응답, 구현·검증 연결을 각각 검토한다.',
+    '- 빠진 검증·상태 코드·보안 노출을 지적하고, 수정이 필요하면 바로 적용 가능한 초안을 제시한다.',
+    '- 최종 문서에 넣을 때는 제목·일반 본문·JSON 코드 블록이 분리된 Lexical 구조를 사용한다.',
+    '- API 범위·요청·응답의 일반 설명은 인용문이 아닌 기본 본문 텍스트로 작성한다. 제목 크기와 여백으로 위계를 구분한다.',
+    '- 인용문은 보안 경고, 반드시 지켜야 할 예외, 결정 보류처럼 특별히 강조할 내용에만 사용한다. 인용문 바로 아래에 실행 규칙 목록을 따로 붙이지 말고, 실행 규칙은 일반 문단으로 맥락을 설명한 뒤 목록으로 묶는다.',
+  ].join('\n')
+
+  const copyInstruction = async () => {
+    try {
+      await navigator.clipboard.writeText(instruction)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      setCopied(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[260] bg-black/40" role="dialog" aria-modal="true" aria-label="API 설계 요청">
+      <section className="flex h-full w-full flex-col overflow-hidden bg-surface-raised shadow-2xl">
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-surface-border-soft px-5 py-4"><div><h2 className="text-lg font-black text-text-primary">API 설계 요청</h2><p className="mt-1 text-xs font-semibold text-text-muted">현재 계약 초안과 추가 지시를 조합해 Codex에 보낼 요청문을 만듭니다.</p></div><div className="flex items-center gap-2"><Button variant="primary" size="sm" onClick={() => void copyInstruction()}>{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{copied ? '복사됨' : '지시문 복사'}</Button><Button variant="ghost" size="icon" onClick={onClose} aria-label="닫기"><X className="size-4" /></Button></div></header>
+        <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
+          <section className="min-h-0 overflow-auto border-r border-surface-border-soft p-5"><label className="block"><span className="text-sm font-black text-text-primary">추가 지시</span><span className="mt-1 block text-[11px] font-semibold text-text-muted">설계 시 고려할 업무 규칙, 보안 조건, 제외 범위를 적습니다.</span><textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={6} placeholder="예: 역할은 요청으로 받지 말고 기본 USER 역할만 부여해 주세요." className="mt-3 w-full resize-y rounded-lg border border-surface-border-soft bg-surface p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" /></label><div className="mt-6"><h3 className="text-sm font-black text-text-primary">현재 초안 포함</h3><p className="mt-1 text-[11px] font-semibold text-text-muted">비어 있는 보강 항목은 Codex가 문맥에 맞는 초안을 제안합니다.</p><div className="mt-3 overflow-hidden rounded-lg border border-surface-border-soft">{[[includeBasic, setIncludeBasic, '기본 정보', `${method} ${path || '/path'}`], [includeRequest, setIncludeRequest, '요청 JSON', requestBody ? '현재 입력값 포함' : '비어 있음'], [includeResponse, setIncludeResponse, '성공 응답', successStatus || '상태 미작성'], [includeErrors, setIncludeErrors, '오류 응답', errorCases ? '현재 입력값 포함' : '비어 있음'], [includeScope, setIncludeScope, 'API 범위', scope ? '현재 입력값 포함' : 'Codex 초안 제안'], [includeServerRules, setIncludeServerRules, '서버 처리 규칙', serverRules ? '현재 입력값 포함' : 'Codex 초안 제안'], [includeVerification, setIncludeVerification, '구현·검증 연결', verification ? '현재 입력값 포함' : 'Codex 초안 제안']].map(([checked, setChecked, label, description]) => <label key={String(label)} className="flex cursor-pointer items-center gap-3 border-b border-surface-border-soft px-3 py-3 last:border-b-0 hover:bg-surface-muted/60"><input type="checkbox" checked={Boolean(checked)} onChange={(event) => (setChecked as (value: boolean) => void)(event.target.checked)} className="size-4 accent-brand-primary" /><span className="min-w-0"><strong className="block text-xs text-text-primary">{String(label)}</strong><span className="block truncate text-[11px] text-text-muted">{String(description)}</span></span></label>)}</div></div></section>
+          <section className="flex min-h-0 flex-col bg-surface-muted/20 p-5"><div className="mb-3 flex items-center justify-between gap-3"><div><h3 className="text-sm font-black text-text-primary">Codex에 보낼 API 설계 요청</h3><p className="mt-1 text-[11px] font-semibold text-text-muted">선택 항목과 추가 지시에 따라 즉시 갱신됩니다.</p></div><Button size="sm" onClick={() => void copyInstruction()}>{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}{copied ? '복사됨' : '전체 복사'}</Button></div><textarea value={instruction} readOnly aria-label="생성된 API 설계 요청" className="min-h-[560px] flex-1 resize-y rounded-lg border border-surface-border-soft bg-surface-raised p-3 font-mono text-[11px] leading-5 text-text-secondary outline-none" /></section>
+        </div>
+        <footer className="shrink-0 border-t border-surface-border-soft bg-surface-raised px-5 py-3 text-[11px] text-text-muted">Agent는 설계 초안을 제안하고, 최종 계약은 이 API 설계 블록에서 검토한 뒤 문서에 삽입합니다.</footer>
+      </section>
     </div>
   )
 }
