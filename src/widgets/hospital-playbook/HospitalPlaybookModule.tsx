@@ -1197,6 +1197,7 @@ function HospitalPlaybookModule({
       {contentApiDocument && (
         <DocumentContentApiDialog
           documentId={contentApiDocument.id}
+          topicId={contentApiDocument.topicId}
           documentTitle={contentApiDocument.title}
           onClose={() => setContentApiDocument(null)}
         />
