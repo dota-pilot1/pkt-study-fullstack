@@ -170,6 +170,71 @@ export async function renameTopic(id: number, title: string) {
   return topic ?? null;
 }
 
+export async function moveTopic(id: number, targetCategoryId: number) {
+  const topic = await findTopicById(id);
+  if (!topic) return null;
+
+  const allTopics = await listAllTopics();
+  const sourceTopics = allTopics.filter((item) => item.categoryId === topic.categoryId && item.id !== id);
+  const targetTopics = allTopics.filter((item) => item.categoryId === targetCategoryId);
+  const now = new Date().toISOString();
+
+  db.transaction((tx) => {
+    tx.update(playbookTopics)
+      .set({ categoryId: targetCategoryId, orderIdx: targetTopics.length, updatedAt: now })
+      .where(eq(playbookTopics.id, id))
+      .run();
+    for (const [orderIdx, sourceTopic] of sourceTopics.entries()) {
+      tx.update(playbookTopics)
+        .set({ orderIdx, updatedAt: now })
+        .where(eq(playbookTopics.id, sourceTopic.id))
+        .run();
+    }
+  });
+
+  return findTopicById(id);
+}
+
+/** 선택 문서와 하위 문서를 다른 2차 주제로 옮긴다. 이동 문서는 새 주제의 루트 문서가 된다. */
+export async function moveDocumentToTopic(id: number, targetTopicId: number) {
+  const document = await findDocument(id);
+  if (!document) return null;
+  const treeIds = await findDocumentTreeIds(id);
+  if (!treeIds) return null;
+
+  const sourceDocuments = await listDocumentsByTopic(document.topicId);
+  const targetDocuments = await listDocumentsByTopic(targetTopicId);
+  const movingIds = new Set(treeIds);
+  const remainingSource = sourceDocuments.filter((item) => !movingIds.has(item.id));
+  const targetRootCount = targetDocuments.filter((item) => item.parentId === null).length;
+  const now = new Date().toISOString();
+
+  db.transaction((tx) => {
+    for (const documentId of treeIds) {
+      tx.update(playbookDocuments)
+        .set({
+          topicId: targetTopicId,
+          ...(documentId === id ? { parentId: null, orderIdx: targetRootCount } : {}),
+          updatedAt: now,
+        })
+        .where(eq(playbookDocuments.id, documentId))
+        .run();
+    }
+
+    const sourceOrderByParent = new Map<number | null, number>();
+    for (const sourceDocument of remainingSource) {
+      const orderIdx = sourceOrderByParent.get(sourceDocument.parentId) ?? 0;
+      sourceOrderByParent.set(sourceDocument.parentId, orderIdx + 1);
+      tx.update(playbookDocuments)
+        .set({ orderIdx, updatedAt: now })
+        .where(eq(playbookDocuments.id, sourceDocument.id))
+        .run();
+    }
+  });
+
+  return findDocument(id);
+}
+
 export async function deleteTopic(id: number) {
   const [topic] = await db.select().from(playbookTopics).where(eq(playbookTopics.id, id)).limit(1);
   if (!topic) return false;

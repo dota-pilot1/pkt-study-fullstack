@@ -159,8 +159,15 @@ function DocumentPane({
         <input
           value={title}
           onChange={(e) => { setTitle(e.target.value); setSaveMessage(""); }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              if (!busy) handleSave();
+            }
+          }}
           placeholder="문서 제목"
           aria-label="문서 제목"
+          aria-keyshortcuts="Enter"
           className="ui-input min-w-0 flex-1 font-black"
           style={{ height: TITLE_CONTROL_SIZE, minHeight: TITLE_CONTROL_SIZE }}
         />
@@ -181,7 +188,7 @@ function DocumentPane({
 
       <div className="mt-2.5 flex items-center gap-2">
         <div className="min-w-0 flex-1 text-[12px] font-bold">
-          {save.isError ? <span className="text-destructive">{(save.error as Error).message}</span> : dirty ? <span className="text-text-muted">{isDraft ? "저장하면 새 문서가 생성됩니다." : "저장하지 않은 변경이 있습니다."}</span> : saveMessage ? <span className="text-brand-primary">{saveMessage}</span> : null}
+          {save.isError ? <span className="text-destructive">{(save.error as Error).message}</span> : dirty ? <span className="text-text-muted">{isDraft ? "제목 입력 후 Enter를 누르면 새 문서가 생성됩니다." : "저장하지 않은 변경이 있습니다."}</span> : saveMessage ? <span className="text-brand-primary">{saveMessage}</span> : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button

@@ -2,7 +2,7 @@ import { request } from "../../shared/api/client";
 
 export type DocumentStatus = "DRAFT" | "APPROVED" | "ARCHIVED";
 export type PlaybookSearchScope = "all" | "category" | "topic" | "document";
-export type PlaybookDomain = "BACKEND" | "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "DOMAIN_DESIGN" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "REACT" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PRODUCT_DESIGN" | "PROTOTYPE" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "DB" | "ARCHITECTURE" | "AX" | "TDD" | "RAG" | "SECURITY" | "DEVOPS" | "PKT_FRONT_LEV1" | "NOTE_SAMPLE";
+export type PlaybookDomain = "BACKEND" | "SPRING_BOOT" | "JPA" | "SPRING_SECURITY" | "SPRING_AI" | "DOMAIN_DESIGN" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "REACT" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PRODUCT_DESIGN" | "PROTOTYPE" | "PROTOTYPE_FRONT" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "DB" | "ARCHITECTURE" | "AX" | "TDD" | "RAG" | "SECURITY" | "DEVOPS" | "PKT_FRONT_LEV1" | "NOTE_SAMPLE";
 export type PlaybookSpace = { id: number; code: string; name: string };
 
 export type PlaybookDocumentSummary = {
@@ -207,6 +207,13 @@ export const playbookApi = {
       errorMessage: "주제 이름을 바꾸지 못했습니다.",
     }),
 
+  moveTopic: (id: number, categoryId: number) =>
+    request<PlaybookTopic>(`${BASE}/topics/${id}`, {
+      method: "PATCH",
+      body: { categoryId },
+      errorMessage: "2차 메뉴를 이동하지 못했습니다.",
+    }),
+
   deleteTopic: (id: number) =>
     request<void>(`${BASE}/topics/${id}`, { method: "DELETE", errorMessage: "주제를 삭제하지 못했습니다." }),
 
@@ -229,6 +236,13 @@ export const playbookApi = {
       method: "PATCH",
       body: patch,
       errorMessage: "문서를 저장하지 못했습니다.",
+    }),
+
+  moveDocumentToTopic: (id: number, topicId: number) =>
+    request<PlaybookDocument>(`${BASE}/documents/${id}`, {
+      method: "PATCH",
+      body: { topicId },
+      errorMessage: "문서를 다른 2차 메뉴로 이동하지 못했습니다.",
     }),
 
   approveDocument: (id: number) =>

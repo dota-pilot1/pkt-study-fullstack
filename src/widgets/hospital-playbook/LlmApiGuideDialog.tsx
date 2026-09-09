@@ -60,6 +60,18 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
       content: ["GET " + base + "/topics/" + topic + "/documents", "", "선택한 2차 주제의 최상위 문서와 모든 하위 문서를 children 트리로 반환합니다.", "각 문서의 documentUrl, contextUrl, contentUrl을 사용해 필요한 범위만 조회·수정합니다."].join("\n"),
     },
     {
+      id: "move-topic", label: "2차 메뉴 이동", method: "PATCH",
+      endpoint: base + "/topics/" + topic,
+      summary: "2차 메뉴와 모든 하위 문서를 다른 1차 메뉴로 이동합니다.",
+      content: ["PATCH " + base + "/topics/" + topic, "Content-Type: application/json", "", "{", "  \"categoryId\": 160", "}", "", "tree 조회로 확인한 같은 플레이북의 1차 메뉴 ID만 사용합니다.", "목적지에 같은 이름의 2차 메뉴가 있으면 이동하지 않습니다."].join("\n"),
+    },
+    {
+      id: "move-document-topic", label: "다른 2차 메뉴로 문서 이동", method: "PATCH",
+      endpoint: base + "/documents/{documentId}",
+      summary: "문서와 하위 문서를 같은 1차 메뉴 안의 다른 2차 메뉴로 옮깁니다.",
+      content: ["PATCH " + base + "/documents/{documentId}", "Content-Type: application/json", "", "{", "  \"topicId\": " + topic, "}", "", "이동 문서는 대상 2차 메뉴의 루트 문서가 되고, 하위 문서는 함께 유지됩니다."].join("\n"),
+    },
+    {
       id: "samples", label: "구현 노트 샘플 조회", method: "GET",
       endpoint: base + "/samples/API_IMPLEMENTATION",
       summary: "실제 파일·코드·검증을 적는 구현 기록 형식을 확인합니다.",

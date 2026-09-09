@@ -1,9 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
+  ArrowRight,
   ChevronLeft,
   ChevronRight,
+  FolderInput,
   GripVertical,
   LockKeyhole,
+  MoreVertical,
+  Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -16,6 +20,14 @@ export type ListColumnItem = {
   title: string;
   badge?: ReactNode;
   count?: number;
+};
+
+type MoveTargetMode = {
+  title: string;
+  sourceId: number;
+  moving: boolean;
+  onCancel: () => void;
+  onMoveTo: (id: number) => void;
 };
 
 function SortableColumnItem({
@@ -49,6 +61,7 @@ function ListColumn({
   onSelect,
   onCreate,
   onRename,
+  onMove,
   onDelete,
   onReorder,
   emptyLabel,
@@ -58,6 +71,7 @@ function ListColumn({
   expandedWidth,
   onToggle,
   protectedStructure = false,
+  moveTargetMode,
 }: {
   title: string;
   items: ListColumnItem[];
@@ -65,6 +79,7 @@ function ListColumn({
   onSelect: (id: number) => void;
   onCreate: (title: string) => void;
   onRename: (id: number, title: string) => void;
+  onMove?: (id: number) => void;
   onDelete: (id: number) => void;
   onReorder: (ids: number[]) => void;
   emptyLabel: string;
@@ -76,11 +91,40 @@ function ListColumn({
   onToggle: () => void;
   /** 코드 갤러리의 고정 1·2차 구조는 일반 노트처럼 변경하지 않는다. */
   protectedStructure?: boolean;
+  /** 2차 메뉴 이동 시, 이 목록을 목적지 선택기로 전환한다. */
+  moveTargetMode?: MoveTargetMode;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [menu, setMenu] = useState<{ id: number; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(null);
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    window.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [menu]);
+
+  const openMenu = (id: number, x: number, y: number) => {
+    const menuWidth = 168;
+    const menuHeight = onMove ? 124 : 86;
+    setMenu({
+      id,
+      x: Math.max(8, Math.min(x, window.innerWidth - menuWidth - 8)),
+      y: Math.max(8, Math.min(y, window.innerHeight - menuHeight - 8)),
+    });
+  };
 
   const submit = () => {
     const value = draft.trim();
@@ -129,9 +173,9 @@ function ListColumn({
           }
         >
           <h2 className="min-w-0 truncate text-sm font-black text-text-primary">
-            {title}
+            {moveTargetMode ? `${moveTargetMode.title} 이동` : title}
           </h2>
-          {protectedStructure && (
+          {protectedStructure && !moveTargetMode && (
             <span
               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-brand-border/50 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black text-brand-primary"
               title="공통 UI 시스템 갤러리 고정 구조"
@@ -139,13 +183,23 @@ function ListColumn({
               <LockKeyhole className="size-3" /> 시스템
             </span>
           )}
-          <span
+          {!moveTargetMode && <span
             className="grid min-w-5 place-items-center rounded-full border border-brand-border/40 bg-brand-glass px-1.5 py-0.5 text-[10px] font-black tabular-nums text-brand-primary"
             title={`${items.length}개`}
           >
             {items.length}
-          </span>
+          </span>}
           <span className="flex-1" />
+          {moveTargetMode ? (
+            <button
+              type="button"
+              onClick={moveTargetMode.onCancel}
+              disabled={moveTargetMode.moving}
+              className="ui-icon-button h-7 px-2.5 text-[11px] font-black disabled:opacity-40"
+            >
+              취소
+            </button>
+          ) : <>
           <button
             type="button"
             onClick={onToggle}
@@ -167,6 +221,7 @@ function ListColumn({
           >
             <Plus className="size-4" />
           </button>
+          </>}
         </div>
       </div>
 
@@ -180,6 +235,7 @@ function ListColumn({
         {/* 접히는 동안 항목이 찌그러지지 않도록 펼친 폭을 유지한 채 잘려 나가게 한다. */}
         <DragDropProvider
           onDragEnd={(event) => {
+            if (moveTargetMode) return;
             if (event.canceled) return;
             const reordered = move(items, event);
             const ids = reordered.map((item) => item.id);
@@ -205,15 +261,32 @@ function ListColumn({
                   key={item.id}
                   id={item.id}
                   index={index}
-                  disabled={protectedStructure}
+                  disabled={protectedStructure || Boolean(moveTargetMode)}
                 >
                   {({ ref, handleRef, isDragSource, isDropTarget }) => (
                     <div
                       ref={ref}
-                      onClick={() => !editing && onSelect(item.id)}
+                      onClick={() => {
+                        if (editing) return;
+                        if (moveTargetMode) {
+                          if (item.id !== moveTargetMode.sourceId) moveTargetMode.onMoveTo(item.id);
+                          return;
+                        }
+                        onSelect(item.id);
+                      }}
+                      onContextMenu={(event) => {
+                        if (protectedStructure || moveTargetMode || editing) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openMenu(item.id, event.clientX, event.clientY);
+                      }}
                       className={
                         "flex min-h-12 cursor-pointer items-center gap-2 rounded-md border px-2.5 transition-all duration-150 " +
-                        (isDragSource
+                        (moveTargetMode
+                          ? item.id === moveTargetMode.sourceId
+                            ? "cursor-default border-surface-border-soft bg-surface-muted opacity-65"
+                            : "cursor-pointer border-brand-border bg-surface-raised hover:bg-brand-glass"
+                          : isDragSource
                           ? "opacity-40"
                           : isDropTarget
                             ? "border-brand-primary bg-brand-glass ring-1 ring-brand-primary/30"
@@ -222,15 +295,21 @@ function ListColumn({
                               : "border-surface-border-soft bg-surface-muted hover:border-brand-border")
                       }
                     >
-                      <button
-                        ref={handleRef}
-                        type="button"
-                        onClick={(event) => event.stopPropagation()}
-                        className="grid size-6 shrink-0 cursor-grab place-items-center text-text-muted active:cursor-grabbing"
-                        aria-label={`${item.title} 순서 변경`}
-                      >
-                        <GripVertical className="size-4 shrink-0 cursor-grab text-text-muted" />
-                      </button>
+                      {moveTargetMode ? (
+                        <span className="grid size-6 shrink-0 place-items-center text-brand-primary">
+                          {item.id === moveTargetMode.sourceId ? <span className="size-1.5 rounded-full bg-text-muted" /> : <ArrowRight className="size-4" />}
+                        </span>
+                      ) : (
+                        <button
+                          ref={handleRef}
+                          type="button"
+                          onClick={(event) => event.stopPropagation()}
+                          className="grid size-6 shrink-0 cursor-grab place-items-center text-text-muted active:cursor-grabbing"
+                          aria-label={`${item.title} 순서 변경`}
+                        >
+                          <GripVertical className="size-4 shrink-0 cursor-grab text-text-muted" />
+                        </button>
+                      )}
                       {item.badge}
                       {editing ? (
                         <input
@@ -261,7 +340,7 @@ function ListColumn({
                         <button
                           type="button"
                           onDoubleClick={(event) => {
-                            if (protectedStructure) return;
+                            if (protectedStructure || moveTargetMode) return;
                             event.stopPropagation();
                             setEditingId(item.id);
                             setEditingTitle(item.title);
@@ -277,7 +356,7 @@ function ListColumn({
                           {item.title}
                         </button>
                       )}
-                      {item.count !== undefined && (
+                      {item.count !== undefined && !moveTargetMode && (
                         <span
                           className="shrink-0 rounded-full bg-surface-raised px-2 py-1 text-[10px] font-black tabular-nums text-text-muted"
                           title={`${item.count}개`}
@@ -285,17 +364,25 @@ function ListColumn({
                           {item.count}개
                         </span>
                       )}
-                      {!protectedStructure ? (
+                      {moveTargetMode ? (
+                        <span className={"shrink-0 text-[11px] font-black " + (item.id === moveTargetMode.sourceId ? "text-text-muted" : "text-brand-primary")}>
+                          {item.id === moveTargetMode.sourceId ? "현재 위치" : "여기로 이동"}
+                        </span>
+                      ) : !protectedStructure ? (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(item.id);
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            openMenu(item.id, rect.right - 168, rect.bottom + 4);
                           }}
-                          title="삭제"
-                          className="ui-icon-button size-7 shrink-0 text-text-muted hover:border-destructive hover:text-destructive"
+                          title="메뉴 관리"
+                          aria-label={`${item.title} 메뉴 관리`}
+                          aria-haspopup="menu"
+                          aria-expanded={menu?.id === item.id}
+                          className="ui-icon-button size-7 shrink-0 text-text-muted"
                         >
-                          <Trash2 className="size-3.5" />
+                          <MoreVertical className="size-3.5" />
                         </button>
                       ) : (
                         <span
@@ -304,6 +391,51 @@ function ListColumn({
                         >
                           <LockKeyhole className="size-3.5" />
                         </span>
+                      )}
+                      {menu?.id === item.id && (
+                        <div
+                          role="menu"
+                          onClick={(event) => event.stopPropagation()}
+                          className="fixed z-[130] w-[168px] rounded-lg border border-surface-border bg-surface-raised p-1.5 text-text-primary shadow-2xl"
+                          style={{ left: menu.x, top: menu.y }}
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setEditingId(item.id);
+                              setEditingTitle(item.title);
+                              setMenu(null);
+                            }}
+                            className="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-xs font-bold hover:bg-surface-muted"
+                          >
+                            <Pencil className="size-3.5" /> 이름 변경
+                          </button>
+                          {onMove && (
+                            <button
+                              type="button"
+                              role="menuitem"
+                              onClick={() => {
+                                onMove(item.id);
+                                setMenu(null);
+                              }}
+                              className="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-xs font-bold hover:bg-surface-muted"
+                            >
+                              <FolderInput className="size-3.5" /> 다른 1차 메뉴로 이동
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              onDelete(item.id);
+                              setMenu(null);
+                            }}
+                            className="flex h-9 w-full items-center gap-2 rounded-md px-2.5 text-left text-xs font-bold text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="size-3.5" /> 삭제
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}

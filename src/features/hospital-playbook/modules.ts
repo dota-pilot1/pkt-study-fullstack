@@ -1,8 +1,17 @@
-export const playbookModules: Record<string, { domain: "SPRING_BOOT" | "SPRING_SECURITY" | "SPRING_AI" | "DOMAIN_DESIGN" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "DB" | "ARCHITECTURE" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PRODUCT_DESIGN" | "PROTOTYPE" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE"; title: string }> = {
+type PlaybookModule = {
+  domain: "SPRING_BOOT" | "JPA" | "SPRING_SECURITY" | "SPRING_AI" | "DOMAIN_DESIGN" | "SPRING_API" | "JAVA" | "JAVA_OOP" | "DB" | "ARCHITECTURE" | "FRONTEND" | "FRONTEND_DOMAIN" | "FRONTEND_LIBRARY" | "JS_TS" | "BASIC_COMPONENTS" | "CLONE_CODING" | "PRODUCT_DESIGN" | "PROTOTYPE" | "PROTOTYPE_FRONT" | "UI_CHALLENGE" | "AX_BASIC" | "AX_CHALLENGE" | "TESTING" | "DEBUGGING" | "CI_CD" | "DEPLOYMENT" | "MONITORING" | "INFRASTRUCTURE" | "PKT_FRONT_LEV1" | "COMPONENT_SKETCH" | "UI_NAV" | "UI_FORM" | "UI_LAYOUT" | "UI_STATE" | "NOTE_SAMPLE";
+  title: string;
+  initialCategoryId?: number;
+  initialTopicId?: number;
+};
+
+export const playbookModules: Record<string, PlaybookModule> = {
   "샘플 노트": { domain: "NOTE_SAMPLE", title: "샘플 노트" },
   "스프링 부트": { domain: "SPRING_BOOT", title: "스프링 부트" },
+  "JPA": { domain: "JPA", title: "JPA" },
   "스프링 시큐리티": { domain: "SPRING_SECURITY", title: "스프링 시큐리티" },
   "스프링 AI": { domain: "SPRING_AI", title: "스프링 AI" },
+  "스프링 테스트": { domain: "TESTING", title: "테스트", initialCategoryId: 165, initialTopicId: 5144 },
   "도메인 설계": { domain: "DOMAIN_DESIGN", title: "도메인 설계" },
   "API 설계 및 문서화": { domain: "SPRING_API", title: "API 설계 및 문서화" },
   "자바 노트": { domain: "JAVA", title: "자바 노트" },
@@ -17,11 +26,13 @@ export const playbookModules: Record<string, { domain: "SPRING_BOOT" | "SPRING_S
   "기본 화면 설계": { domain: "PKT_FRONT_LEV1", title: "기본 화면 설계" },
   "클론 코딩": { domain: "CLONE_CODING", title: "클론 코딩" },
   "제품 설계": { domain: "PRODUCT_DESIGN", title: "제품 설계" },
-  "프로토타입": { domain: "PROTOTYPE", title: "프로토타입" },
+  "백엔드": { domain: "PROTOTYPE", title: "백엔드 프로토타입" },
+  "프론트": { domain: "PROTOTYPE_FRONT", title: "프론트 프로토타입" },
   "UI 챌린지": { domain: "UI_CHALLENGE", title: "UI 챌린지" },
   "AX 기초": { domain: "AX_BASIC", title: "AX 기초" },
   "AX 챌린지": { domain: "AX_CHALLENGE", title: "AX 챌린지" },
-  "테스팅": { domain: "TESTING", title: "테스팅" },
+  "테스트": { domain: "TESTING", title: "테스트" },
+  "파일럿 테스트": { domain: "TESTING", title: "테스트", initialCategoryId: 165, initialTopicId: 5144 },
   "디버깅": { domain: "DEBUGGING", title: "디버깅" },
   "CI/CD": { domain: "CI_CD", title: "CI/CD" },
   "배포": { domain: "DEPLOYMENT", title: "배포" },

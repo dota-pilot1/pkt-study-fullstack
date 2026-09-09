@@ -34,6 +34,25 @@ export const reorderDocuments = repository.reorderDocuments;
 
 const SYSTEM_GALLERY_SPACES = new Set(["UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"]);
 
+export async function moveTopic(id: number, targetCategoryId: number) {
+  const topic = await repository.findTopicById(id);
+  const sourceCategory = topic ? await repository.findCategoryById(topic.categoryId) : null;
+  const targetCategory = await repository.findCategoryById(targetCategoryId);
+  if (!topic || !sourceCategory) throw new PlaybookServiceError(404, "2차 메뉴를 찾을 수 없습니다.");
+  if (!targetCategory) throw new PlaybookServiceError(404, "이동할 1차 메뉴를 찾을 수 없습니다.");
+  if (sourceCategory.id === targetCategory.id) throw new PlaybookServiceError(400, "현재 1차 메뉴와 다른 위치를 선택하세요.");
+  if (sourceCategory.spaceId !== targetCategory.spaceId) throw new PlaybookServiceError(400, "같은 플레이북 안의 1차 메뉴로만 이동할 수 있습니다.");
+
+  const space = await repository.findSpaceById(sourceCategory.spaceId);
+  if (space && SYSTEM_GALLERY_SPACES.has(space.code)) throw new PlaybookServiceError(403, "공통 UI 시스템 갤러리의 주제는 이동할 수 없습니다.");
+
+  const duplicate = (await repository.listAllTopics()).some(
+    (item) => item.categoryId === targetCategoryId && item.title === topic.title,
+  );
+  if (duplicate) throw new PlaybookServiceError(409, "이동할 1차 메뉴에 같은 이름의 2차 메뉴가 있습니다.");
+  return repository.moveTopic(id, targetCategoryId);
+}
+
 async function isProtectedGalleryTopic(topicId: number) {
   const topic = await repository.findTopicById(topicId);
   if (!topic) return false;
@@ -90,6 +109,25 @@ export async function updateDocument(id: number, title: string | undefined, cont
     ...(parentChanged ? { orderIdx: siblings.filter((document) => document.parentId === parentId).length } : {}),
     version: current.version + 1,
   });
+}
+
+export async function moveDocumentToTopic(id: number, targetTopicId: number) {
+  const document = await repository.findDocument(id);
+  const sourceTopic = document ? await repository.findTopicById(document.topicId) : null;
+  const targetTopic = await repository.findTopicById(targetTopicId);
+  if (!document || !sourceTopic) throw new PlaybookServiceError(404, "문서를 찾을 수 없습니다.");
+  if (!targetTopic) throw new PlaybookServiceError(404, "이동할 2차 메뉴를 찾을 수 없습니다.");
+  if (sourceTopic.id === targetTopic.id) throw new PlaybookServiceError(400, "현재 2차 메뉴와 다른 주제를 선택하세요.");
+
+  const sourceCategory = await repository.findCategoryById(sourceTopic.categoryId);
+  const targetCategory = await repository.findCategoryById(targetTopic.categoryId);
+  if (!sourceCategory || !targetCategory || sourceCategory.id !== targetCategory.id) {
+    throw new PlaybookServiceError(400, "같은 1차 메뉴 안의 2차 메뉴로만 이동할 수 있습니다.");
+  }
+  if (document.parentId === null && await isProtectedGalleryTopic(document.topicId)) {
+    throw new PlaybookServiceError(403, "공통 UI 시스템 갤러리의 대표 문서는 이동할 수 없습니다.");
+  }
+  return repository.moveDocumentToTopic(id, targetTopicId);
 }
 
 export async function deleteDocumentTree(id: number) {

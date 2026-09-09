@@ -44,6 +44,7 @@ function DocumentDrawer({
   onRefresh,
   documents,
   onMove,
+  onMoveToTopic,
   deleting = false,
   deleteError,
   loading = false,
@@ -63,6 +64,7 @@ function DocumentDrawer({
   onRefresh: () => Promise<unknown>;
   documents: PlaybookDocumentSummary[];
   onMove: (parentId: number | null) => Promise<void>;
+  onMoveToTopic: () => void;
   deleting?: boolean;
   deleteError?: string;
   loading?: boolean;
@@ -283,6 +285,7 @@ function DocumentDrawer({
                 trigger={<button type="button" className="ui-icon-button size-8" title="추가 도구" aria-label="추가 도구"><MoreHorizontal className="size-4" /></button>}
               >
                 <DropdownMenuItem onAction={() => setLocationDialogOpen(true)} disabled={isEditing}>위치 이동</DropdownMenuItem>
+                <DropdownMenuItem onAction={onMoveToTopic} disabled={isEditing}>다른 주제로 이동</DropdownMenuItem>
                 {onOpenPage && <DropdownMenuItem onAction={onOpenPage}>전체 보기</DropdownMenuItem>}
                 <DropdownMenuItem onAction={() => void copyDocumentLink()}>{linkCopied ? "앱 링크 복사됨" : "앱 링크 복사"}</DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -338,7 +341,7 @@ function DocumentDrawer({
               onCancel={() => setIsEditing(false)}
             />
           ) : document.content.trim() ? (
-            <div className="drawer-document-content mx-auto max-w-[960px] overflow-hidden rounded-xl border border-surface-border-soft bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            <div className="drawer-document-content w-full overflow-hidden rounded-xl border border-surface-border-soft bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
               <LexicalEditor
                 key={`${document.id}-${document.version}`}
                 initialState={document.content}

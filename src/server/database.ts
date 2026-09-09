@@ -158,11 +158,21 @@ sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, u
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
   .run("ARCHITECTURE", "아키텍처 설계", now, now);
 
-// 프로토타입은 클론 코딩과 분리해 업무 도메인·화면 흐름을 직접 설계하는 프로젝트 실습 공간이다.
+// 파일럿은 백엔드와 프론트를 독립 공간으로 나눠, 한쪽 주제가 다른 쪽의 2차 메뉴를 밀어내지 않게 한다.
 sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
-  .run("PROTOTYPE", "프로토타입", now, now);
-// 프로토타입의 1차·2차 메뉴는 노트 API에서 관리한다.
-// 서버 초기화 때 특정 프로젝트 메뉴를 채우면 사용자가 삭제한 메뉴가 다시 생성된다.
+  .run("PROTOTYPE", "백엔드 프로토타입", now, now);
+sqlite.prepare("UPDATE playbook_spaces SET name = ?, updated_at = ? WHERE code = ? AND name = ?")
+  .run("백엔드 프로토타입", now, "PROTOTYPE", "프로토타입");
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("PROTOTYPE_FRONT", "프론트 프로토타입", now, now);
+
+// 기존 프로토타입의 프론트 1차 메뉴는 문서·주제 ID를 보존한 채 새 프론트 공간으로 옮긴다.
+const prototypeSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("PROTOTYPE") as { id: number } | undefined;
+const prototypeFrontSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get("PROTOTYPE_FRONT") as { id: number } | undefined;
+if (prototypeSpace && prototypeFrontSpace) {
+  sqlite.prepare("UPDATE playbook_categories SET space_id = ?, updated_at = ? WHERE space_id = ? AND title = ?")
+    .run(prototypeFrontSpace.id, now, prototypeSpace.id, "프론트");
+}
 
 // AX 실습과 UI 챌린지는 왼쪽 레일에서 독립 플레이북으로 관리한다.
 for (const [code, name] of [["AX_BASIC", "AX 기초"], ["AX_CHALLENGE", "AX 챌린지"], ["UI_CHALLENGE", "UI 챌린지"], ["JAVA_OOP", "OOP 실습"], ["TESTING", "테스팅"], ["DEBUGGING", "디버깅"], ["CI_CD", "CI/CD"], ["DEPLOYMENT", "배포"], ["MONITORING", "모니터링"], ["INFRASTRUCTURE", "환경·인프라"]] as const) {
@@ -202,6 +212,26 @@ if (springSpace) {
   sqlite.prepare("UPDATE playbook_spaces SET name = ?, updated_at = ? WHERE id = ? AND name = ?")
     .run("스프링 부트", now, springSpace.id, "스프링 노트");
 }
+
+// JPA는 DB 모델링과 달리 스프링에서 객체를 저장·조회하는 방식을 다루므로 독립 학습 공간으로 둔다.
+sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
+  .run("JPA", "JPA", now, now);
+const jpaSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("JPA") as { id: number };
+let jpaCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+  .get(jpaSpace.id, "JPA 기초") as { id: number } | undefined;
+if (!jpaCategory) {
+  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(jpaSpace.id, "JPA 기초", 0, now, now);
+  jpaCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
+    .get(jpaSpace.id, "JPA 기초") as { id: number };
+}
+const jpaTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
+  .get(jpaCategory.id, "JPA 시작하기") as { id: number } | undefined;
+if (!jpaTopic) {
+  sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .run(jpaCategory.id, "JPA 시작하기", 0, now, now);
+}
+
 if (springSpace) {
   const springCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
     .get(springSpace.id, "스프링 핵심") as { id: number } | undefined;

@@ -4,6 +4,7 @@ import { LlmPlaybookError } from "@/server/http/llm-request";
 export { assertLlmApiAccess, handleLlmRequest, llmErrorResponse, LlmPlaybookError } from "@/server/http/llm-request";
 import type { playbookDocuments } from "@/db/schema";
 import * as repository from "@/server/modules/playbook/playbook-repository";
+import { moveDocumentToTopic as moveDocumentToTopicService, PlaybookServiceError } from "@/server/modules/playbook/playbook-service";
 
 const documentSummary = (document: typeof playbookDocuments.$inferSelect) => ({
   id: document.id,
@@ -65,6 +66,23 @@ export async function llmTopic(topicId: number) {
   return { ...topic, documents: documents.map(documentSummary) };
 }
 
+export async function moveLlmTopic(topicId: number, targetCategoryId: number) {
+  if (!Number.isInteger(topicId) || !Number.isInteger(targetCategoryId)) throw new LlmPlaybookError(400, "2차 메뉴 ID와 이동할 1차 메뉴 ID가 필요합니다.");
+  const topic = await repository.findTopicById(topicId);
+  const sourceCategory = topic ? await repository.findCategoryById(topic.categoryId) : null;
+  const targetCategory = await repository.findCategoryById(targetCategoryId);
+  if (!topic || !sourceCategory) throw new LlmPlaybookError(404, "2차 메뉴를 찾을 수 없습니다.");
+  if (!targetCategory) throw new LlmPlaybookError(404, "이동할 1차 메뉴를 찾을 수 없습니다.");
+  if (sourceCategory.id === targetCategory.id) throw new LlmPlaybookError(400, "현재 1차 메뉴와 다른 위치를 선택하세요.");
+  if (sourceCategory.spaceId !== targetCategory.spaceId) throw new LlmPlaybookError(400, "같은 플레이북 안의 1차 메뉴로만 이동할 수 있습니다.");
+
+  const space = await repository.findSpaceById(sourceCategory.spaceId);
+  if (space && ["UI_NAV", "UI_FORM", "UI_LAYOUT", "UI_STATE"].includes(space.code)) throw new LlmPlaybookError(403, "공통 UI 시스템 갤러리의 주제는 이동할 수 없습니다.");
+  const duplicate = (await repository.listAllTopics()).some((item) => item.categoryId === targetCategoryId && item.title === topic.title);
+  if (duplicate) throw new LlmPlaybookError(409, "이동할 1차 메뉴에 같은 이름의 2차 메뉴가 있습니다.");
+  return repository.moveTopic(topicId, targetCategoryId);
+}
+
 /** 선택한 2차 주제의 전체 문서 트리와 LLM 조회 URL을 한 번에 제공한다. */
 export async function llmTopicDocumentTree(topicId: number, apiOrigin: string) {
   const topic = await repository.findTopicById(topicId);
@@ -93,6 +111,18 @@ export async function llmDocument(documentId: number) {
   const document = await repository.findDocument(documentId);
   if (!document) throw new LlmPlaybookError(404, "문서를 찾을 수 없습니다.");
   return documentResponse(document);
+}
+
+export async function moveLlmDocumentToTopic(documentId: number, targetTopicId: number) {
+  if (!Number.isInteger(documentId) || !Number.isInteger(targetTopicId)) throw new LlmPlaybookError(400, "문서 ID와 이동할 2차 메뉴 ID가 필요합니다.");
+  try {
+    const moved = await moveDocumentToTopicService(documentId, targetTopicId);
+    if (!moved) throw new LlmPlaybookError(404, "문서를 찾을 수 없습니다.");
+    return documentResponse(moved);
+  } catch (error) {
+    if (error instanceof PlaybookServiceError) throw new LlmPlaybookError(error.status, error.message);
+    throw error;
+  }
 }
 
 export async function llmDocumentContext(documentId: number) {

@@ -29,8 +29,10 @@ import { useTodos } from "../../features/todo/useTodos";
 import {
   playbookApi,
   type PlaybookCategory,
+  type PlaybookDocument,
   type PlaybookDocumentSummary,
   type PlaybookDomain,
+  type PlaybookTopic,
 } from "../../features/hospital-playbook/api";
 import { usePlaybookLayoutStore } from "../../features/hospital-playbook/layout-store";
 import {
@@ -45,6 +47,7 @@ import ApiDesignDocumentDialog from "./ApiDesignDocumentDialog";
 import ListColumn from "./ListColumn";
 import LlmApiGuideDialog from "./LlmApiGuideDialog";
 import { useToast } from "../../shared/ui/toast";
+import { Dialog } from "../../shared/ui/dialog";
 
 // 접힌 헤더에 제목·개수·펼치기 버튼이 나란히 들어갈 만큼은 남긴다. 더 좁히면 내용이 끼어 쪼그라들어 보인다.
 const COLLAPSED_COLUMN_WIDTH = 148;
@@ -76,6 +79,16 @@ type NewDocumentDraft = {
   parentId: number | null;
 };
 
+type MoveTopicTarget = {
+  topic: PlaybookTopic;
+  sourceCategoryId: number;
+};
+
+type MoveDocumentTarget = {
+  document: PlaybookDocument;
+  sourceTopicId: number;
+};
+
 function StructureDeleteConfirm({
   target,
   deleting,
@@ -91,28 +104,15 @@ function StructureDeleteConfirm({
 }) {
   const isCategory = target.kind === "category";
   return (
-    <div
-      className="fixed inset-0 z-[100] grid place-items-center bg-black/35 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${isCategory ? "1차 영역" : "2차 주제"} 삭제 확인`}
-    >
-      <div className="w-full max-w-md rounded-lg border border-surface-border bg-surface-raised p-5 shadow-2xl">
-        <div className="flex items-center gap-2">
-          <Trash2 className="size-5 text-destructive" />
-          <h2 className="text-base font-black text-text-primary">
-            {isCategory ? "1차 영역" : "2차 주제"}을 삭제할까요?
-          </h2>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-text-secondary">
-          <strong className="text-text-primary">{target.title}</strong>
-          {isCategory
-            ? ` 영역과 하위 2차 주제 ${target.childCount}개, 본문 문서를 모두 삭제합니다.`
-            : ` 주제와 본문 문서 ${target.childCount}개를 모두 삭제합니다.`}
-          <br />
-          삭제 후 복구할 수 없습니다.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
+    <Dialog
+      title={`${isCategory ? "1차 영역" : "2차 주제"}을 삭제할까요?`}
+      icon={<Trash2 className="size-4.5 text-destructive" />}
+      ariaLabel={`${isCategory ? "1차 영역" : "2차 주제"} 삭제 확인`}
+      zIndexClassName="z-[100]"
+      onClose={onCancel}
+      closeDisabled={deleting}
+      footer={
+        <>
           <button
             type="button"
             onClick={onCancel}
@@ -129,12 +129,21 @@ function StructureDeleteConfirm({
           >
             {deleting ? "삭제 중..." : "확인 후 삭제"}
           </button>
-        </div>
+        </>
+      }
+    >
+        <p className="text-sm leading-6 text-text-secondary">
+          <strong className="text-text-primary">{target.title}</strong>
+          {isCategory
+            ? ` 영역과 하위 2차 주제 ${target.childCount}개, 본문 문서를 모두 삭제합니다.`
+            : ` 주제와 본문 문서 ${target.childCount}개를 모두 삭제합니다.`}
+          <br />
+          삭제 후 복구할 수 없습니다.
+        </p>
         {error && (
           <p className="mt-3 text-xs font-bold text-destructive">{error}</p>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -297,15 +306,19 @@ function flattenDocuments(documents: PlaybookDocumentSummary[]) {
 function HospitalPlaybookModule({
   domain,
   title,
+  initialCategoryId,
+  initialTopicId,
 }: {
   domain: PlaybookDomain;
   title: string;
+  initialCategoryId?: number;
+  initialTopicId?: number;
 }) {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const tree = usePlaybookTree(domain);
-  const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [topicId, setTopicId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(initialCategoryId ?? null);
+  const [topicId, setTopicId] = useState<number | null>(initialTopicId ?? null);
   const [editingDocumentId, setEditingDocumentId] = useState<number | null>(
     null,
   );
@@ -329,6 +342,8 @@ function HospitalPlaybookModule({
   const [apiDesignDocument, setApiDesignDocument] =
     useState<PlaybookDocumentSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [moveTopicTarget, setMoveTopicTarget] = useState<MoveTopicTarget | null>(null);
+  const [moveDocumentTarget, setMoveDocumentTarget] = useState<MoveDocumentTarget | null>(null);
   const expandedTopicId = useRef<number | null>(null);
   const openedDeepLinkRef = useRef<string | null>(null);
   const categoryWidth = usePlaybookLayoutStore((state) => state.categoryWidth);
@@ -400,7 +415,7 @@ function HospitalPlaybookModule({
       categoryTitle: category?.title ?? null,
       topicId: topic?.id ?? null,
       topicTitle: topic?.title ?? null,
-      includeCategoryTodos: domain === "PROTOTYPE",
+      includeCategoryTodos: domain === "PROTOTYPE" || domain === "PROTOTYPE_FRONT",
     }),
     [category?.id, category?.title, domain, topic?.id, topic?.title],
   );
@@ -442,8 +457,8 @@ function HospitalPlaybookModule({
       return;
     }
     if (!categories.some((item) => item.id === categoryId))
-      setCategoryId(categories[0].id);
-  }, [categories, categoryId]);
+      setCategoryId(categories.find((item) => item.id === initialCategoryId)?.id ?? categories[0].id);
+  }, [categories, categoryId, initialCategoryId]);
   useEffect(() => {
     const topics = category?.topics ?? EMPTY_TOPICS;
     if (!topics.length) {
@@ -458,8 +473,9 @@ function HospitalPlaybookModule({
       setPendingTopicSelection(null);
       return;
     }
-    if (!topics.some((item) => item.id === topicId)) setTopicId(topics[0].id);
-  }, [category, topicId, pendingTopicSelection]);
+    if (!topics.some((item) => item.id === topicId))
+      setTopicId(topics.find((item) => item.id === initialTopicId)?.id ?? topics[0].id);
+  }, [category, topicId, pendingTopicSelection, initialTopicId]);
   useEffect(() => {
     const ids = new Set(documents.map((item) => item.id));
     setExpandedDocumentIds((current) => {
@@ -568,6 +584,30 @@ function HospitalPlaybookModule({
     },
     onError: (error) =>
       mutationError(error, "2차 메뉴 이름을 수정하지 못했습니다."),
+  });
+  const moveTopic = useMutation({
+    mutationFn: (value: { topicId: number; categoryId: number }) =>
+      playbookApi.moveTopic(value.topicId, value.categoryId),
+    onSuccess: (moved) => {
+      setMoveTopicTarget(null);
+      setCategoryId(moved.categoryId);
+      setPendingTopicSelection(moved.id);
+      invalidate();
+      showToast("2차 메뉴를 이동했습니다.");
+    },
+    onError: (error) => mutationError(error, "2차 메뉴를 이동하지 못했습니다."),
+  });
+  const moveDocumentToTopic = useMutation({
+    mutationFn: (value: { documentId: number; topicId: number }) =>
+      playbookApi.moveDocumentToTopic(value.documentId, value.topicId),
+    onSuccess: (moved) => {
+      setMoveDocumentTarget(null);
+      setPendingTopicSelection(moved.topicId);
+      setDrawerDocumentId(moved.id);
+      invalidate();
+      showToast("문서를 다른 2차 메뉴로 이동했습니다.");
+    },
+    onError: (error) => mutationError(error, "문서를 다른 2차 메뉴로 이동하지 못했습니다."),
   });
   const deleteTopic = useMutation({
     mutationFn: (id: number) => playbookApi.deleteTopic(id),
@@ -900,6 +940,23 @@ function HospitalPlaybookModule({
                 collapsed={categoryCollapsed}
                 onToggle={toggleCategory}
                 protectedStructure={isSystemGallery}
+                moveTargetMode={
+                  moveTopicTarget
+                    ? {
+                        title: moveTopicTarget.topic.title,
+                        sourceId: moveTopicTarget.sourceCategoryId,
+                        moving: moveTopic.isPending,
+                        onCancel: () => {
+                          if (!moveTopic.isPending) setMoveTopicTarget(null);
+                        },
+                        onMoveTo: (targetCategoryId) =>
+                          moveTopic.mutate({
+                            topicId: moveTopicTarget.topic.id,
+                            categoryId: targetCategoryId,
+                          }),
+                      }
+                    : undefined
+                }
               />
             </div>
             <div
@@ -935,6 +992,10 @@ function HospitalPlaybookModule({
                   createTopic.mutate({ categoryId: category.id, title })
                 }
                 onRename={(id, title) => renameTopic.mutate({ id, title })}
+                onMove={(id) => {
+                  const item = category?.topics.find((topic) => topic.id === id);
+                  if (item && category) setMoveTopicTarget({ topic: item, sourceCategoryId: category.id });
+                }}
                 onDelete={(id) => {
                   const item = category?.topics.find(
                     (topic) => topic.id === id,
@@ -960,6 +1021,23 @@ function HospitalPlaybookModule({
                 collapsed={topicCollapsed}
                 onToggle={toggleTopic}
                 protectedStructure={isSystemGallery}
+                moveTargetMode={
+                  moveDocumentTarget
+                    ? {
+                        title: moveDocumentTarget.document.title,
+                        sourceId: moveDocumentTarget.sourceTopicId,
+                        moving: moveDocumentToTopic.isPending,
+                        onCancel: () => {
+                          if (!moveDocumentToTopic.isPending) setMoveDocumentTarget(null);
+                        },
+                        onMoveTo: (targetTopicId) =>
+                          moveDocumentToTopic.mutate({
+                            documentId: moveDocumentTarget.document.id,
+                            topicId: targetTopicId,
+                          }),
+                      }
+                    : undefined
+                }
               />
             </div>
             <div
@@ -1151,6 +1229,10 @@ function HospitalPlaybookModule({
             queryClient.setQueryData(["hospital-playbook", "document", moved.id], moved);
             await queryClient.invalidateQueries({ queryKey: playbookTreeKey(domain) });
             showToast(parentId === null ? "문서를 루트 본문으로 이동했습니다." : "문서를 선택한 본문 아래로 이동했습니다.");
+          }}
+          onMoveToTopic={() => {
+            setMoveDocumentTarget({ document: detail, sourceTopicId: detail.topicId });
+            setDrawerDocumentId(null);
           }}
           onOpenPage={() => {
             setDrawerDocumentId(null);

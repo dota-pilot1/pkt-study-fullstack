@@ -15,21 +15,23 @@ import packageJson from "../../../package.json";
 
 type RailGroup = "backend" | "frontend" | "language" | "practice" | "ax" | "quality" | "devops";
 type RailSubgroup = "spring" | "java" | "design" | "react" | "domainDesign" | "pilot" | "challenge" | "ax" | "quality" | "devops";
-type RailItem = { label: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
+type RailItem = { label: string; moduleLabel?: string; icon: LucideIcon; group: RailGroup; subgroup?: RailSubgroup };
 
 const railGroups: Array<{ id: RailGroup; label: string | null }> = [
+  { id: "practice", label: null },
   { id: "backend", label: "백엔드" },
   { id: "frontend", label: "프론트" },
   { id: "language", label: "언어" },
-  { id: "practice", label: null },
   { id: "ax", label: null },
   { id: "quality", label: null },
   { id: "devops", label: null },
 ];
 const railItems: RailItem[] = [
   { label: "스프링 부트", icon: Leaf, group: "backend", subgroup: "spring" },
+  { label: "JPA", icon: Database, group: "backend", subgroup: "spring" },
   { label: "스프링 시큐리티", icon: LockKeyhole, group: "backend", subgroup: "spring" },
   { label: "스프링 AI", icon: Sparkles, group: "backend", subgroup: "spring" },
+  { label: "테스트", moduleLabel: "스프링 테스트", icon: Boxes, group: "backend", subgroup: "spring" },
   { label: "도메인 설계", icon: Boxes, group: "backend", subgroup: "design" },
   { label: "API 설계 및 문서화", icon: BookOpen, group: "backend", subgroup: "design" },
   { label: "자바 노트", icon: Coffee, group: "language", subgroup: "java" },
@@ -44,11 +46,12 @@ const railItems: RailItem[] = [
   { label: "기본 화면 설계", icon: GraduationCap, group: "frontend", subgroup: "domainDesign" },
   { label: "클론 코딩", icon: Copy, group: "practice", subgroup: "challenge" },
   { label: "제품 설계", icon: PenTool, group: "practice", subgroup: "pilot" },
-  { label: "프로토타입", icon: Workflow, group: "practice", subgroup: "pilot" },
+  { label: "백엔드", icon: Workflow, group: "practice", subgroup: "pilot" },
+  { label: "프론트", icon: Workflow, group: "practice", subgroup: "pilot" },
+  { label: "테스트", moduleLabel: "파일럿 테스트", icon: Boxes, group: "practice", subgroup: "pilot" },
   { label: "UI 챌린지", icon: GraduationCap, group: "practice", subgroup: "challenge" },
   { label: "AX 기초", icon: Sparkles, group: "ax", subgroup: "ax" },
   { label: "AX 챌린지", icon: Sparkles, group: "ax", subgroup: "ax" },
-  { label: "테스팅", icon: Boxes, group: "quality", subgroup: "quality" },
   { label: "디버깅", icon: Search, group: "quality", subgroup: "quality" },
   { label: "CI/CD", icon: Workflow, group: "devops", subgroup: "devops" },
   { label: "배포", icon: Boxes, group: "devops", subgroup: "devops" },
@@ -215,7 +218,7 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
     }
   };
   const railTint = (percent: number) => `color-mix(in srgb, var(--primary-foreground) ${percent}%, transparent)`;
-  const activeRailSubgroup = railItems.find((item) => item.label === active)?.subgroup;
+  const activeRailSubgroup = railItems.find((item) => (item.moduleLabel ?? item.label) === active)?.subgroup;
 
   return (
     <ToastProvider><QueryClientProvider client={queryClient}><ShellUserContext.Provider value={user}><ActiveModuleContext.Provider value={active}><BookmarkProvider userId={user.email}>
@@ -232,12 +235,12 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
               {railSubgroups.filter((subgroup) => railItems.some((item) => item.group === group.id && item.subgroup === subgroup.id)).map((subgroup) => {
                 const selected = selectedRailSubgroup === subgroup.id;
                 const hasActiveChild = activeRailSubgroup === subgroup.id;
-                const activeChild = railItems.find((item) => item.subgroup === subgroup.id && item.label === active)?.label;
+                const activeChild = railItems.find((item) => item.subgroup === subgroup.id && (item.moduleLabel ?? item.label) === active)?.label;
                 return <button key={subgroup.id} type="button" onClick={(event) => openRailSubgroup(event, subgroup.id)} aria-expanded={selected} aria-controls={`rail-submenu-${subgroup.id}`} className={"flex min-h-[40px] w-[92px] flex-col items-center justify-center gap-1 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : hasActiveChild ? "rounded-[13px] bg-white/10" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><span className="flex items-center gap-0.5 text-[10px] font-black leading-[1.15]">{subgroup.label}<ChevronDown className="size-3 -rotate-90" /></span><span className="max-w-[82px] overflow-hidden text-center text-[8px] font-medium leading-[1.1] text-text-on-brand/70 [word-break:keep-all]">{activeChild ?? "하위 메뉴"}</span></button>;
               })}
               {railItems.filter((item) => item.group === group.id && !item.subgroup).map((item) => {
-                const Icon = item.icon; const selected = item.label === active;
-                return <button key={item.label} type="button" onClick={() => selectModule(item.label)} title={item.label} className={"flex min-h-[40px] w-[92px] flex-col items-center justify-center gap-0.5 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
+                const Icon = item.icon; const moduleLabel = item.moduleLabel ?? item.label; const selected = moduleLabel === active;
+                return <button key={moduleLabel} type="button" onClick={() => selectModule(moduleLabel)} title={item.label} className={"flex min-h-[40px] w-[92px] flex-col items-center justify-center gap-0.5 px-1 py-1 transition-all duration-300 ease-in-out " + (selected ? "rounded-[13px]" : "rounded-[20px] hover:rounded-[13px] hover:bg-white/10")} style={{ backgroundColor: selected ? railTint(38) : undefined }}><Icon className="size-[19px] shrink-0" strokeWidth={2} /><span className="w-full overflow-hidden text-center text-[9.5px] font-semibold leading-[1.15] [word-break:keep-all]">{item.label}</span></button>;
               })}
             </div>)}
           </div>
@@ -256,8 +259,8 @@ export function FullstackShell({ children, user }: { children: ReactNode; user: 
             <button type="button" onClick={() => setSelectedRailSubgroup(null)} className="grid size-5 place-items-center rounded-md text-text-muted hover:bg-surface-raised hover:text-text-primary" aria-label="2차 메뉴 닫기"><ChevronDown className="size-3 rotate-90" /></button>
           </div>
           <div className="space-y-0.5">{railItems.filter((item) => item.subgroup === selectedRailSubgroup).map((item) => {
-            const Icon = item.icon; const selected = item.label === active;
-            return <button key={item.label} type="button" onClick={() => selectModule(item.label)} className={"flex min-h-10 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors " + (selected ? "bg-brand-glass text-brand-primary" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary")}><Icon className="size-3.5 shrink-0" strokeWidth={2} /><span className="line-clamp-2 text-[11px] font-bold leading-tight [word-break:keep-all]">{item.label}</span></button>;
+            const Icon = item.icon; const moduleLabel = item.moduleLabel ?? item.label; const selected = moduleLabel === active;
+            return <button key={moduleLabel} type="button" onClick={() => selectModule(moduleLabel)} className={"flex min-h-10 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors " + (selected ? "bg-brand-glass text-brand-primary" : "text-text-secondary hover:bg-surface-muted hover:text-text-primary")}><Icon className="size-3.5 shrink-0" strokeWidth={2} /><span className="line-clamp-2 text-[11px] font-bold leading-tight [word-break:keep-all]">{item.label}</span></button>;
           })}</div>
         </aside>}
         </div>
