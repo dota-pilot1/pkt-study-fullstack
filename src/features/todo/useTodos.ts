@@ -49,13 +49,16 @@ export function useTodos(scope?: TodoScope) {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const topicId = scope?.topicId ?? null;
-  const categoryId = scope?.includeCategoryTodos ? scope.categoryId ?? null : null;
+  // TODO 목록은 맨왼쪽 작업 영역(space) 단위다. 노트의 1·2차 메뉴는
+  // 작업을 작성할 때의 위치 정보로만 보관하고 조회 범위는 바꾸지 않는다.
+  const spaceCode = scope?.spaceCode ?? null;
+  const topicId = null;
+  const categoryId = null;
 
   const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const query = categoryId ? `?categoryId=${categoryId}` : topicId ? `?topicId=${topicId}` : "";
+      const query = spaceCode ? `?spaceCode=${encodeURIComponent(spaceCode)}` : "";
       const rows = await request<ApiTodo[]>(`/api/todos${query}`);
       setTodos(rows.map(normalizeTodo));
       setError(null);
@@ -64,7 +67,7 @@ export function useTodos(scope?: TodoScope) {
     } finally {
       setIsLoading(false);
     }
-  }, [categoryId, topicId]);
+  }, [spaceCode]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -139,8 +142,10 @@ export function useTodos(scope?: TodoScope) {
     try {
       await request(`/api/todos/${todoId}`, { method: "DELETE" });
       setTodos((items) => items.filter((todo) => todo.id !== todoId));
+      return true;
     } catch (requestError) {
       showToast(requestError instanceof Error ? requestError.message : "작업을 삭제하지 못했습니다.", "error");
+      return false;
     }
   }, [showToast]);
 
@@ -153,6 +158,7 @@ export function useTodos(scope?: TodoScope) {
           workstream,
           categoryId,
           topicId: categoryId ? null : topicId,
+          spaceCode,
         }),
       });
       setTodos(rows.map(normalizeTodo));
@@ -160,7 +166,7 @@ export function useTodos(scope?: TodoScope) {
       showToast(requestError instanceof Error ? requestError.message : "작업 순서를 저장하지 못했습니다.", "error");
       void load();
     }
-  }, [categoryId, load, showToast, topicId]);
+  }, [categoryId, load, showToast, spaceCode, topicId]);
 
   const clearCompleted = useCallback(async () => {
     await Promise.all(todos.filter((todo) => todo.status === "DONE").map((todo) => deleteTodo(todo.id)));

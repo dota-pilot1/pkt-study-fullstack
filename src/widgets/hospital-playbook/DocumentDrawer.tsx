@@ -278,6 +278,7 @@ function DocumentDrawer({
               <button type="button" className={`ui-icon-button size-8 ${searchOpen ? "border-emerald-500 bg-emerald-50 text-emerald-600" : "text-text-muted"}`} onClick={searchOpen ? closeSearch : openSearch} disabled={isEditing || !document.content.trim()} title="본문 검색 (⌘/Ctrl+F)" aria-label="본문 검색" aria-pressed={searchOpen}><Search className="size-3.5" /></button>
               <button type="button" className="ui-icon-button size-8 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40" onClick={() => void refreshDocument()} disabled={isRefreshing} title="문서 새로고침" aria-label="문서 새로고침"><RefreshCw className={`size-4 ${isRefreshing ? "refresh-icon-spin" : ""}`} /></button>
               <BookmarkButton document={document} />
+              <button type="button" className="ui-icon-button h-8 gap-1 px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContentApi} title="본문 편집 지시" aria-label="본문 편집 지시"><span>본문 편집</span><Braces className="size-3.5" /></button>
               <button type="button" className={`ui-icon-button h-8 px-2.5 text-[11px] font-black ${isEditing ? "bg-brand-primary text-white" : ""}`} onClick={() => { closeSearch(); setIsEditing(true); }} title="수정">수정</button>
               <DropdownMenu
                 open={moreActionsOpen}
@@ -292,7 +293,6 @@ function DocumentDrawer({
                 <DropdownMenuItem className="text-brand-primary" onAction={() => void copyShareLink()} disabled={isSharing}>{shareCopied ? "공유 링크 복사됨" : "공유 링크"}</DropdownMenuItem>
                 <DropdownMenuItem className="text-brand-primary" onAction={() => void copyAgentConnection()}>{agentCopied ? "Agent 정보 복사됨" : "본문 조회·수정"}</DropdownMenuItem>
                 <DropdownMenuItem className="gap-1 text-brand-primary" onAction={onOpenApiDesign}>API 설계 <Braces className="size-3.5" /></DropdownMenuItem>
-                <DropdownMenuItem className="text-brand-primary" onAction={onOpenContentApi}>본문 편집</DropdownMenuItem>
                 {canDelete ? <><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onAction={() => setDeleteConfirmOpen(true)}><Trash2 className="mr-1 size-3.5" />삭제</DropdownMenuItem></> : null}
               </DropdownMenu>
               <button type="button" className="ui-icon-button size-8" onClick={handleClose} title="닫기" aria-label="닫기"><X className="size-4" /></button>

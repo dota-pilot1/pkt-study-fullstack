@@ -15,6 +15,30 @@ const emptyLexicalState = JSON.stringify({
   root: { children: [], direction: null, format: "", indent: 0, type: "root", version: 1 },
 });
 
+type LexicalNode = {
+  type?: string;
+  text?: string;
+  children?: LexicalNode[];
+};
+
+/** 빈 root나 빈 문단은 제외하고, 실제로 작성된 본문만 목록 상태로 노출한다. */
+function hasDocumentContent(content: string) {
+  try {
+    const state = JSON.parse(content) as { root?: LexicalNode };
+    const visit = (node: LexicalNode): boolean => {
+      if (node.text?.trim()) return true;
+      if (node.children?.some(visit)) return true;
+      return Boolean(
+        node.type &&
+          !["root", "paragraph", "heading", "quote", "list", "listitem", "code", "text", "linebreak"].includes(node.type),
+      );
+    };
+    return visit(state.root ?? {});
+  } catch {
+    return content.trim().length > 0;
+  }
+}
+
 export async function findDocument(id: number) {
   const [document] = await db.select().from(playbookDocuments).where(eq(playbookDocuments.id, id)).limit(1);
   return document ?? null;
@@ -138,7 +162,12 @@ export async function getTree(spaceCode: string) {
       ...category,
       topics: topics.filter((topic) => topic.categoryId === category.id).map((topic) => ({
         ...topic,
-        documents: documents.filter((document) => document.topicId === topic.id),
+        documents: documents
+          .filter((document) => document.topicId === topic.id)
+          .map(({ content, ...document }) => ({
+            ...document,
+            hasContent: hasDocumentContent(content),
+          })),
       })),
     })),
   };

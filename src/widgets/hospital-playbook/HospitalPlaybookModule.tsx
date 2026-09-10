@@ -157,7 +157,6 @@ function SortableTreeDocumentRow({
   onToggle,
   onAddChild,
   onOpenPage,
-  onOpenContentApi,
 }: {
   document: PlaybookDocumentSummary;
   depth: number;
@@ -168,7 +167,6 @@ function SortableTreeDocumentRow({
   onToggle: () => void;
   onAddChild: () => void;
   onOpenPage: () => void;
-  onOpenContentApi: () => void;
 }) {
   const {
     ref,
@@ -222,6 +220,12 @@ function SortableTreeDocumentRow({
           )}
         </span>
       </button>
+      <span
+        className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-black ${document.hasContent ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}
+        title={document.hasContent ? "본문이 작성되어 있습니다." : "본문이 아직 비어 있습니다."}
+      >
+        {document.hasContent ? "작성됨" : "빈 본문"}
+      </span>
       {hasChildren && (
         <button
           type="button"
@@ -255,18 +259,6 @@ function SortableTreeDocumentRow({
         >
           <ExternalLink className="size-3.5" />
         </button>
-        {depth === 0 && (
-          <button
-            type="button"
-            onClick={onOpenContentApi}
-            className="ui-icon-button h-7 gap-1 px-2 text-[10px] font-black text-brand-primary"
-            title="본문 편집 지시"
-            aria-label="본문 편집 지시"
-          >
-            <span>본문 편집</span>
-            <Braces className="size-3.5" />
-          </button>
-        )}
       </div>
     </div>
   );
@@ -411,13 +403,14 @@ function HospitalPlaybookModule({
   const todoScope = useMemo(
     () => ({
       spaceCode: domain,
+      spaceTitle: title,
       categoryId: category?.id ?? null,
       categoryTitle: category?.title ?? null,
       topicId: topic?.id ?? null,
       topicTitle: topic?.title ?? null,
       includeCategoryTodos: domain === "PROTOTYPE" || domain === "PROTOTYPE_FRONT",
     }),
-    [category?.id, category?.title, domain, topic?.id, topic?.title],
+    [category?.id, category?.title, domain, title, topic?.id, topic?.title],
   );
   const { activeCount: activeTodoCount } = useTodos(todoScope);
   const documents = topic?.documents ?? EMPTY_DOCUMENTS;
@@ -808,6 +801,10 @@ function HospitalPlaybookModule({
           setPageDocumentId(null);
           setEditingDocumentId(id);
         }}
+        onOpenContentApi={(id) => {
+          const selected = documents.find((item) => item.id === id);
+          if (selected) setContentApiDocument(selected);
+        }}
         onDelete={(id) => {
           setPageDocumentId(null);
           setDrawerDocumentId(id);
@@ -1188,9 +1185,6 @@ function HospitalPlaybookModule({
                               onOpenPage={() =>
                                 setPageDocumentId(document.id)
                               }
-                              onOpenContentApi={() =>
-                                setContentApiDocument(document)
-                              }
                             />
                           ) : null,
                         )}
@@ -1271,6 +1265,8 @@ function HospitalPlaybookModule({
         <LlmApiGuideDialog
           domain={domain}
           topicId={topicId}
+          topicTitle={topic?.title}
+          categoryTitle={category?.title}
           parentDocumentId={drawerDocumentId}
           scope={llmApiGuideScope}
           onClose={() => setLlmApiGuideOpen(false)}

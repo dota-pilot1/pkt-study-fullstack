@@ -14,6 +14,7 @@ export async function GET(request: Request) {
     try {
       const query = new URL(request.url).searchParams;
       return await listTodos(await localAgentUserId(), {
+        spaceCode: query.get("spaceCode") ?? undefined,
         categoryId: Number(query.get("categoryId")) || null,
         topicId: Number(query.get("topicId")) || null,
         workstream: query.get("workstream") ?? undefined,

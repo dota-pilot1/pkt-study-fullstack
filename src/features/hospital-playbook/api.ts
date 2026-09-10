@@ -14,6 +14,7 @@ export type PlaybookDocumentSummary = {
   useForChatbot: boolean;
   orderIdx: number;
   version: number;
+  hasContent: boolean;
 };
 
 export type PlaybookSearchResult = {

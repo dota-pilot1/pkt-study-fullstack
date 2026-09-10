@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     try {
       const body = await request.json().catch(() => ({})) as {
         ids?: unknown;
+        spaceCode?: unknown;
         categoryId?: number | null;
         topicId?: number | null;
         workstream?: unknown;
@@ -16,6 +17,7 @@ export async function POST(request: Request) {
         throw new LlmPlaybookError(400, "재정렬할 TODO ID 목록이 필요합니다.");
       }
       return await reorderTodos(await localAgentUserId(), body.ids, {
+        spaceCode: body.spaceCode,
         categoryId: body.categoryId,
         topicId: body.topicId,
         workstream: body.workstream,

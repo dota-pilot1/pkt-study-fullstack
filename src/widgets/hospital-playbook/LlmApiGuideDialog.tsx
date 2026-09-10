@@ -14,6 +14,8 @@ type ApiItem = { id: string; label: string; method: HttpMethod; endpoint: string
 type LlmApiGuideDialogProps = {
   domain: PlaybookDomain;
   topicId?: number | null;
+  topicTitle?: string | null;
+  categoryTitle?: string | null;
   parentDocumentId?: number | null;
   scope: "all" | "topic";
   onClose: () => void;
@@ -26,7 +28,7 @@ const methodClass: Record<HttpMethod, string> = {
   DELETE: "bg-rose-100 text-rose-700",
 };
 
-export default function LlmApiGuideDialog({ domain, topicId = null, parentDocumentId = null, scope, onClose }: LlmApiGuideDialogProps) {
+export default function LlmApiGuideDialog({ domain, topicId = null, topicTitle = null, categoryTitle = null, parentDocumentId = null, scope, onClose }: LlmApiGuideDialogProps) {
   const [mode, setMode] = useState<"general" | "api-design">("general");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
@@ -111,17 +113,30 @@ export default function LlmApiGuideDialog({ domain, topicId = null, parentDocume
 
   const selectedItems = items.filter((item) => selectedIds.includes(item.id));
   const isApiDesignMode = scope === "topic" && mode === "api-design";
-  const title = isApiDesignMode ? "API 설계 문서 추가" : scope === "topic" ? "2차 주제 편집" : "전체 노트 편집";
-  const description = isApiDesignMode
-    ? `선택한 2차 주제(${topicId ?? "ID 미확인"})에 API 설계 본문을 추가하거나, 같은 목적의 기존 문서를 보강합니다.`
+  const topicLabel = topicTitle?.trim() || "제목 미확인";
+  const categoryLabel = categoryTitle?.trim() || "1차 메뉴 미확인";
+  const title = isApiDesignMode
+    ? `API 설계 문서 추가 — ${topicLabel}`
     : scope === "topic"
-    ? `선택한 2차 주제(${topicId ?? "ID 미확인"})의 문서·하위 문서를 조회·작성·수정합니다.`
+      ? `2차 주제 편집 — ${topicLabel}`
+      : "전체 노트 편집";
+  const description = isApiDesignMode
+    ? `${categoryLabel} > ${topicLabel} (ID: ${topicId ?? "미확인"})에 API 설계 본문을 추가하거나, 같은 목적의 기존 문서를 보강합니다.`
+    : scope === "topic"
+    ? `${categoryLabel} > ${topicLabel} (ID: ${topicId ?? "미확인"})의 문서·하위 문서를 조회·작성·수정합니다.`
     : "현재 영역의 전체 노트 구조와 문서를 조회·작성·수정합니다.";
   const instruction = [
     isApiDesignMode ? "다음 API 설계 문서를 작성하거나 보강해 주세요." : "다음 작업을 진행해 주세요.",
     "",
     "## 작업 대상",
-    ...(scope === "topic" ? [`- 2차 주제 ID: ${topicId ?? "확인 필요"}`, `- spaceCode: ${domain}`] : [`- 전체 노트 영역: ${domain}`]),
+    ...(scope === "topic"
+      ? [
+          `- 1차 메뉴: ${categoryLabel}`,
+          `- 2차 주제: ${topicLabel}`,
+          `- 2차 주제 ID: ${topicId ?? "확인 필요"}`,
+          `- spaceCode: ${domain}`,
+        ]
+      : [`- 전체 노트 영역: ${domain}`]),
     "",
     isApiDesignMode ? "## API 설계 목표" : "## 작업 목표",
     isApiDesignMode ? "선택한 2차 주제의 기존 API 설계 문서를 먼저 확인합니다. 같은 목적의 문서가 있으면 최신 version을 기준으로 보강하고, 없으면 API 엔드포인트 하나당 본문 문서 하나를 만듭니다. 하위 문서는 만들지 않습니다." : scope === "topic" ? "선택한 2차 주제의 기존 문서와 하위 문서를 확인한 뒤, 필요한 문서를 조회·작성·수정합니다." : "현재 영역의 메뉴·2차 주제·문서 구조를 확인한 뒤, 필요한 노트를 조회·작성·수정합니다.",

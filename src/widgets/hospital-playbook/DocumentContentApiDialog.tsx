@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import type { PlaybookSampleKey } from "../../features/hospital-playbook/api";
 import ApiGuideDialogShell from "./ApiGuideDialogShell";
+import ImplementationNoteSamplePreview from "./ImplementationNoteSamplePreview";
 
 type DocumentContentApiDialogProps = {
   documentId: number;
@@ -26,6 +28,7 @@ export default function DocumentContentApiDialog({
 }: DocumentContentApiDialogProps) {
   const [additionalInstruction, setAdditionalInstruction] = useState("");
   const [workMode, setWorkMode] = useState<WorkMode>("content");
+  const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
   const base = "/api/llm/hospital-playbook";
   const isChildWork = workMode === "children";
   const instruction = useMemo(
@@ -50,6 +53,13 @@ export default function DocumentContentApiDialog({
       ...(additionalInstruction.trim()
         ? ["", "## 추가 지시", additionalInstruction.trim()]
         : []),
+      "",
+      "## 선택한 작성 샘플",
+      ...(selectedSampleKeys.length
+        ? selectedSampleKeys.map(
+            (sampleKey) => `- GET ${base}/samples/${sampleKey}: ${sampleKey} Lexical 작성 구조 참고`,
+          )
+        : ["- 선택한 샘플 없음"]),
       "",
       ...(isChildWork
         ? [
@@ -100,7 +110,7 @@ export default function DocumentContentApiDialog({
             "하위 문서를 만들거나 parentId를 현재 documentId로 바꾸지 않습니다.",
           ]),
     ].join("\n"),
-    [additionalInstruction, base, documentId, documentTitle, isChildWork, topicId],
+    [additionalInstruction, base, documentId, documentTitle, isChildWork, selectedSampleKeys, topicId],
   );
 
   return (
@@ -119,9 +129,7 @@ export default function DocumentContentApiDialog({
           <button type="button" onClick={() => setWorkMode("children")} aria-pressed={isChildWork} className={`rounded-md px-3 py-1.5 text-[11px] font-black transition ${isChildWork ? "bg-brand-primary text-white shadow-sm" : "text-text-muted hover:bg-surface-raised hover:text-text-primary"}`}>하위 문서 작업</button>
         </div>
       }
-      footer={isChildWork
-        ? "새 하위 문서만 현재 본문 ID를 parentId로 사용합니다. 기존 하위 문서를 수정할 때는 조회한 parentId를 유지합니다."
-        : "수정 전 조회한 parentId를 그대로 보내 문서 위치가 바뀌지 않게 합니다."}
+      footer="추가 지시와 작성 샘플을 선택하면 오른쪽 작업 지시에 즉시 반영됩니다."
     >
       <div className="grid min-h-full min-w-0 grid-cols-1 lg:grid-cols-2">
         <section className="min-h-0 overflow-auto border-b border-surface-border-soft bg-surface-raised p-5 lg:border-b-0 lg:border-r">
@@ -146,18 +154,24 @@ export default function DocumentContentApiDialog({
               </div>
               <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-2 border-b border-surface-border-soft px-3 py-3 text-xs">
                 <span className="h-fit w-fit rounded bg-emerald-100 px-1.5 py-1 font-mono text-[10px] font-black text-emerald-700">GET</span>
-                <div><code className="break-all font-mono text-[11px] text-text-primary">{isChildWork ? `${base}/documents/${documentId}/context` : `${base}/documents/${documentId}`}</code><p className="mt-1 font-semibold leading-5 text-text-muted">{isChildWork ? "현재 본문과 하위 문서 트리, 각 문서의 최신 version을 확인합니다." : "본문, 최신 version, 현재 parentId를 확인합니다."}</p></div>
+                <div><code className="break-all font-mono text-[11px] text-text-primary">{isChildWork ? `${base}/documents/${documentId}/context` : `${base}/documents/${documentId}`}</code><p className="mt-1 font-semibold leading-5 text-text-muted">{isChildWork ? "현재 본문과 하위 문서 트리, 각 문서의 최신 version을 확인합니다." : "본문과 최신 version을 확인합니다."}</p></div>
               </div>
               {isChildWork ? <>
                 <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-2 border-b border-surface-border-soft px-3 py-3 text-xs"><span className="h-fit w-fit rounded bg-blue-100 px-1.5 py-1 font-mono text-[10px] font-black text-blue-700">POST</span><div><code className="break-all font-mono text-[11px] text-text-primary">{base}/topics/{topicId}/children</code><p className="mt-1 font-semibold leading-5 text-text-muted">현재 본문 ID를 parentId로 지정해 새 하위 문서를 만듭니다.</p></div></div>
-                <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-2 px-3 py-3 text-xs"><span className="h-fit w-fit rounded bg-amber-100 px-1.5 py-1 font-mono text-[10px] font-black text-amber-700">PATCH</span><div><code className="break-all font-mono text-[11px] text-text-primary">{base}/documents/{"{childDocumentId}"}/content</code><p className="mt-1 font-semibold leading-5 text-text-muted">기존 하위 문서의 최신 version과 parentId를 유지해 제목·Lexical 본문을 수정합니다.</p></div></div>
-              </> : <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-2 px-3 py-3 text-xs"><span className="h-fit w-fit rounded bg-amber-100 px-1.5 py-1 font-mono text-[10px] font-black text-amber-700">PATCH</span><div><code className="break-all font-mono text-[11px] text-text-primary">{base}/documents/{documentId}/content</code><p className="mt-1 font-semibold leading-5 text-text-muted">최신 version과 기존 parentId를 유지해 제목·Lexical 본문을 수정합니다.</p></div></div>}
+                <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-2 px-3 py-3 text-xs"><span className="h-fit w-fit rounded bg-amber-100 px-1.5 py-1 font-mono text-[10px] font-black text-amber-700">PATCH</span><div><code className="break-all font-mono text-[11px] text-text-primary">{base}/documents/{"{childDocumentId}"}/content</code><p className="mt-1 font-semibold leading-5 text-text-muted">기존 하위 문서를 최신 version 기준으로 제목·Lexical 본문을 수정합니다.</p></div></div>
+              </> : <div className="grid grid-cols-[72px_minmax(0,1fr)] gap-x-2 px-3 py-3 text-xs"><span className="h-fit w-fit rounded bg-amber-100 px-1.5 py-1 font-mono text-[10px] font-black text-amber-700">PATCH</span><div><code className="break-all font-mono text-[11px] text-text-primary">{base}/documents/{documentId}/content</code><p className="mt-1 font-semibold leading-5 text-text-muted">최신 version으로 제목·Lexical 본문을 수정합니다.</p></div></div>}
             </div>
           </div>
-
-          <div className="mt-5 rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-xs leading-5 text-blue-900">
-            <strong>{isChildWork ? "계층 규칙:" : "위치 유지:"}</strong> {isChildWork ? "새 하위 문서만 현재 본문 ID를 parentId로 사용합니다. 기존 하위 문서는 조회한 parentId를 그대로 사용합니다." : "PATCH 요청의 parentId는 조회한 값을 그대로 사용합니다. 현재 문서 ID를 넣거나 null로 바꾸지 않습니다."}
-          </div>
+          <details className="mt-5 rounded-lg border border-surface-border-soft" open>
+            <summary className="cursor-pointer px-3 py-2 text-xs font-black text-text-primary">작성 샘플 참고</summary>
+            <div className="border-t border-surface-border-soft">
+              <ImplementationNoteSamplePreview
+                selectedKeys={selectedSampleKeys}
+                onSelectedKeysChange={setSelectedSampleKeys}
+                showInlinePreview={false}
+              />
+            </div>
+          </details>
         </section>
 
         <section aria-label="Codex 작업 지시 미리보기" className="flex min-h-0 flex-col bg-surface-muted/20 p-5">

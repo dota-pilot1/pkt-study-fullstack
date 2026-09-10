@@ -51,26 +51,35 @@ function storedTodoDrawerSize() {
 }
 
 function scopeTitle(scope?: TodoScope) {
-  if (scope?.includeCategoryTodos && scope.categoryTitle) return scope.categoryTitle;
+  if (scope?.spaceTitle) return scope.spaceTitle;
   if (!scope?.topicTitle) return "공통 작업";
   return [scope.categoryTitle, scope.topicTitle].filter(Boolean).join(" · ");
 }
 
 function agentTargetFolderStorageKey(scope?: TodoScope) {
-  return [
+  return ["pkt-study-agent-target-folder-v2", scope?.spaceCode ?? "COMMON"].join(":");
+}
+
+function savedAgentTargetFolder(scope?: TodoScope) {
+  if (typeof window === "undefined") return "";
+  const key = agentTargetFolderStorageKey(scope);
+  const saved = window.localStorage.getItem(key);
+  if (saved !== null) return saved;
+
+  // 이전 버전은 1·2차 메뉴마다 폴더를 따로 저장했다. 현재 메뉴에 저장된
+  // 값을 작업 영역 공통 기본값으로 한 번 옮겨, 기존 사용자의 설정도 유지한다.
+  const legacyKey = [
     "pkt-study-agent-target-folder-v1",
     scope?.spaceCode ?? "COMMON",
     scope?.categoryId ?? "none",
     scope?.topicId ?? "none",
   ].join(":");
+  const legacy = window.localStorage.getItem(legacyKey) ?? "";
+  if (legacy) window.localStorage.setItem(key, legacy);
+  return legacy;
 }
 
-function savedAgentTargetFolder(scope?: TodoScope) {
-  if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(agentTargetFolderStorageKey(scope)) ?? "";
-}
-
-function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: TodoItem; isClosing: boolean; onClose: () => void; onSave: (patch: Partial<TodoItem>) => Promise<unknown>; onRefresh: () => Promise<unknown> }) {
+function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh, onDelete }: { todo: TodoItem; isClosing: boolean; onClose: () => void; onSave: (patch: Partial<TodoItem>) => Promise<unknown>; onRefresh: () => Promise<unknown>; onDelete: () => Promise<boolean> }) {
   const { showToast } = useToast();
   const [title, setTitle] = useState(todo.title);
   const [description, setDescription] = useState(todo.description);
@@ -82,6 +91,7 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: Tod
   const [verificationChecks, setVerificationChecks] = useState(todo.verificationChecks);
   const [newVerificationCheck, setNewVerificationCheck] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [agentGuideOpen, setAgentGuideOpen] = useState(false);
   const [instructionOpen, setInstructionOpen] = useState(false);
@@ -144,9 +154,27 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: Tod
   };
 
   const refresh = async () => {
+    const startedAt = performance.now();
     setRefreshing(true);
-    await onRefresh();
-    setRefreshing(false);
+    try {
+      await onRefresh();
+    } finally {
+      // 로컬 SQLite 조회는 즉시 끝나므로, 다른 헤더의 새로 고침과 동일하게
+      // 짧은 회전 피드백을 유지해 클릭 결과를 분명하게 보여 준다.
+      const remaining = 650 - (performance.now() - startedAt);
+      if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining));
+      setRefreshing(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!window.confirm(`“${todo.title}” 작업을 삭제할까요?\n삭제한 작업은 복구할 수 없습니다.`)) return;
+    setDeleting(true);
+    try {
+      if (await onDelete()) closeDetail();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const moveVerificationCheck = (index: number, direction: -1 | 1) => {
@@ -166,7 +194,7 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: Tod
           <h3 className="truncate text-base font-black text-text-primary">{title || "작업 편집"}</h3>
           <p className="mt-0.5 text-[10px] text-text-muted">v{todo.version} · {todo.updatedByType === "AGENT" ? "Agent 수정" : "사용자 수정"} · {new Date(todo.updatedAt).toLocaleString("ko-KR")}</p>
         </div>
-        <div className="flex items-center gap-1"><button type="button" onClick={() => void refresh()} disabled={refreshing} title="최신 작업 정보 새로고침" aria-label="최신 작업 정보 새로고침" className="ui-icon-button size-8 text-text-muted hover:text-brand-primary disabled:cursor-wait disabled:opacity-50"><RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} /></button><button type="button" onClick={() => setAgentGuideOpen(true)} className="inline-flex h-8 items-center rounded-md border border-brand-border bg-brand-glass px-3 text-xs font-black text-brand-primary hover:bg-brand-primary/10">세부 계획 요청 {"{}"}</button><button type="button" onClick={closeDetail} className="ui-icon-button size-8 text-text-muted" aria-label="상세 닫기"><X className="size-3.5" /></button></div>
+        <div className="flex items-center gap-1"><button type="button" onClick={() => void refresh()} disabled={refreshing} title="최신 작업 정보 새로 고침" aria-label="최신 작업 정보 새로 고침" className="ui-icon-button size-8 text-text-muted hover:text-brand-primary disabled:cursor-wait disabled:opacity-50"><RefreshCw className={`size-4 ${refreshing ? "refresh-icon-spin" : ""}`} /></button><button type="button" onClick={() => void remove()} disabled={deleting} title="작업 삭제" aria-label="작업 삭제" className="ui-icon-button size-8 text-text-muted hover:text-destructive disabled:cursor-wait disabled:opacity-50"><Trash2 className="size-3.5" /></button><button type="button" onClick={() => setAgentGuideOpen(true)} className="inline-flex h-8 items-center rounded-md border border-brand-border bg-brand-glass px-3 text-xs font-black text-brand-primary hover:bg-brand-primary/10">세부 계획 요청 {"{}"}</button><button type="button" onClick={closeDetail} className="ui-icon-button size-8 text-text-muted" aria-label="상세 닫기"><X className="size-3.5" /></button></div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
@@ -242,8 +270,10 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh }: { todo: Tod
       </div>
 
       <footer className="flex shrink-0 justify-end gap-2 border-t border-surface-border-soft bg-surface-raised px-5 py-3">
-        <button type="button" onClick={closeDetail} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-text-muted hover:bg-surface-muted">닫기</button>
-        <button type="button" onClick={() => void save()} disabled={saving} className="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50">{saving ? "저장 중…" : "상세 저장"}</button>
+        <div className="flex gap-2">
+          <button type="button" onClick={closeDetail} className="rounded-md px-2.5 py-1.5 text-[11px] font-bold text-text-muted hover:bg-surface-muted">닫기</button>
+          <button type="button" onClick={() => void save()} disabled={saving} className="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50">{saving ? "저장 중…" : "상세 저장"}</button>
+        </div>
       </footer>
       {agentGuideOpen && <AgentGuide scope={todo} todo={todo} onClose={() => setAgentGuideOpen(false)} />}
       {instructionOpen && <TaskInstructionDialog todo={{ ...todo, title, description, checklist, verificationChecks }} onClose={() => setInstructionOpen(false)} />}
@@ -365,7 +395,7 @@ function TaskInstructionDialog({ todo, onClose }: { todo: TodoItem; onClose: () 
     const key = agentTargetFolderStorageKey(todo);
     if (value) window.localStorage.setItem(key, value);
     else window.localStorage.removeItem(key);
-    showToast(value ? "작업 대상 폴더를 기본값으로 저장했습니다." : "저장한 작업 대상 폴더를 비웠습니다.");
+    showToast(value ? "작업 영역 공통 작업 대상 폴더로 저장했습니다." : "저장한 작업 대상 폴더를 비웠습니다.");
   };
   if (typeof document === "undefined") return null;
   return createPortal(
@@ -384,7 +414,7 @@ function TaskInstructionDialog({ todo, onClose }: { todo: TodoItem; onClose: () 
                 <InstructionSelectionGroup className="mt-2 border-t border-surface-border-soft pt-2" label="조건 검증" items={availableVerificationChecks} selectedIds={selectedVerificationIds} onToggle={(id, selected) => toggleSelection(id, selected, setSelectedVerificationIds)} onToggleAll={(selected) => toggleAll(availableVerificationChecks, selected, setSelectedVerificationIds)} />
               </div>
             </div>
-            <label className="block"><span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-black text-text-primary">작업 대상 폴더 <button type="button" onClick={saveTargetFolders} className="rounded border border-brand-border bg-brand-soft px-2 py-1 text-[10px] font-black text-brand-primary hover:bg-brand-soft/70">기본값 저장</button></span><textarea value={targetFolders} onChange={(event) => setTargetFolders(event.target.value)} placeholder="예: /Users/me/projects/api-server&#10;/Users/me/projects/web-client" rows={3} className="w-full resize-y rounded-lg border border-surface-border bg-surface-raised p-2.5 font-mono text-[11px] leading-5 text-text-primary outline-none focus:border-brand-border" /><span className="mt-1 block text-[10px] text-text-muted">수정 내용은 오른쪽 작업 지시에 즉시 반영됩니다.</span></label>
+            <label className="block"><span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-black text-text-primary">작업 대상 폴더 <button type="button" onClick={saveTargetFolders} className="rounded border border-brand-border bg-brand-soft px-2 py-1 text-[10px] font-black text-brand-primary hover:bg-brand-soft/70">작업 영역 기본값 저장</button></span><textarea value={targetFolders} onChange={(event) => setTargetFolders(event.target.value)} placeholder="예: /Users/me/projects/api-server&#10;/Users/me/projects/web-client" rows={3} className="w-full resize-y rounded-lg border border-surface-border bg-surface-raised p-2.5 font-mono text-[11px] leading-5 text-text-primary outline-none focus:border-brand-border" /><span className="mt-1 block text-[10px] text-text-muted">같은 맨왼쪽 작업 영역의 모든 메뉴에서 공통으로 사용하며, 수정 내용은 오른쪽 작업 지시에 즉시 반영됩니다.</span></label>
             <label className="block"><span className="mb-1 flex items-center justify-between gap-2 text-[11px] font-black text-text-primary">추가 지시 <button type="button" onClick={addExistingLogicReviewInstruction} className="rounded border border-brand-border bg-brand-soft px-2 py-1 text-[10px] font-black text-brand-primary hover:bg-brand-soft/70">기존 로직 검토 추가</button></span><textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} placeholder="예: 기존 패턴을 따르고, 외부 API 계약 변경은 하지 마세요." rows={5} className="w-full resize-y rounded-lg border border-surface-border bg-surface-raised p-2.5 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" /></label>
           </div>
           <div className="flex min-h-0 flex-col gap-3 overflow-y-auto bg-surface-muted/20 p-4">
@@ -491,14 +521,13 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
   const targetFolderKey = agentTargetFolderStorageKey(scope);
   const [savedTargetFolder, setSavedTargetFolder] = useState(() => savedAgentTargetFolder(scope));
   const [targetFolderDraft, setTargetFolderDraft] = useState(() => savedAgentTargetFolder(scope));
+  const [additionalInstruction, setAdditionalInstruction] = useState("");
   useEffect(() => {
     const value = savedAgentTargetFolder(scope);
     setSavedTargetFolder(value);
     setTargetFolderDraft(value);
   }, [scope, targetFolderKey]);
-  const topicQuery = scope?.includeCategoryTodos && scope.categoryId
-    ? `?categoryId=${scope.categoryId}`
-    : scope?.topicId ? `?topicId=${scope.topicId}` : "";
+  const topicQuery = scope?.spaceCode ? `?spaceCode=${encodeURIComponent(scope.spaceCode)}` : "";
   const searchQuery = `${topicQuery ? `${topicQuery}&` : "?"}q=검색어&workstream=BACKEND&status=TODO`;
   const listEndpoints: AgentEndpoint[] = [
     { id: "list", method: "GET", path: `/api/llm/todos${topicQuery}`, description: "현재 범위 TODO 전체 목록" },
@@ -563,8 +592,9 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
       description: "같은 업무 영역의 전체 TODO 순서 저장",
       body: JSON.stringify({
         ids: [21, 3, 4],
-        categoryId: scope?.includeCategoryTodos ? scope.categoryId ?? null : null,
-        topicId: scope?.includeCategoryTodos ? null : scope?.topicId ?? null,
+        categoryId: null,
+        topicId: null,
+        spaceCode: scope?.spaceCode ?? null,
         workstream: "BACKEND",
       }, null, 2),
     },
@@ -616,6 +646,8 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
     "",
     "## 선택한 API",
     ...(selectedEndpoints.length ? selectedEndpoints.flatMap((endpoint) => [`### ${endpoint.description}`, endpointRequestText(endpoint), ""]) : ["- 선택한 API 없음"]),
+    ...(additionalInstruction.trim() ? ["", "## 추가 작업 지시", additionalInstruction.trim()] : []),
+    "",
     "## 작업 방식",
     "작업 시작 전 최신 상태를 조회하고, 변경 요청에는 최신 version을 사용하세요. 필요한 구현·검증 결과는 해당 TODO의 세부 계획과 조건 검증에 반영하세요.",
   ].join("\n");
@@ -625,7 +657,7 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
     else window.localStorage.removeItem(targetFolderKey);
     setSavedTargetFolder(value);
     setTargetFolderDraft(value);
-    showToast(value ? "작업 대상 폴더 정보를 저장했습니다." : "작업 대상 폴더 정보를 비웠습니다.");
+    showToast(value ? "작업 영역 공통 작업 대상 폴더로 저장했습니다." : "작업 대상 폴더를 비웠습니다.");
   };
   const cancelTargetFolderEdit = () => setTargetFolderDraft(savedTargetFolder);
   return (
@@ -686,7 +718,7 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
           </div>
           <div className="rounded-lg border border-surface-border-soft bg-surface-muted/50 p-3">
             <div className="mb-2 flex items-center justify-between gap-3">
-              <label htmlFor="agent-target-folder" className="text-[11px] font-black text-text-primary">작업 대상 폴더</label>
+              <label htmlFor="agent-target-folder" className="text-[11px] font-black text-text-primary">작업 대상 폴더 <span className="font-medium text-text-muted">(작업 영역 공통)</span></label>
               <div className="flex items-center gap-1.5">
                 <button type="button" onClick={cancelTargetFolderEdit} disabled={targetFolderDraft === savedTargetFolder} className="rounded-md px-2 py-1 text-[10px] font-bold text-text-muted hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40">취소</button>
                 <button type="button" onClick={saveTargetFolder} disabled={targetFolderDraft === savedTargetFolder} className="rounded-md bg-brand-primary px-2.5 py-1 text-[10px] font-black text-white disabled:cursor-not-allowed disabled:opacity-40">저장</button>
@@ -694,6 +726,11 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
             </div>
             <textarea id="agent-target-folder" value={targetFolderDraft} onChange={(event) => setTargetFolderDraft(event.target.value)} rows={2} placeholder="예: /Users/me/projects/nova-bss" className="w-full resize-y rounded-md border border-surface-border bg-surface-raised px-2.5 py-2 font-mono text-[11px] leading-4 text-text-primary outline-none focus:border-brand-border" />
           </div>
+          <label className="block rounded-lg border border-surface-border-soft bg-surface-muted/50 p-3">
+            <span className="mb-2 block text-[11px] font-black text-text-primary">추가 작업 지시</span>
+            <textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={3} placeholder="예: 기존 구현 패턴을 확인하고, 변경 전후 테스트를 실행해 주세요." className="w-full resize-y rounded-md border border-surface-border bg-surface-raised px-2.5 py-2 text-[11px] leading-4 text-text-primary outline-none focus:border-brand-border" />
+            <span className="mt-1.5 block text-[10px] text-text-muted">입력 내용은 오른쪽 Codex 작업 지시에 즉시 반영됩니다.</span>
+          </label>
         </section>
         <section className="flex min-h-0 flex-col bg-surface-muted/20 p-4">
           <div className="mb-2 flex items-center justify-between gap-3"><div><p className="text-[11px] font-black text-text-primary">Codex에 보낼 작업 지시</p><p className="text-[10px] text-text-muted">API 선택과 작업 대상 폴더 수정이 즉시 반영됩니다.</p></div><button type="button" onClick={() => void copyText(agentInstruction, "Codex 작업 지시를 복사했습니다.")} className="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-black text-white"><ClipboardCopy className="mr-1 inline size-3.5" />전체 복사</button></div>
@@ -1040,7 +1077,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
             )}
           </div>
         </div>
-        {selectedTodo && <TodoDetail todo={selectedTodo} isClosing={isDetailClosing} onClose={closeDetail} onSave={(patch) => updateTodo(selectedTodo.id, patch)} onRefresh={reload} />}
+        {selectedTodo && <TodoDetail todo={selectedTodo} isClosing={isDetailClosing} onClose={closeDetail} onSave={(patch) => updateTodo(selectedTodo.id, patch)} onRefresh={reload} onDelete={() => deleteTodo(selectedTodo.id)} />}
         {agentGuideOpen && <AgentGuide scope={scope} onClose={() => setAgentGuideOpen(false)} />}
         {apiSpecOpen && <ApiSpecDialog scope={scope} onClose={() => setApiSpecOpen(false)} />}
       </aside>

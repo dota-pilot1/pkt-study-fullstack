@@ -9,6 +9,7 @@ import { documentOrderAfterDrop, documentSortableGroup } from "../../features/ho
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Braces,
   ChevronDown,
   ChevronRight,
   FileText,
@@ -183,6 +184,7 @@ export default function DocumentPage({
   onReorder,
   onRefresh,
   onEdit,
+  onOpenContentApi,
   onDelete,
   deleting = false,
   reordering = false,
@@ -207,6 +209,7 @@ export default function DocumentPage({
   onReorder: (ids: number[], parentId: number | null) => Promise<unknown>;
   onRefresh: () => void;
   onEdit: (id: number) => void;
+  onOpenContentApi: (id: number) => void;
   onDelete: (id: number) => void;
   deleting?: boolean;
   reordering?: boolean;
@@ -415,6 +418,15 @@ export default function DocumentPage({
                       aria-label="앱 문서 링크 복사"
                     >
                       {linkCopied ? "복사됨" : "링크 복사"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenContentApi(documentId)}
+                      className="ui-icon-button h-8 gap-1 px-2.5 text-[11px] font-black text-brand-primary"
+                      title="본문 편집 지시"
+                    >
+                      <span>본문 편집</span>
+                      <Braces className="size-3.5" />
                     </button>
                     <button
                       type="button"

@@ -171,8 +171,10 @@ function now() {
   return new Date().toISOString();
 }
 
-export async function listTodos(userId: number, filters: { categoryId?: number | null; topicId?: number | null; workstream?: unknown; status?: unknown; q?: unknown } = {}) {
+export async function listTodos(userId: number, filters: { spaceCode?: unknown; categoryId?: number | null; topicId?: number | null; workstream?: unknown; status?: unknown; q?: unknown } = {}) {
   const conditions = [eq(workTodos.userId, userId)];
+  const spaceCode = text(filters.spaceCode, 80).toUpperCase();
+  if (spaceCode) conditions.push(eq(workTodos.spaceCode, spaceCode));
   const categoryId = integer(filters.categoryId);
   if (categoryId) conditions.push(eq(workTodos.categoryId, categoryId));
   const topicId = integer(filters.topicId);
@@ -284,9 +286,9 @@ export async function deleteTodo(userId: number, id: number) {
   if (!deleted) throw new TodoError(404, "TODO를 찾을 수 없습니다.");
 }
 
-export async function reorderTodos(userId: number, ids: number[], filters: { categoryId?: number | null; topicId?: number | null; workstream?: unknown }) {
+export async function reorderTodos(userId: number, ids: number[], filters: { spaceCode?: unknown; categoryId?: number | null; topicId?: number | null; workstream?: unknown }) {
   const stream = workstream(filters.workstream);
-  const current = (await listTodos(userId, { categoryId: filters.categoryId, topicId: filters.topicId }))
+  const current = (await listTodos(userId, { spaceCode: filters.spaceCode, categoryId: filters.categoryId, topicId: filters.topicId }))
     // 기존 API 분류는 Backend 구현 작업 탭에서 함께 관리한다.
     .filter((todo) => todo.workstream === stream || (stream === "BACKEND" && todo.workstream === "API"));
   if (ids.length !== current.length || ids.some((id) => !current.some((todo) => todo.id === id))) {
@@ -297,7 +299,7 @@ export async function reorderTodos(userId: number, ids: number[], filters: { cat
     await db.update(workTodos).set({ orderIdx, updatedAt: timestamp, version: current.find((todo) => todo.id === id)!.version + 1 })
       .where(and(eq(workTodos.id, id), eq(workTodos.userId, userId)));
   }
-  return listTodos(userId, { categoryId: filters.categoryId, topicId: filters.topicId });
+  return listTodos(userId, { spaceCode: filters.spaceCode, categoryId: filters.categoryId, topicId: filters.topicId });
 }
 
 export async function localAgentUserId() {

@@ -25,6 +25,8 @@ export type TodoVerificationCheck = {
 
 export type TodoScope = {
   spaceCode?: string;
+  /** 맨왼쪽 작업 영역의 표시 이름. 1·2차 메뉴는 TODO 목록 범위를 바꾸지 않는다. */
+  spaceTitle?: string;
   categoryId?: number | null;
   categoryTitle?: string | null;
   topicId?: number | null;
