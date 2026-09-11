@@ -31,7 +31,26 @@ if (fs.existsSync(pendingRestorePath)) {
   }
 }
 
-export const sqlite = new Database(databasePath);
-sqlite.pragma("busy_timeout = 10000");
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
+type DatabaseGlobal = typeof globalThis & {
+  __pktStudySqlite?: Database.Database;
+  __pktStudySqlitePath?: string;
+};
+
+const databaseGlobal = globalThis as DatabaseGlobal;
+
+/** 개발 HMR이 서버 모듈을 다시 평가해도 SQLite 연결은 프로세스당 하나만 유지한다. */
+function openDatabase() {
+  if (databaseGlobal.__pktStudySqlite && databaseGlobal.__pktStudySqlitePath === databasePath) {
+    return databaseGlobal.__pktStudySqlite;
+  }
+
+  const connection = new Database(databasePath);
+  connection.pragma("busy_timeout = 10000");
+  connection.pragma("journal_mode = WAL");
+  connection.pragma("foreign_keys = ON");
+  databaseGlobal.__pktStudySqlite = connection;
+  databaseGlobal.__pktStudySqlitePath = databasePath;
+  return connection;
+}
+
+export const sqlite = openDatabase();

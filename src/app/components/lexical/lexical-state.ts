@@ -187,7 +187,9 @@ function promoteDocumentStructure(root: Record<string, unknown>): Record<string,
     output.push(node)
   })
   flushCode()
-  return { ...root, children: mergeCodeNodes(output) }
+  // 사용자가 문단별로 나눈 코드 블록은 문서 구조다. 불러올 때 인접한
+  // CodeNode를 합치면 저장 후 문단 구분이 사라지므로 그대로 유지한다.
+  return { ...root, children: output }
 }
 
 function normalizedNode(value: unknown, parentType: string): Record<string, unknown> | null {

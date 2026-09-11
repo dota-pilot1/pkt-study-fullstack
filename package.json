@@ -1,10 +1,10 @@
 {
   "name": "pkt-study-fullstack",
-  "version": "0.1.107",
+  "version": "0.1.108",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 4300",
-    "build": "next build",
+    "dev": "next dev --webpack --disable-source-maps -p 4300",
+    "build": "next build --webpack",
     "build:tauri": "npm run build && node scripts/prepare-tauri-release.mjs",
     "start": "next start -p 4300",
     "lint": "eslint",

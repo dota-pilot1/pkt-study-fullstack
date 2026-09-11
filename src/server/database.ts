@@ -13,6 +13,12 @@ import {
   FRONTEND_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE,
 } from "@/server/db/seed-content";
 
+type InitializationGlobal = typeof globalThis & {
+  __pktStudyDatabaseInitialized?: boolean;
+};
+
+/** 마이그레이션과 호환성 시드는 HMR 중 다시 import되더라도 한 번만 실행한다. */
+function initializeDatabase() {
 applyMigrations(sqlite);
 
 /**
@@ -546,6 +552,14 @@ if (existingWorkManagementDocuments.length === 0) {
     const content = JSON.stringify({ root: { children: [{ type: "heading", tag: "h1", children: [{ type: "text", text: title }] }, { type: "paragraph", children: [{ type: "text", text }] }] } });
     sqlite.prepare("INSERT INTO playbook_documents (topic_id, title, content, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(workManagementTopic.id, title, content, order, now, now);
   }
+}
+
+}
+
+const initializationGlobal = globalThis as InitializationGlobal;
+if (!initializationGlobal.__pktStudyDatabaseInitialized) {
+  initializeDatabase();
+  initializationGlobal.__pktStudyDatabaseInitialized = true;
 }
 
 export const db = drizzle(sqlite, { schema });

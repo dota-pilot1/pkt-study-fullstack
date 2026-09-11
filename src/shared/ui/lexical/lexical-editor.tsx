@@ -759,7 +759,10 @@ export function LexicalEditor({
   scrollable = false,
   readOnly = false,
   toolbarVariant = 'full',
-  promoteStructure = true,
+  // 기존 문서의 문단·인용·코드 블록은 작성자가 정한 서식이다.
+  // 자동 추측이 @ExceptionHandler 같은 설명 문장까지 코드로 바꾸지 않도록
+  // 일반 편집에서는 구조 승격을 기본으로 사용하지 않는다.
+  promoteStructure = false,
   searchQuery = '',
   searchMatchIndex = 0,
   searchContainerRef,

@@ -242,9 +242,27 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
   const formatParagraph = () => {
     editor.update(() => {
       const selection = $getSelection()
-      if ($isRangeSelection(selection)) {
-        $setBlocksType(selection, () => $createParagraphNode())
+      if (!$isRangeSelection(selection)) return
+
+      // CodeNode는 $setBlocksType만으로 일반 문단으로 돌아가지 않는다.
+      // 선택한 코드 블록의 텍스트를 새 문단에 넣어 서식을 완전히 지운다.
+      const codeBlocks = new Set<ReturnType<typeof $createCodeNode>>()
+      selection.getNodes().forEach((node) => {
+        const codeBlock = $isCodeNode(node)
+          ? node
+          : $findMatchingParent(node, $isCodeNode)
+        if (codeBlock) codeBlocks.add(codeBlock)
+      })
+      if (codeBlocks.size > 0) {
+        codeBlocks.forEach((codeBlock) => {
+          const paragraph = $createParagraphNode().append($createTextNode(codeBlock.getTextContent()))
+          codeBlock.replace(paragraph)
+          if (codeBlocks.size === 1) paragraph.selectEnd()
+        })
+        return
       }
+
+      $setBlocksType(selection, () => $createParagraphNode())
     })
   }
 
@@ -281,6 +299,27 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
           codeBlock.replace(quote)
           if (codeBlocks.size === 1) quote.selectEnd()
         })
+        return
+      }
+
+      const root = $getRoot()
+      const selectedBlocks: LexicalNode[] = []
+      const selectedBlockKeys = new Set<string>()
+      selection.getNodes().forEach((node) => {
+        const block = INTERNAL_$isBlock(node)
+          ? node
+          : $findMatchingParent(node, INTERNAL_$isBlock)
+        if (!block || block.getParent() !== root || selectedBlockKeys.has(block.getKey())) return
+        selectedBlockKeys.add(block.getKey())
+        selectedBlocks.push(block)
+      })
+
+      // 연속된 일반 문단은 각각의 quote로 바꾸지 않고 하나의 quote 컨테이너로 묶는다.
+      // 제목·목록처럼 구조가 다른 블록은 기존 변환 규칙을 유지한다.
+      if (selectedBlocks.length > 1 && selectedBlocks.every((block) => block.getType() === 'paragraph')) {
+        const quote = $createQuoteNode()
+        selectedBlocks[0].replace(quote)
+        selectedBlocks.forEach((block) => quote.append(block))
         return
       }
 
@@ -344,6 +383,8 @@ export function LexicalToolbar({ className, onImageUpload, variant = 'full' }: P
         }
       }
 
+      // 여러 문단을 선택하면 Lexical이 각 문단을 각각의 코드 블록으로
+      // 바꾼다. 인용처럼 하나의 블록으로 합치지는 않는다.
       $setBlocksType(selection, () => $createCodeNode())
     })
   }

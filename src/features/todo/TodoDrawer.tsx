@@ -177,14 +177,38 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh, onDelete }: {
     }
   };
 
-  const moveVerificationCheck = (index: number, direction: -1 | 1) => {
+  const persistVerificationChecks = async (nextChecks: TodoVerificationCheck[], successMessage: string) => {
+    setVerificationChecks(nextChecks);
+    const saved = await onSave({ verificationChecks: nextChecks });
+    if (saved) showToast(successMessage);
+    else setVerificationChecks(todo.verificationChecks);
+  };
+
+  const moveVerificationCheck = async (index: number, direction: -1 | 1) => {
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= verificationChecks.length) return;
-    setVerificationChecks((items) => {
-      const next = [...items];
-      [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
-      return next;
-    });
+    const next = [...verificationChecks];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+    await persistVerificationChecks(next, "검증 조건 순서를 변경했습니다.");
+  };
+
+  const removeChecklistItem = async (item: TodoChecklistItem) => {
+    const nextChecklist = checklist.filter((current) => current.id !== item.id);
+    setChecklist(nextChecklist);
+    setEditingChecklistId((id) => id === item.id ? null : id);
+    const saved = await onSave({ checklist: nextChecklist });
+    if (saved) showToast("세부 계획을 삭제했습니다.");
+    else setChecklist(todo.checklist);
+  };
+
+  const saveChecklistItem = async () => {
+    const saved = await onSave({ checklist });
+    if (saved) {
+      setEditingChecklistId(null);
+      showToast("세부 계획을 수정했습니다.");
+    } else {
+      setChecklist(todo.checklist);
+    }
   };
 
   return (
@@ -226,7 +250,7 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh, onDelete }: {
                         <input type="checkbox" checked={item.completed} onChange={() => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, completed: !current.completed } : current))} className="size-4 accent-brand-primary" />
                         {isEditingRow ? <input value={item.text} onChange={(event) => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, text: event.target.value } : current))} aria-label="세부 계획 내용" className="h-8 min-w-0 flex-1 rounded-md border border-surface-border bg-surface-raised px-2 text-xs text-text-primary outline-none focus:border-brand-border" /> : <span className={`min-w-0 flex-1 ${item.completed ? "line-through text-text-muted" : ""}`}>{item.text}</span>}
                         {isEditingRow ? <input value={item.layer === "기타" ? "" : item.layer} onChange={(event) => setChecklist((items) => items.map((current) => current.id === item.id ? { ...current, layer: event.target.value } : current))} aria-label="구현 영역" placeholder="영역" className="h-7 w-28 shrink-0 rounded-md border border-surface-border bg-surface-raised px-2 text-[10px] font-bold text-brand-primary outline-none focus:border-brand-border" /> : <span className="w-28 shrink-0 truncate rounded-md border border-surface-border bg-surface-muted px-2 py-1 text-[10px] font-black text-brand-primary">{item.layer === "기타" ? "미분류" : item.layer}</span>}
-                        {isChecklistBulkEditing ? <button type="button" onClick={() => setChecklist((items) => items.filter((current) => current.id !== item.id))} className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-destructive" aria-label="세부 계획 삭제"><X className="size-3.5" /></button> : <button type="button" onClick={() => setEditingChecklistId((id) => id === item.id ? null : item.id)} className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-brand-primary" aria-label="세부 계획 수정">{editingChecklistId === item.id ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}</button>}
+                        {isChecklistBulkEditing ? <button type="button" onClick={() => void removeChecklistItem(item)} className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-destructive" aria-label="세부 계획 삭제"><Trash2 className="size-3.5" /></button> : <div className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => editingChecklistId === item.id ? void saveChecklistItem() : setEditingChecklistId(item.id)} className="ui-icon-button size-7 text-text-muted hover:text-brand-primary" aria-label={editingChecklistId === item.id ? "세부 계획 수정 저장" : "세부 계획 수정"}>{editingChecklistId === item.id ? <Check className="size-3.5" /> : <Pencil className="size-3.5" />}</button><button type="button" onClick={() => void removeChecklistItem(item)} className="ui-icon-button size-7 text-text-muted hover:text-destructive" aria-label="세부 계획 삭제"><Trash2 className="size-3.5" /></button></div>}
                       </div>
                     )}
                   </SortableChecklistRow>
@@ -247,21 +271,21 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh, onDelete }: {
               {verificationChecks.map((item, index) => (
                 <div key={item.id} className="flex items-start gap-3 rounded-lg border border-surface-border-soft px-3 py-2.5 text-xs text-text-secondary">
                   <span className="mt-1 grid size-5 shrink-0 place-items-center rounded-full bg-brand-glass text-[10px] font-black text-brand-primary">{index + 1}</span>
-                  <input type="checkbox" checked={item.passed} onChange={() => setVerificationChecks((items) => items.map((current) => current.id === item.id ? { ...current, passed: !current.passed } : current))} aria-label={`${item.text} 통과 여부`} className="mt-1 size-4 accent-brand-primary" />
+                  <input type="checkbox" checked={item.passed} onChange={() => { const next = verificationChecks.map((current) => current.id === item.id ? { ...current, passed: !current.passed } : current); void persistVerificationChecks(next, item.passed ? "검증 조건을 미통과로 변경했습니다." : "검증 조건을 통과로 변경했습니다."); }} aria-label={`${item.text} 통과 여부`} className="mt-1 size-4 accent-brand-primary" />
                   <div className="min-w-0 flex-1 space-y-1.5">
-                    <input value={item.text} onChange={(event) => setVerificationChecks((items) => items.map((current) => current.id === item.id ? { ...current, text: event.target.value } : current))} aria-label="검증 조건" placeholder="검증 조건" className="h-8 w-full rounded-md border border-surface-border bg-surface-raised px-2 text-xs text-text-primary outline-none focus:border-brand-border" />
-                    <input value={item.evidence} onChange={(event) => setVerificationChecks((items) => items.map((current) => current.id === item.id ? { ...current, evidence: event.target.value } : current))} aria-label="검증 근거" placeholder="테스트 결과·증빙 링크·메모 (선택)" className="h-8 w-full rounded-md border border-surface-border bg-surface-raised px-2 text-[11px] text-text-secondary outline-none focus:border-brand-border" />
+                    <input value={item.text} onChange={(event) => setVerificationChecks((items) => items.map((current) => current.id === item.id ? { ...current, text: event.target.value } : current))} onBlur={() => void persistVerificationChecks(verificationChecks, "검증 조건을 수정했습니다.")} aria-label="검증 조건" placeholder="검증 조건" className="h-8 w-full rounded-md border border-surface-border bg-surface-raised px-2 text-xs text-text-primary outline-none focus:border-brand-border" />
+                    <input value={item.evidence} onChange={(event) => setVerificationChecks((items) => items.map((current) => current.id === item.id ? { ...current, evidence: event.target.value } : current))} onBlur={() => void persistVerificationChecks(verificationChecks, "검증 근거를 수정했습니다.")} aria-label="검증 근거" placeholder="테스트 결과·증빙 링크·메모 (선택)" className="h-8 w-full rounded-md border border-surface-border bg-surface-raised px-2 text-[11px] text-text-secondary outline-none focus:border-brand-border" />
                   </div>
                   <div className="flex shrink-0 gap-1 pt-0.5">
-                    <button type="button" onClick={() => moveVerificationCheck(index, -1)} disabled={index === 0} className="ui-icon-button size-7 text-text-muted disabled:cursor-not-allowed disabled:opacity-30" aria-label="검증 조건 위로 이동"><ArrowUp className="size-3.5" /></button>
-                    <button type="button" onClick={() => moveVerificationCheck(index, 1)} disabled={index === verificationChecks.length - 1} className="ui-icon-button size-7 text-text-muted disabled:cursor-not-allowed disabled:opacity-30" aria-label="검증 조건 아래로 이동"><ArrowDown className="size-3.5" /></button>
-                    <button type="button" onClick={() => setVerificationChecks((items) => items.filter((current) => current.id !== item.id))} className="ui-icon-button size-7 text-text-muted hover:text-destructive" aria-label="검증 조건 삭제"><X className="size-3.5" /></button>
+                    <button type="button" onClick={() => void moveVerificationCheck(index, -1)} disabled={index === 0} className="ui-icon-button size-7 text-text-muted disabled:cursor-not-allowed disabled:opacity-30" aria-label="검증 조건 위로 이동"><ArrowUp className="size-3.5" /></button>
+                    <button type="button" onClick={() => void moveVerificationCheck(index, 1)} disabled={index === verificationChecks.length - 1} className="ui-icon-button size-7 text-text-muted disabled:cursor-not-allowed disabled:opacity-30" aria-label="검증 조건 아래로 이동"><ArrowDown className="size-3.5" /></button>
+                    <button type="button" onClick={() => void persistVerificationChecks(verificationChecks.filter((current) => current.id !== item.id), "검증 조건을 삭제했습니다.")} className="ui-icon-button size-7 text-text-muted hover:text-destructive" aria-label="검증 조건 삭제"><Trash2 className="size-3.5" /></button>
                   </div>
                 </div>
               ))}
               {verificationChecks.length === 0 && <p className="rounded-lg border border-dashed border-surface-border px-3 py-4 text-center text-[11px] text-text-muted">아직 등록된 검증 조건이 없습니다.</p>}
             </div>
-            <form onSubmit={(event) => { event.preventDefault(); const text = newVerificationCheck.trim(); if (!text) return; setVerificationChecks((items) => [...items, { id: `verification-${Date.now()}`, text, passed: false, evidence: "" }]); setNewVerificationCheck(""); }} className="mt-3 flex gap-2">
+            <form onSubmit={(event) => { event.preventDefault(); const text = newVerificationCheck.trim(); if (!text) return; const next = [...verificationChecks, { id: `verification-${Date.now()}`, text, passed: false, evidence: "" }]; void persistVerificationChecks(next, "검증 조건을 추가했습니다."); setNewVerificationCheck(""); }} className="mt-3 flex gap-2">
               <input value={newVerificationCheck} onChange={(event) => setNewVerificationCheck(event.target.value)} placeholder="예: 잘못된 입력은 400 응답을 반환한다" className="h-9 min-w-0 flex-1 rounded-lg border border-surface-border bg-surface-muted px-3 text-xs outline-none focus:border-brand-border" />
               <button type="submit" className="rounded-lg bg-surface-muted px-3 text-[11px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary">조건 추가</button>
             </form>
