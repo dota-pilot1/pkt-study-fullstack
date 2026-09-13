@@ -9,6 +9,7 @@ import { documentOrderAfterDrop, documentSortableGroup } from "../../features/ho
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  BookCopy,
   Braces,
   ChevronDown,
   ChevronRight,
@@ -30,6 +31,7 @@ import { copyToClipboard } from "../../shared/lib/clipboard";
 import PageHeader from "../../shared/ui/PageHeader";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { useToast } from "../../shared/ui/toast";
+import RegisterDocumentSampleDialog from "./RegisterDocumentSampleDialog";
 
 type DocumentRow = {
   document: PlaybookDocumentSummary;
@@ -225,6 +227,7 @@ export default function DocumentPage({
       ),
   );
   const [locationOpen, setLocationOpen] = useState(false);
+  const [sampleDialogOpen, setSampleDialogOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const collapsedTopicId = useRef(topicId);
   const [nextCategoryId, setNextCategoryId] = useState(categoryId);
@@ -430,6 +433,17 @@ export default function DocumentPage({
                     </button>
                     <button
                       type="button"
+                      onClick={() => setSampleDialogOpen(true)}
+                      disabled={!document.data.content.trim()}
+                      className="ui-icon-button h-8 gap-1 px-2.5 text-[11px] font-black text-brand-primary disabled:opacity-45"
+                      title="현재 본문을 샘플로 등록"
+                      aria-label="현재 본문을 샘플로 등록"
+                    >
+                      <BookCopy className="size-3.5" />
+                      샘플 등록
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => onEdit(documentId)}
                       className="ui-icon-button-brand h-8 min-w-[58px] justify-center px-2.5 text-[11px] font-black"
                       title="수정"
@@ -480,6 +494,14 @@ export default function DocumentPage({
           </section>
         </main>
       </div>
+      {sampleDialogOpen && document.data && (
+        <RegisterDocumentSampleDialog
+          key={documentId}
+          documentId={documentId}
+          documentTitle={document.data.title}
+          onClose={() => setSampleDialogOpen(false)}
+        />
+      )}
       {locationOpen && (
         <div
           className="fixed inset-0 z-[80] grid place-items-center bg-black/35 p-4"

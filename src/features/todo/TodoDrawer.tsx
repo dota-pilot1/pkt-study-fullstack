@@ -299,7 +299,7 @@ function TodoDetail({ todo, isClosing, onClose, onSave, onRefresh, onDelete }: {
           <button type="button" onClick={() => void save()} disabled={saving} className="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-black text-white disabled:opacity-50">{saving ? "저장 중…" : "상세 저장"}</button>
         </div>
       </footer>
-      {agentGuideOpen && <AgentGuide scope={todo} todo={todo} onClose={() => setAgentGuideOpen(false)} />}
+      {agentGuideOpen && <AgentGuide scope={todo} todo={todo} workstream={todo.workstream} onClose={() => setAgentGuideOpen(false)} />}
       {instructionOpen && <TaskInstructionDialog todo={{ ...todo, title, description, checklist, verificationChecks }} onClose={() => setInstructionOpen(false)} />}
       {reviewOpen && <TaskReviewDialog todo={{ ...todo, title, description, checklist, verificationChecks }} onClose={() => setReviewOpen(false)} />}
     </section>
@@ -539,20 +539,22 @@ function TaskReviewDialog({ todo, onClose }: { todo: TodoItem; onClose: () => vo
   );
 }
 
-function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoItem; onClose: () => void }) {
+function AgentGuide({ scope, todo, workstream, onClose }: { scope?: TodoScope; todo?: TodoItem; workstream?: TodoWorkstream; onClose: () => void }) {
   const { showToast } = useToast();
   const origin = typeof window === "undefined" ? "http://127.0.0.1:4300" : window.location.origin;
   const targetFolderKey = agentTargetFolderStorageKey(scope);
   const [savedTargetFolder, setSavedTargetFolder] = useState(() => savedAgentTargetFolder(scope));
   const [targetFolderDraft, setTargetFolderDraft] = useState(() => savedAgentTargetFolder(scope));
   const [additionalInstruction, setAdditionalInstruction] = useState("");
+  const selectedWorkstream = workstream ?? todo?.workstream ?? "BACKEND";
+  const selectedWorkstreamLabel = WORKSTREAM_META[selectedWorkstream].label;
   useEffect(() => {
     const value = savedAgentTargetFolder(scope);
     setSavedTargetFolder(value);
     setTargetFolderDraft(value);
   }, [scope, targetFolderKey]);
   const topicQuery = scope?.spaceCode ? `?spaceCode=${encodeURIComponent(scope.spaceCode)}` : "";
-  const searchQuery = `${topicQuery ? `${topicQuery}&` : "?"}q=검색어&workstream=BACKEND&status=TODO`;
+  const searchQuery = `${topicQuery ? `${topicQuery}&` : "?"}q=검색어&workstream=${selectedWorkstream}&status=TODO`;
   const listEndpoints: AgentEndpoint[] = [
     { id: "list", method: "GET", path: `/api/llm/todos${topicQuery}`, description: "현재 범위 TODO 전체 목록" },
     { id: "search", method: "GET", path: `/api/llm/todos${searchQuery}`, description: "제목·설명·완료 조건 검색 및 업무·상태 필터" },
@@ -571,7 +573,7 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
         categoryTitle: scope?.categoryTitle ?? null,
         topicId: scope?.topicId ?? null,
         topicTitle: scope?.topicTitle ?? null,
-        workstream: "BACKEND",
+        workstream: selectedWorkstream,
         title: "새 작업",
         description: "구현 범위",
         acceptanceCriteria: "완료 조건",
@@ -619,7 +621,7 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
         categoryId: null,
         topicId: null,
         spaceCode: scope?.spaceCode ?? null,
-        workstream: "BACKEND",
+        workstream: selectedWorkstream,
       }, null, 2),
     },
   ];
@@ -667,6 +669,13 @@ function AgentGuide({ scope, todo, onClose }: { scope?: TodoScope; todo?: TodoIt
     "## 작업 범위",
     todo ? `- 작업: ${todo.title}` : `- 범위: ${scopeTitle(scope)}`,
     ...(todo?.description ? [`- 설명: ${todo.description}`] : []),
+    "",
+    "## 선택한 작업 탭과 위치",
+    `- 업무 탭: ${selectedWorkstreamLabel} (${selectedWorkstream})`,
+    `- spaceCode: ${scope?.spaceCode ?? todo?.spaceCode ?? "확인 필요"}`,
+    `- 1차 메뉴: ${scope?.categoryTitle ?? todo?.categoryTitle ?? "확인 필요"} (ID: ${scope?.categoryId ?? todo?.categoryId ?? "확인 필요"})`,
+    `- 2차 주제: ${scope?.topicTitle ?? todo?.topicTitle ?? "확인 필요"} (ID: ${scope?.topicId ?? todo?.topicId ?? "확인 필요"})`,
+    "- 새 TODO는 위 업무 탭과 주제에 등록하고, 다른 탭·주제로 추정해 등록하지 마세요.",
     "",
     "## 선택한 API",
     ...(selectedEndpoints.length ? selectedEndpoints.flatMap((endpoint) => [`### ${endpoint.description}`, endpointRequestText(endpoint), ""]) : ["- 선택한 API 없음"]),
@@ -1102,7 +1111,7 @@ export function TodoDrawer({ open, onOpenChange, scope }: { open: boolean; onOpe
           </div>
         </div>
         {selectedTodo && <TodoDetail todo={selectedTodo} isClosing={isDetailClosing} onClose={closeDetail} onSave={(patch) => updateTodo(selectedTodo.id, patch)} onRefresh={reload} onDelete={() => deleteTodo(selectedTodo.id)} />}
-        {agentGuideOpen && <AgentGuide scope={scope} onClose={() => setAgentGuideOpen(false)} />}
+        {agentGuideOpen && <AgentGuide scope={scope} workstream={workstream} onClose={() => setAgentGuideOpen(false)} />}
         {apiSpecOpen && <ApiSpecDialog scope={scope} onClose={() => setApiSpecOpen(false)} />}
       </aside>
     </div>,

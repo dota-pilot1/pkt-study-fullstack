@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect -- drawer state resets when the selected document changes. */
 import { BookmarkButton } from "@/features/hospital-playbook/bookmarks";
 import { buildDocumentDeepLink } from "@/features/hospital-playbook/document-deep-link";
-import { Braces, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, MoreHorizontal, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { BookCopy, Braces, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Loader2, MoreHorizontal, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { PlaybookDocument, PlaybookDocumentSummary } from "../../features/hospital-playbook/api";
 import type { PlaybookDomain } from "../../features/hospital-playbook/api";
@@ -14,6 +14,7 @@ import { useToast } from "../../shared/ui/toast";
 import DocumentComments from "./DocumentComments";
 import DocumentLocationDialog from "./DocumentLocationDialog";
 import DocumentPane from "./DocumentPane";
+import RegisterDocumentSampleDialog from "./RegisterDocumentSampleDialog";
 
 const DRAWER_SIZE_KEY = "pkt-study-document-drawer-size";
 const DRAWER_SIZES = [
@@ -86,6 +87,7 @@ function DocumentDrawer({
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [sampleDialogOpen, setSampleDialogOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,6 +99,7 @@ function DocumentDrawer({
     setSearchMatchIndex(0);
     setSearchMatchCount(0);
     setMoreActionsOpen(false);
+    setSampleDialogOpen(false);
   }, [document.id]);
 
   const drawerWidth =
@@ -229,6 +232,10 @@ function DocumentDrawer({
         return;
       }
       if (event.key === "Escape") {
+        if (sampleDialogOpen) {
+          setSampleDialogOpen(false);
+          return;
+        }
         if (searchOpen) {
           closeSearch();
           return;
@@ -238,7 +245,7 @@ function DocumentDrawer({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [document.content, isEditing, searchOpen, handleClose, closeSearch, openSearch]);
+  }, [document.content, isEditing, sampleDialogOpen, searchOpen, handleClose, closeSearch, openSearch]);
 
   return (
     <div
@@ -279,6 +286,7 @@ function DocumentDrawer({
               <button type="button" className="ui-icon-button size-8 text-text-muted transition-colors hover:text-brand-primary disabled:opacity-40" onClick={() => void refreshDocument()} disabled={isRefreshing} title="문서 새로고침" aria-label="문서 새로고침"><RefreshCw className={`size-4 ${isRefreshing ? "refresh-icon-spin" : ""}`} /></button>
               <BookmarkButton document={document} />
               <button type="button" className="ui-icon-button h-8 gap-1 px-2.5 text-[11px] font-black text-brand-primary" onClick={onOpenContentApi} title="본문 편집 지시" aria-label="본문 편집 지시"><span>본문 편집</span><Braces className="size-3.5" /></button>
+              <button type="button" className="ui-icon-button h-8 gap-1 px-2.5 text-[11px] font-black text-brand-primary disabled:opacity-45" onClick={() => setSampleDialogOpen(true)} disabled={isEditing || !document.content.trim()} title="현재 본문을 샘플로 등록" aria-label="현재 본문을 샘플로 등록"><BookCopy className="size-3.5" /><span>샘플 등록</span></button>
               <button type="button" className={`ui-icon-button h-8 px-2.5 text-[11px] font-black ${isEditing ? "bg-brand-primary text-white" : ""}`} onClick={() => { closeSearch(); setIsEditing(true); }} title="수정">수정</button>
               <DropdownMenu
                 open={moreActionsOpen}
@@ -410,6 +418,14 @@ function DocumentDrawer({
             documents={documents}
             onClose={() => setLocationDialogOpen(false)}
             onMove={onMove}
+          />
+        )}
+        {sampleDialogOpen && (
+          <RegisterDocumentSampleDialog
+            key={document.id}
+            documentId={document.id}
+            documentTitle={document.title}
+            onClose={() => setSampleDialogOpen(false)}
           />
         )}
       </aside>
