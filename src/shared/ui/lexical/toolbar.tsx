@@ -42,7 +42,7 @@ import {
 import { INSERT_TABLE_COMMAND } from '@lexical/table'
 import { $createCodeNode, $isCodeNode } from '@lexical/code'
 import { TOGGLE_LINK_COMMAND } from '@lexical/link'
-import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode'
+import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/extension'
 import {
   AlignCenter,
   AlignJustify,
