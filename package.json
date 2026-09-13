@@ -1,6 +1,6 @@
 {
   "name": "pkt-study-fullstack",
-  "version": "0.1.110",
+  "version": "0.1.111",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack --disable-source-maps -p 4300",
