@@ -336,10 +336,40 @@ body {
   /* Next/Turbopack는 CSS Custom Highlight 의 ::highlight()를 아직 파싱하지 못한다.
      검색 범위 계산은 그대로 유지하고 강조색은 브라우저 호환 경로에서 처리한다. */
   .lexical-toolbar { background: color-mix(in srgb, var(--muted) 72%, var(--card)); }
-  .lexical-mermaid-preview { @apply my-3 overflow-auto rounded-md border border-surface-border-soft bg-surface-muted p-4 text-sm text-text-primary; }
+  .lexical-mermaid-preview { @apply my-3 overflow-auto rounded-md border border-surface-border-soft bg-surface-muted p-4 text-sm text-text-primary; position: relative; }
   .lexical-mermaid-preview-flat { margin: 0; border: 0; background: transparent; padding: 0; }
   .lexical-mermaid-node { @apply my-3 w-full; }
   .lexical-mermaid-preview svg { max-width: 100%; height: auto; margin: 0 auto; }
+  .lexical-mermaid-full-view-button {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 0.375rem;
+    background: var(--surface-raised);
+    padding: 0.25rem 0.5rem;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 10%);
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  }
+  .lexical-mermaid-full-view-button:hover {
+    border-color: var(--brand-primary);
+    background: var(--surface-muted);
+    color: var(--brand-primary);
+    box-shadow: 0 2px 6px rgb(5 150 105 / 18%);
+  }
+  .lexical-mermaid-full-view-button:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
   .lexical-mermaid-preview-error { @apply whitespace-pre-wrap text-destructive; }
   .lexical-html-preview-node { @apply my-5 w-full; }
 .lexical-tailwind-tsx-preview-node { @apply my-5 w-full; }
@@ -348,6 +378,99 @@ body {
   height: min(520px, 65vh);
   min-height: 420px;
   overflow: hidden;
+}
+
+.lexical-mermaid-fullscreen-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: grid;
+  place-items: center;
+  background: rgb(15 23 42 / 72%);
+  padding: 1.5rem;
+}
+
+.lexical-mermaid-fullscreen-panel {
+  display: flex;
+  width: min(96vw, 1800px);
+  height: min(90vh, 1080px);
+  min-height: 420px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.875rem;
+  background: var(--surface-raised);
+  box-shadow: 0 24px 80px rgb(15 23 42 / 35%);
+}
+
+.lexical-mermaid-fullscreen-header {
+  display: flex;
+  min-height: 4.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--surface-border-soft);
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+}
+
+.lexical-mermaid-fullscreen-header p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lexical-mermaid-fullscreen-header h2 {
+  margin: 0.125rem 0 0;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+  font-weight: 800;
+}
+
+.lexical-mermaid-fullscreen-close {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--surface-border);
+  border-radius: 0.5rem;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.lexical-mermaid-fullscreen-close:hover {
+  border-color: var(--brand-primary);
+  background: var(--surface-muted);
+  color: var(--brand-primary);
+}
+
+.lexical-mermaid-fullscreen-close:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+.lexical-mermaid-fullscreen-stage {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  background: color-mix(in srgb, var(--surface-muted) 68%, var(--surface-raised));
+}
+
+.lexical-mermaid-fullscreen-diagram {
+  display: grid;
+  min-width: max-content;
+  min-height: 100%;
+  place-items: center;
+  padding: 2.5rem;
+}
+
+.lexical-mermaid-fullscreen-diagram svg {
+  max-width: none;
+  height: auto;
 }
 
 .tailwind-tsx-code-panel .cm-editor,
