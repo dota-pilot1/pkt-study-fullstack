@@ -309,8 +309,8 @@ function HospitalPlaybookModule({
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const tree = usePlaybookTree(domain);
-  const [categoryId, setCategoryId] = useState<number | null>(initialCategoryId ?? null);
-  const [topicId, setTopicId] = useState<number | null>(initialTopicId ?? null);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [topicId, setTopicId] = useState<number | null>(null);
   const [editingDocumentId, setEditingDocumentId] = useState<number | null>(
     null,
   );
@@ -346,8 +346,17 @@ function HospitalPlaybookModule({
   const topicCollapsed = usePlaybookLayoutStore(
     (state) => state.topicCollapsed,
   );
+  const rememberedMenu = usePlaybookLayoutStore(
+    (state) => state.selectedMenus[domain],
+  );
+  const selectionHydrated = usePlaybookLayoutStore(
+    (state) => state.selectionHydrated,
+  );
   const isSystemGallery = SYSTEM_GALLERY_DOMAINS.includes(domain);
   const hydrateLayout = usePlaybookLayoutStore((state) => state.hydrate);
+  const rememberSelectedMenu = usePlaybookLayoutStore(
+    (state) => state.rememberSelectedMenu,
+  );
   const setCategoryWidth = usePlaybookLayoutStore(
     (state) => state.setCategoryWidth,
   );
@@ -445,14 +454,20 @@ function HospitalPlaybookModule({
     hydrateLayout();
   }, [hydrateLayout]);
   useEffect(() => {
+    if (!selectionHydrated) return;
     if (!categories.length) {
       setCategoryId((current) => (current === null ? current : null));
       return;
     }
     if (!categories.some((item) => item.id === categoryId))
-      setCategoryId(categories.find((item) => item.id === initialCategoryId)?.id ?? categories[0].id);
-  }, [categories, categoryId, initialCategoryId]);
+      setCategoryId(
+        categories.find((item) => item.id === rememberedMenu?.categoryId)?.id ??
+          categories.find((item) => item.id === initialCategoryId)?.id ??
+          categories[0].id,
+      );
+  }, [categories, categoryId, initialCategoryId, rememberedMenu?.categoryId, selectionHydrated]);
   useEffect(() => {
+    if (!selectionHydrated) return;
     const topics = category?.topics ?? EMPTY_TOPICS;
     if (!topics.length) {
       setTopicId((current) => (current === null ? current : null));
@@ -467,8 +482,20 @@ function HospitalPlaybookModule({
       return;
     }
     if (!topics.some((item) => item.id === topicId))
-      setTopicId(topics.find((item) => item.id === initialTopicId)?.id ?? topics[0].id);
-  }, [category, topicId, pendingTopicSelection, initialTopicId]);
+      setTopicId(
+        topics.find(
+          (item) =>
+            category?.id === rememberedMenu?.categoryId &&
+            item.id === rememberedMenu.topicId,
+        )?.id ??
+          topics.find((item) => item.id === initialTopicId)?.id ??
+          topics[0].id,
+      );
+  }, [category, topicId, pendingTopicSelection, initialTopicId, rememberedMenu, selectionHydrated]);
+  useEffect(() => {
+    if (!selectionHydrated || !category || !topic) return;
+    rememberSelectedMenu(domain, { categoryId: category.id, topicId: topic.id });
+  }, [category, domain, rememberSelectedMenu, selectionHydrated, topic]);
   useEffect(() => {
     const ids = new Set(documents.map((item) => item.id));
     setExpandedDocumentIds((current) => {

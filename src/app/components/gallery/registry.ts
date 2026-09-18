@@ -9,6 +9,7 @@ import { StateDemo } from "./state-demo";
 import { Input } from "./input";
 import { ModalDemo } from "./modal-demo";
 import { PaginationDemo } from "./pagination-demo";
+import { ProfileLayoutDemo } from "./profile-layout-demo";
 import { Select } from "./select";
 import { SidebarDemo } from "./sidebar-demo";
 import { TableDemo } from "./table-demo";
@@ -43,6 +44,17 @@ export function getGallerySource(file: string): string {
 }
 
 export const GALLERY_ENTRIES: GalleryEntry[] = [
+  {
+    id: "profile-layout",
+    label: "Profile Layout · Annotation",
+    Component: ProfileLayoutDemo,
+    defaultProps: { viewport: "desktop", showGuides: true },
+    controls: [
+      { name: "viewport", type: "select", options: ["desktop", "mobile"] },
+      { name: "showGuides", type: "boolean" },
+    ],
+    sourceFiles: ["profile-layout-demo.tsx"],
+  },
   {
     id: "state",
     label: "Interaction · State",
