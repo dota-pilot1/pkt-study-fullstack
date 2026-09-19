@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Eye, X } from "lucide-react";
+import { Check, Copy, Eye, Trash2, X } from "lucide-react";
 import { LexicalEditor } from "../../shared/ui/lexical/lexical-editor";
 import { playbookApi, type PlaybookSampleKey, type PlaybookSampleSummary } from "../../features/hospital-playbook/api";
 import { getApiBase } from "../../shared/api/client";
@@ -31,6 +31,9 @@ export default function ImplementationNoteSamplePreview({ minHeight = "620px", s
   const [adding, setAdding] = useState(false);
   const [newKey, setNewKey] = useState("");
   const [newTitle, setNewTitle] = useState("");
+  const [editingRowKey, setEditingRowKey] = useState<PlaybookSampleKey | null>(null);
+  const [rowTitle, setRowTitle] = useState("");
+  const [rowKey, setRowKey] = useState("");
   const [copiedSampleKey, setCopiedSampleKey] = useState<PlaybookSampleKey | null>(null);
   const [selectedSamplesCopied, setSelectedSamplesCopied] = useState(false);
   const queryClient = useQueryClient();
@@ -85,10 +88,31 @@ export default function ImplementationNoteSamplePreview({ minHeight = "620px", s
       const nextSelected = activeSelectedKeys.filter((item) => item !== deletedKey);
       if (selectedKeys === undefined) setLocalSelectedKeys(nextSelected);
       onSelectedKeysChange?.(nextSelected);
-      setPreviewKey(null);
+      if (previewKey === deletedKey) setPreviewKey(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["hospital-playbook", "samples"] }),
         queryClient.removeQueries({ queryKey: ["hospital-playbook", "sample", deletedKey] }),
+      ]);
+    },
+  });
+
+  const saveRow = useMutation({
+    mutationFn: (item: PlaybookSampleSummary) => playbookApi.updateSampleDocument(item.sampleKey, {
+      sampleKey: rowKey,
+      title: rowTitle.trim() || item.title,
+      content: item.content,
+      expectedVersion: item.version,
+    }),
+    onSuccess: async (updated, item) => {
+      setEditingRowKey(null);
+      const nextSelected = activeSelectedKeys.map((key) => key === item.sampleKey ? updated.sampleKey : key);
+      if (selectedKeys === undefined) setLocalSelectedKeys(nextSelected);
+      onSelectedKeysChange?.(nextSelected);
+      if (previewKey === item.sampleKey) setPreviewKey(updated.sampleKey);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["hospital-playbook", "samples"] }),
+        queryClient.removeQueries({ queryKey: ["hospital-playbook", "sample", item.sampleKey] }),
+        queryClient.invalidateQueries({ queryKey: ["hospital-playbook", "sample", updated.sampleKey] }),
       ]);
     },
   });
@@ -118,19 +142,16 @@ export default function ImplementationNoteSamplePreview({ minHeight = "620px", s
     onSelectedKeysChange?.(next);
   };
 
+  const beginRowEdit = (item: PlaybookSampleSummary) => {
+    setEditingRowKey(item.sampleKey);
+    setRowTitle(item.title);
+    setRowKey(item.sampleKey);
+  };
+
   const preview = (item: PlaybookSampleSummary) => {
     setEditing(false);
     setPreviewKey(item.sampleKey);
     if (!showInlinePreview) setPreviewDialogOpen(true);
-  };
-
-  const editInDialog = (item: { sampleKey: PlaybookSampleKey; title: string; content: string }) => {
-    setPreviewKey(item.sampleKey);
-    setTitle(item.title);
-    setContent(item.content);
-    setSampleKeyDraft(item.sampleKey);
-    setEditing(true);
-    setPreviewDialogOpen(true);
   };
 
   const copySampleApi = async (item: PlaybookSampleSummary) => {
@@ -186,12 +207,12 @@ export default function ImplementationNoteSamplePreview({ minHeight = "620px", s
         {samples.isLoading ? <p className="mt-3 text-xs font-bold text-text-muted">예제 목록을 불러오는 중입니다.</p> : samples.isError ? <p role="alert" className="mt-3 text-xs font-bold text-destructive">예제 목록을 불러오지 못했습니다.</p> : (
           <div className="mt-3 overflow-x-auto rounded-lg border border-surface-border-soft">
             <table className="w-full min-w-[720px] border-collapse text-left text-xs">
-              <thead className="bg-surface-muted text-text-secondary"><tr><th className="w-12 px-3 py-2.5 text-center font-black"><input type="checkbox" checked={allSamplesSelected} onChange={toggleAllSamples} aria-label="모든 샘플 선택" className="size-4 accent-brand-primary" /></th><th className="px-3 py-2.5 font-black">예제</th><th className="min-w-48 px-3 py-2.5 font-black">조회 URL</th><th className="w-44 px-3 py-2.5 text-center font-black">관리</th></tr></thead>
+              <thead className="bg-surface-muted text-text-secondary"><tr><th className="w-12 px-3 py-2.5 text-center font-black"><input type="checkbox" checked={allSamplesSelected} onChange={toggleAllSamples} aria-label="모든 샘플 선택" className="size-4 accent-brand-primary" /></th><th className="px-3 py-2.5 font-black">예제</th><th className="min-w-48 px-3 py-2.5 font-black">조회 URL</th><th className="w-52 px-3 py-2.5 text-center font-black">관리</th></tr></thead>
               <tbody>{samples.data?.map((item) => <tr key={item.sampleKey} onClick={showInlinePreview ? () => preview(item) : undefined} className={`${showInlinePreview ? "cursor-pointer " : ""}border-t border-surface-border-soft transition-colors ${showInlinePreview && sampleKey === item.sampleKey ? "bg-brand-primary/5 hover:bg-brand-primary/10" : "hover:bg-surface-muted/60"}`}>
                 <td className="!align-middle px-3 py-3 text-center"><input type="checkbox" checked={activeSelectedKeys.includes(item.sampleKey)} onClick={(event) => event.stopPropagation()} onChange={() => toggle(item.sampleKey)} aria-label={item.title + " 선택"} className="size-4 accent-brand-primary" /></td>
                 <td className="px-3 py-3"><p className="font-black text-text-primary">{item.title}</p><p className="mt-1 font-mono text-[10px] text-text-muted">{item.sampleKey}</p></td>
                 <td className="!align-middle break-all px-3 py-3 font-mono text-[10px] leading-4 text-text-muted">GET /api/llm/hospital-playbook/samples/{item.sampleKey}</td>
-                <td className="!align-middle px-3 py-3 text-center"><div className="flex justify-center gap-1"><button type="button" onClick={(event) => { event.stopPropagation(); void copySampleApi(item); }} aria-label={item.title + " 샘플 조회 URL과 설명 복사"} title="GET 메서드, 전체 URL, 설명 복사" className="ui-icon-button size-7 text-brand-primary">{copiedSampleKey === item.sampleKey ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); preview(item); }} aria-label={item.title + " 미리 보기"} title="미리 보기" className="ui-icon-button size-7 text-brand-primary"><Eye className="size-3.5" /></button><button type="button" onClick={(event) => { event.stopPropagation(); editInDialog(item); }} className="ui-icon-button h-7 px-2 text-[10px] font-black">수정</button></div></td>
+                <td className="!align-middle px-3 py-3 text-center"><div className="flex justify-center gap-1">{editingRowKey === item.sampleKey ? <><button type="button" onClick={(event) => { event.stopPropagation(); setEditingRowKey(null); }} disabled={saveRow.isPending} className="ui-icon-button h-7 px-2 text-[10px] font-black">취소</button><button type="button" onClick={(event) => { event.stopPropagation(); saveRow.mutate(item); }} disabled={saveRow.isPending || !rowTitle.trim() || !rowKey.trim()} className="ui-icon-button-brand h-7 px-2 text-[10px] font-black disabled:opacity-50">저장</button></> : <><button type="button" onClick={(event) => { event.stopPropagation(); void copySampleApi(item); }} aria-label={item.title + " 샘플 조회 URL과 설명 복사"} title="GET 메서드, 전체 URL, 설명 복사" className="ui-icon-button size-7 text-brand-primary">{copiedSampleKey === item.sampleKey ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); preview(item); }} aria-label={item.title + " 미리 보기"} title="미리 보기" className="ui-icon-button size-7 text-brand-primary"><Eye className="size-3.5" /></button><button type="button" onClick={(event) => { event.stopPropagation(); beginRowEdit(item); }} className="ui-icon-button h-7 px-2 text-[10px] font-black">수정</button><button type="button" onClick={(event) => { event.stopPropagation(); if (window.confirm(`'${item.title}' 예제를 삭제할까요?`)) remove.mutate(item.sampleKey); }} disabled={remove.isPending} aria-label={item.title + " 샘플 삭제"} title="삭제" className="ui-icon-button size-7 text-destructive disabled:opacity-50"><Trash2 className="size-3.5" /></button></>}</div>{editingRowKey === item.sampleKey && saveRow.isError && <p role="alert" className="mt-1 text-[10px] font-bold text-destructive">저장 실패</p>}{remove.isError && <p role="alert" className="mt-1 text-[10px] font-bold text-destructive">삭제 실패</p>}</td>
               </tr>)}</tbody>
             </table>
           </div>
