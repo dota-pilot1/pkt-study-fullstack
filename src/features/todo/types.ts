@@ -23,6 +23,15 @@ export type TodoVerificationCheck = {
   evidence: string;
 };
 
+export type TodoApiSpec = {
+  id: string;
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  path: string;
+  purpose: string;
+  implemented: boolean;
+  tested: boolean;
+};
+
 export type TodoScope = {
   spaceCode?: string;
   /** 맨왼쪽 작업 영역의 표시 이름. 1·2차 메뉴는 TODO 목록 범위를 바꾸지 않는다. */
@@ -46,6 +55,7 @@ export type TodoItem = TodoScope & {
   status: TodoStatus;
   important: boolean;
   checklist: TodoChecklistItem[];
+  apiSpecs: TodoApiSpec[];
   acceptanceCriteria: string;
   verificationChecks: TodoVerificationCheck[];
   blockerReason: string;

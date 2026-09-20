@@ -14,7 +14,7 @@ import {
 } from "./types";
 
 type ApiTodo = Omit<TodoItem, "category" | "completed">;
-type TodoPatch = Partial<Pick<TodoItem, "title" | "workstream" | "important" | "description" | "status" | "checklist" | "acceptanceCriteria" | "verificationChecks" | "blockerReason" | "relatedFiles" | "verificationSummary">>;
+type TodoPatch = Partial<Pick<TodoItem, "title" | "workstream" | "important" | "description" | "status" | "checklist" | "apiSpecs" | "acceptanceCriteria" | "verificationChecks" | "blockerReason" | "relatedFiles" | "verificationSummary">>;
 
 function workstreamFromLegacy(category: TodoCategory): TodoWorkstream {
   if (category === "아이디어") return "API";

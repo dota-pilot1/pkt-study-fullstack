@@ -24,6 +24,15 @@ export type TodoVerificationCheck = {
   evidence: string;
 };
 
+export type TodoApiSpec = {
+  id: string;
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+  path: string;
+  purpose: string;
+  implemented: boolean;
+  tested: boolean;
+};
+
 export type TodoScope = {
   spaceCode?: string;
   categoryId?: number | null;
@@ -34,8 +43,9 @@ export type TodoScope = {
   documentTitle?: string | null;
 };
 
-export type WorkTodo = Omit<typeof workTodos.$inferSelect, "checklistJson" | "verificationChecksJson" | "relatedFilesJson" | "relatedApiRequestIdsJson"> & {
+export type WorkTodo = Omit<typeof workTodos.$inferSelect, "checklistJson" | "apiSpecsJson" | "verificationChecksJson" | "relatedFilesJson" | "relatedApiRequestIdsJson"> & {
   checklist: TodoChecklistItem[];
+  apiSpecs: TodoApiSpec[];
   verificationChecks: TodoVerificationCheck[];
   relatedFiles: string[];
   relatedApiRequestIds: number[];
@@ -56,6 +66,7 @@ export type UpdateTodoInput = Partial<TodoScope> & {
   description?: unknown;
   status?: unknown;
   checklist?: unknown;
+  apiSpecs?: unknown;
   acceptanceCriteria?: unknown;
   verificationChecks?: unknown;
   blockerReason?: unknown;
@@ -120,6 +131,19 @@ function verificationChecks(value: unknown): TodoVerificationCheck[] {
   });
 }
 
+function apiSpecs(value: unknown): TodoApiSpec[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 30).flatMap((item, index) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const method = text(record.method, 10).toUpperCase();
+    const path = text(record.path, 240);
+    const purpose = text(record.purpose, 240);
+    if (!(["GET", "POST", "PATCH", "PUT", "DELETE"] as const).includes(method as TodoApiSpec["method"]) || !path || !purpose) return [];
+    return [{ id: text(record.id, 80) || `api-${index + 1}`, method: method as TodoApiSpec["method"], path, purpose, implemented: record.implemented === true, tested: record.tested === true }];
+  });
+}
+
 function strings(value: unknown, maxItems: number, maxLength: number) {
   if (!Array.isArray(value)) return [];
   return value.slice(0, maxItems).flatMap((item) => {
@@ -161,6 +185,7 @@ function serialize(row: typeof workTodos.$inferSelect): WorkTodo {
   return {
     ...row,
     checklist: checklist(jsonArray<unknown>(row.checklistJson, [])),
+    apiSpecs: apiSpecs(jsonArray<unknown>(row.apiSpecsJson, [])),
     verificationChecks: verificationChecks(jsonArray<unknown>(row.verificationChecksJson, [])),
     relatedFiles: strings(jsonArray<unknown>(row.relatedFilesJson, []), 30, 260),
     relatedApiRequestIds: numberList(jsonArray<unknown>(row.relatedApiRequestIdsJson, [])),
@@ -230,6 +255,7 @@ export async function createTodo(userId: number, input: CreateTodoInput, updated
     title,
     description: text(input.description, 12000),
     acceptanceCriteria: text(input.acceptanceCriteria, 6000),
+    apiSpecsJson: "[]",
     verificationChecksJson: "[]",
     important: input.important === true,
     orderIdx: (latest[0]?.orderIdx ?? -1) + 1,
@@ -266,6 +292,7 @@ export async function updateTodo(userId: number, id: number, input: UpdateTodoIn
     description: input.description === undefined ? current.description : text(input.description, 12000),
     status: nextStatus,
     checklistJson: input.checklist === undefined ? JSON.stringify(current.checklist) : JSON.stringify(checklist(input.checklist)),
+    apiSpecsJson: input.apiSpecs === undefined ? JSON.stringify(current.apiSpecs) : JSON.stringify(apiSpecs(input.apiSpecs)),
     acceptanceCriteria: input.acceptanceCriteria === undefined ? current.acceptanceCriteria : text(input.acceptanceCriteria, 6000),
     verificationChecksJson: input.verificationChecks === undefined ? JSON.stringify(current.verificationChecks) : JSON.stringify(verificationChecks(input.verificationChecks)),
     blockerReason: input.blockerReason === undefined ? current.blockerReason : text(input.blockerReason, 3000),

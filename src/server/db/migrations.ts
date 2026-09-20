@@ -31,6 +31,7 @@ export function applyMigrations(sqlite: Database.Database) {
     "ALTER TABLE playbook_documents ADD COLUMN sample_key TEXT",
     "ALTER TABLE learning_goals ADD COLUMN progress INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE work_todos ADD COLUMN verification_checks_json TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE work_todos ADD COLUMN api_specs_json TEXT NOT NULL DEFAULT '[]'",
   ]) {
     try {
       sqlite.exec(statement);

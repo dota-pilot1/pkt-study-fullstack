@@ -1127,7 +1127,11 @@ function HospitalPlaybookModule({
                       setNewDocumentDraft(null);
                       setEditingDocumentId(documentId);
                     }}
-                    onCancel={() => setNewDocumentDraft(null)}
+                    onCancel={() => {
+                      // 취소는 새 문서와 기존 문서 모두 편집기를 닫고 목록으로 돌아간다.
+                      setNewDocumentDraft(null);
+                      setEditingDocumentId(null);
+                    }}
                     onBack={() => {
                       setNewDocumentDraft(null);
                       setEditingDocumentId(null);

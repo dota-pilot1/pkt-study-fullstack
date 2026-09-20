@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/set-state-in-effect -- editor form state synchronizes with fetched document data. */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Menu, RotateCcw, Save } from "lucide-react";
 import { playbookApi } from "../../features/hospital-playbook/api";
@@ -49,6 +49,7 @@ function DocumentPane({
   const [content, setContent] = useState(EMPTY_LEXICAL_STATE);
   const [editorRevision, setEditorRevision] = useState(0);
   const [saveMessage, setSaveMessage] = useState("");
+
   // 상세 조회가 비동기로 끝난 뒤 Lexical 편집기도 서버 본문으로 초기화한다.
   // LexicalEditor의 initialState는 마운트 시 한 번만 사용되므로, 문서 데이터가
   // 준비되면 editorRevision을 증가시켜 빈 편집기가 남지 않게 한다.
@@ -90,6 +91,37 @@ function DocumentPane({
       showToast(error instanceof Error ? error.message : "문서를 저장하지 못했습니다.", "error");
     },
   });
+
+  const cancel = useCallback(() => {
+    if (isDraft) {
+      onCancel?.();
+      return;
+    }
+
+    const savedDocument = document.data;
+    if (savedDocument) {
+      setTitle(savedDocument.title);
+      setContent(savedDocument.content);
+      setEditorRevision((revision) => revision + 1);
+      setSaveMessage("변경 내용을 취소했습니다.");
+    }
+    onCancel?.();
+  }, [document.data, isDraft, onCancel]);
+
+  useEffect(() => {
+    const cancelWithEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || save.isPending) return;
+
+      // Esc는 하단 취소와 같게 편집을 버리고 문서 목록으로 돌아간다.
+      event.preventDefault();
+      event.stopPropagation();
+      cancel();
+    };
+
+    window.addEventListener("keydown", cancelWithEscape, true);
+    return () => window.removeEventListener("keydown", cancelWithEscape, true);
+  }, [cancel, save.isPending]);
+
   const backButton = onBack ? (
     <button
       type="button"
@@ -139,18 +171,6 @@ function DocumentPane({
       return;
     }
     save.mutate();
-  };
-
-  const cancel = () => {
-    if (isDraft) {
-      onCancel?.();
-      return;
-    }
-    setTitle(doc!.title);
-    setContent(doc!.content);
-    setEditorRevision((revision) => revision + 1);
-    setSaveMessage("변경 내용을 취소했습니다.");
-    onCancel?.();
   };
 
   return (

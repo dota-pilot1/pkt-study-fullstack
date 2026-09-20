@@ -52,6 +52,7 @@ export const workTodos = sqliteTable("work_todos", {
   status: text("status").notNull().default("TODO"),
   important: integer("important", { mode: "boolean" }).notNull().default(false),
   checklistJson: text("checklist_json").notNull().default("[]"),
+  apiSpecsJson: text("api_specs_json").notNull().default("[]"),
   acceptanceCriteria: text("acceptance_criteria").notNull().default(""),
   verificationChecksJson: text("verification_checks_json").notNull().default("[]"),
   blockerReason: text("blocker_reason").notNull().default(""),
