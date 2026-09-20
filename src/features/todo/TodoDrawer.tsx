@@ -472,7 +472,7 @@ function TodoDetail({
                       {({ ref, handleRef, isDragSource }) => (
                         <div
                           ref={ref}
-                          className={`flex items-start gap-3 rounded-lg border border-surface-border-soft px-4 py-3.5 text-xs leading-5 text-text-secondary hover:bg-surface-muted/50 ${isDragSource ? "opacity-55 ring-2 ring-brand-border/50" : ""}`}
+                          className={`flex items-center gap-3 rounded-lg border border-surface-border-soft px-4 py-3.5 text-xs leading-5 text-text-secondary hover:bg-surface-muted/50 ${isDragSource ? "opacity-55 ring-2 ring-brand-border/50" : ""}`}
                         >
                           {isChecklistBulkEditing && (
                             <button
@@ -480,12 +480,12 @@ function TodoDetail({
                               ref={handleRef}
                               title="드래그하여 계획 순서 변경"
                               aria-label={`${item.text} 드래그`}
-                              className="grid size-5 shrink-0 cursor-grab touch-none place-items-center text-text-muted hover:text-brand-primary active:cursor-grabbing"
+                              className="grid size-5 shrink-0 cursor-grab touch-none place-items-center self-center text-text-muted hover:text-brand-primary active:cursor-grabbing"
                             >
                               <GripVertical className="size-4" />
                             </button>
                           )}
-                          <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-full bg-brand-glass text-[10px] font-black text-brand-primary">
+                          <span className="grid size-5 shrink-0 place-items-center self-center rounded-full bg-brand-glass text-[10px] font-black leading-none text-brand-primary">
                             {index + 1}
                           </span>
                           <input
@@ -503,7 +503,7 @@ function TodoDetail({
                                 ),
                               )
                             }
-                            className="mt-1 size-4 accent-brand-primary"
+                            className="size-4 self-center accent-brand-primary"
                           />
                           {isEditingRow ? (
                             <input
@@ -522,7 +522,7 @@ function TodoDetail({
                             />
                           ) : (
                             <span
-                              className={`min-w-0 flex-1 leading-5 ${item.completed ? "line-through text-text-muted" : ""}`}
+                              className={`flex min-h-6 min-w-0 flex-1 items-center leading-5 ${item.completed ? "line-through text-text-muted" : ""}`}
                             >
                               {item.text}
                             </span>
@@ -544,10 +544,10 @@ function TodoDetail({
                               }
                               aria-label="구현 영역"
                               placeholder="영역"
-                              className="h-7 w-28 shrink-0 rounded-md border border-surface-border bg-surface-raised px-2 text-[10px] font-bold text-brand-primary outline-none focus:border-brand-border"
+                              className="h-7 w-28 shrink-0 self-center rounded-md border border-surface-border bg-surface-raised px-2 text-[10px] font-bold text-brand-primary outline-none focus:border-brand-border"
                             />
                           ) : (
-                            <span className="mt-0.5 w-28 shrink-0 truncate rounded-md border border-surface-border bg-surface-muted px-2 py-1 text-[10px] font-black text-brand-primary">
+                            <span className="w-28 shrink-0 truncate self-center rounded-md border border-surface-border bg-surface-muted px-2 py-1 text-[10px] font-black text-brand-primary">
                               {item.layer === "기타" ? "미분류" : item.layer}
                             </span>
                           )}
@@ -555,13 +555,13 @@ function TodoDetail({
                             <button
                               type="button"
                               onClick={() => void removeChecklistItem(item)}
-                              className="ui-icon-button size-7 shrink-0 text-text-muted hover:text-destructive"
+                              className="ui-icon-button size-7 shrink-0 self-center text-text-muted hover:text-destructive"
                               aria-label="세부 계획 삭제"
                             >
                               <Trash2 className="size-3.5" />
                             </button>
                           ) : (
-                            <div className="flex shrink-0 items-center gap-1">
+                            <div className="flex shrink-0 items-center gap-1 self-center">
                               <button
                                 type="button"
                                 onClick={() =>
@@ -867,13 +867,13 @@ function TodoDetail({
                 {verificationChecks.length}
               </span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {verificationChecks.map((item, index) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-3 rounded-lg border border-surface-border-soft px-4 py-3.5 text-xs text-text-secondary"
+                  className="flex items-center gap-3 rounded-lg border border-surface-border-soft px-4 py-4 text-xs text-text-secondary"
                 >
-                  <span className="mt-1 grid size-5 shrink-0 place-items-center rounded-full bg-brand-glass text-[10px] font-black text-brand-primary">
+                  <span className="grid size-5 shrink-0 place-items-center self-center rounded-full bg-brand-glass text-[10px] font-black leading-none text-brand-primary">
                     {index + 1}
                   </span>
                   <input
@@ -893,7 +893,7 @@ function TodoDetail({
                       );
                     }}
                     aria-label={`${item.text} 통과 여부`}
-                    className="mt-1 size-4 accent-brand-primary"
+                    className="size-4 self-center accent-brand-primary"
                   />
                   <div className="min-w-0 flex-1 space-y-2">
                     <input
@@ -939,7 +939,7 @@ function TodoDetail({
                       className="h-8 w-full rounded-md border border-surface-border bg-surface-raised px-2 text-[11px] text-text-secondary outline-none focus:border-brand-border"
                     />
                   </div>
-                  <div className="flex shrink-0 gap-1 pt-0.5">
+                  <div className="flex shrink-0 gap-1 self-center">
                     <button
                       type="button"
                       onClick={() => void moveVerificationCheck(index, -1)}
