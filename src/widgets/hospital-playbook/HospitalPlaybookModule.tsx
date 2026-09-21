@@ -888,6 +888,18 @@ function HospitalPlaybookModule({
                 </span>
               )}
             </button>
+            <button
+              type="button"
+              onClick={() => void refreshTree()}
+              disabled={isRefreshingTree}
+              className="ui-icon-button size-9 shrink-0 disabled:opacity-40"
+              title="현재 노트 목록 새로고침"
+              aria-label="현재 노트 목록 새로고침"
+            >
+              <RefreshCw
+                className={`size-3.5 ${isRefreshingTree ? "refresh-icon-spin" : ""}`}
+              />
+            </button>
           </div>
         }
       >
@@ -1125,7 +1137,13 @@ function HospitalPlaybookModule({
                     onChanged={invalidate}
                     onCreated={(documentId) => {
                       setNewDocumentDraft(null);
-                      setEditingDocumentId(documentId);
+                      setEditingDocumentId(null);
+                      setDrawerDocumentId(documentId);
+                    }}
+                    onSaved={() => {
+                      if (!editingDocumentId) return;
+                      setEditingDocumentId(null);
+                      setDrawerDocumentId(editingDocumentId);
                     }}
                     onCancel={() => {
                       // 취소는 새 문서와 기존 문서 모두 편집기를 닫고 목록으로 돌아간다.

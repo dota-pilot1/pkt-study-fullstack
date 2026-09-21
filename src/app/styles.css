@@ -47,6 +47,38 @@ body {
   --color-surface-border-soft: color-mix(in srgb, var(--border) 65%, transparent);
 }
 
+.http-method-get {
+  border-color: #bfdbfe !important;
+  background-color: #dbeafe !important;
+  color: #1d4ed8 !important;
+}
+
+.http-method-post {
+  border-color: #a7f3d0 !important;
+  background-color: #d1fae5 !important;
+  color: #047857 !important;
+}
+
+.http-method-patch {
+  border-color: #fde68a !important;
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+}
+
+.http-method-put {
+  border-color: #ddd6fe !important;
+  background-color: #ede9fe !important;
+  color: #6d28d9 !important;
+}
+
+select.http-method-delete,
+.http-method-delete {
+  border-color: #fecaca !important;
+  background-color: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+
+
 :root {
   --radius: 0.25rem;
 

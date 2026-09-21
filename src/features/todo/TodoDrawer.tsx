@@ -53,6 +53,7 @@ import {
 import { useTodos } from "./useTodos";
 import { copyToClipboard } from "@/shared/lib/clipboard";
 import { CompactSelect } from "@/shared/ui/compact-select";
+import { HttpMethodBadge, HttpMethodSelect, type HttpMethod } from "@/shared/ui/http-method";
 import { useToast } from "@/shared/ui/toast";
 
 type StatusFilter = "ALL" | TodoStatus;
@@ -667,7 +668,7 @@ function TodoDetail({
                   key={item.id}
                   className="flex flex-wrap items-center gap-3 rounded-lg border border-surface-border-soft px-3.5 py-3"
                 >
-                  <CompactSelect
+                  <HttpMethodSelect
                     value={item.method}
                     onChange={(event) =>
                       void persistApiSpecs(
@@ -684,15 +685,7 @@ function TodoDetail({
                       )
                     }
                     aria-label="API 메서드"
-                    wrapperClassName="w-20"
-                    className="h-8 min-h-8 py-0 pl-3 pr-7 text-[11px] font-bold text-brand-primary"
-                  >
-                    <option>GET</option>
-                    <option>POST</option>
-                    <option>PATCH</option>
-                    <option>PUT</option>
-                    <option>DELETE</option>
-                  </CompactSelect>
+                  />
                   <input
                     value={item.path}
                     onChange={(event) =>
@@ -813,38 +806,30 @@ function TodoDetail({
                 setNewApiPath("");
                 setNewApiPurpose("");
               }}
-              className="mt-3 flex flex-wrap gap-2"
+              className="mt-3 flex flex-wrap items-center gap-3 rounded-lg border border-surface-border-soft px-3.5 py-3"
             >
-              <CompactSelect
+              <HttpMethodSelect
                 value={newApiMethod}
                 onChange={(event) =>
                   setNewApiMethod(event.target.value as TodoApiSpec["method"])
                 }
                 aria-label="새 API 메서드"
-                wrapperClassName="w-20"
-                className="h-9 min-h-9 rounded-lg py-0 pl-3 pr-7 text-[11px] font-bold text-brand-primary"
-              >
-                <option>GET</option>
-                <option>POST</option>
-                <option>PATCH</option>
-                <option>PUT</option>
-                <option>DELETE</option>
-              </CompactSelect>
+              />
               <input
                 value={newApiPath}
                 onChange={(event) => setNewApiPath(event.target.value)}
                 placeholder="/api/users"
-                className="h-9 min-w-40 flex-1 rounded-lg border border-surface-border bg-surface-muted px-3 font-mono text-xs"
+                className="h-8 min-w-40 flex-1 rounded-md border border-surface-border bg-surface-raised px-3 font-mono text-xs"
               />
               <input
                 value={newApiPurpose}
                 onChange={(event) => setNewApiPurpose(event.target.value)}
                 placeholder="예: 사용자 목록 보기"
-                className="h-9 min-w-40 flex-1 rounded-lg border border-surface-border bg-surface-muted px-3 text-xs"
+                className="h-8 min-w-40 flex-1 rounded-md border border-surface-border bg-surface-raised px-3 text-xs"
               />
               <button
                 type="submit"
-                className="rounded-lg bg-surface-muted px-3 text-[11px] font-black text-text-secondary"
+                className="h-8 rounded-md border border-surface-border bg-surface-raised px-3 text-[11px] font-black text-text-secondary hover:border-brand-border hover:text-brand-primary"
               >
                 API 추가
               </button>
@@ -2122,12 +2107,6 @@ function AgentGuide({
                 </thead>
                 <tbody>
                   {endpoints.map((endpoint) => {
-                    const methodClass =
-                      endpoint.method === "GET"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : endpoint.method === "POST"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-amber-100 text-amber-700";
                     return (
                       <tr
                         key={endpoint.id}
@@ -2143,11 +2122,7 @@ function AgentGuide({
                           />
                         </td>
                         <td className="px-2 py-2.5">
-                          <span
-                            className={`rounded px-1.5 py-1 text-[10px] font-black ${methodClass}`}
-                          >
-                            {endpoint.method}
-                          </span>
+                          <HttpMethodBadge method={endpoint.method as HttpMethod} />
                         </td>
                         <td className="break-all px-3 py-2.5 font-mono text-[11px] leading-4 text-text-primary">
                           {endpoint.path}
