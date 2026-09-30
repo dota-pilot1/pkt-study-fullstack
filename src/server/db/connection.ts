@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 
 const configuredDataDirectory = process.env.PKT_STUDY_DATA_DIR;
-const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
+export const isNextBuild = process.env.NEXT_PHASE === "phase-production-build";
 export const dataDirectory = configuredDataDirectory
   ? path.resolve(configuredDataDirectory)
   : isNextBuild

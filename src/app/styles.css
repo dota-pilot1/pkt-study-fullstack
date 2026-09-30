@@ -369,6 +369,7 @@ select.http-method-delete,
      검색 범위 계산은 그대로 유지하고 강조색은 브라우저 호환 경로에서 처리한다. */
   .lexical-toolbar { background: color-mix(in srgb, var(--muted) 72%, var(--card)); }
   .lexical-mermaid-preview { @apply my-3 overflow-auto rounded-md border border-surface-border-soft bg-surface-muted p-4 text-sm text-text-primary; position: relative; }
+  .lexical-mermaid-preview-with-action { padding-top: 3.25rem; }
   .lexical-mermaid-preview-flat { margin: 0; border: 0; background: transparent; padding: 0; }
   .lexical-mermaid-node { @apply my-3 w-full; }
   .lexical-mermaid-preview svg { max-width: 100%; height: auto; margin: 0 auto; }

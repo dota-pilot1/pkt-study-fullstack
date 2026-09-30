@@ -3,6 +3,8 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Keep an App Store build isolated from a locally running `next dev` server.
+  distDir: process.env.PKT_NEXT_DIST_DIR || ".next",
   serverExternalPackages: ["better-sqlite3"],
   webpack: (config) => {
     // @dnd-kit/state는 CommonJS main과 ESM module을 함께 제공한다.

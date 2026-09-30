@@ -17,16 +17,16 @@ use tauri_plugin_shell::process::CommandChild;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init());
 
-    #[cfg(desktop)]
-    {
-        builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
-    }
+    // Mac App Store releases must use Store-managed updates. Direct-distribution
+    // releases retain the signed GitHub Release updater.
+    #[cfg(all(desktop, not(app_store)))]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
 
     let app = builder
         .setup(|_app| {
@@ -214,18 +214,15 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
     std::fs::create_dir_all(&data_dir).map_err(|error| tauri::Error::Anyhow(error.into()))?;
     let database_path = data_dir.join("pkt-study.db");
     let packaged_database_path = next_dir.join(".data").join("pkt-study.db");
-    let seed_version_path = data_dir.join("pkt-study-seed-version");
-    let seed_version = env!("CARGO_PKG_VERSION");
-    let installed_seed_version = std::fs::read_to_string(&seed_version_path).unwrap_or_default();
-    if packaged_database_path.exists()
-        && (!database_path.exists() || installed_seed_version.trim() != seed_version)
+    // 사용자 메뉴·노트는 패키징 시드가 아니라 사용자 DB가 소유한다.
+    // 최초 설치에서만 기준 DB를 복사하고, 업데이트 때는 삭제한 메뉴를
+    // 되살리거나 사용자의 본문을 덮어쓰지 않는다.
+    if packaged_database_path.exists() && !database_path.exists()
     {
         replace_database_with_packaged_seed(&data_dir, &database_path, &packaged_database_path)
             .map_err(|error| tauri::Error::Anyhow(error.into()))?;
-        std::fs::write(&seed_version_path, seed_version)
-            .map_err(|error| tauri::Error::Anyhow(error.into()))?;
         eprintln!(
-            "synchronized user SQLite database with packaged local seed v{seed_version}: {}",
+            "initialized user SQLite database from packaged local seed: {}",
             database_path.display()
         );
     }

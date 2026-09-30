@@ -1,6 +1,6 @@
 {
   "name": "pkt-study-fullstack",
-  "version": "0.1.123",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --webpack --disable-source-maps -p 4300",
@@ -10,6 +10,7 @@
     "lint": "eslint",
     "check:server-architecture": "node scripts/check-server-architecture.mjs",
     "pretauri": "node scripts/prepare-tauri-sidecar.mjs",
+    "build:appstore": "node scripts/build-mac-app-store.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

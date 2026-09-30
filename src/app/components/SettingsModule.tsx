@@ -8,6 +8,7 @@ import { BackupPanel } from "./BackupPanel";
 import packageJson from "../../../package.json";
 
 const APP_VERSION = packageJson.version;
+const isAppStoreBuild = process.env.NEXT_PUBLIC_APP_STORE_BUILD === "1";
 
 const tabs = [
   { id: "general", label: "일반 설정", icon: Settings2 },
@@ -21,6 +22,7 @@ type TabId = (typeof tabs)[number]["id"];
 export function SettingsModule() {
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const appUpdate = useAppUpdate(APP_VERSION);
+  const visibleTabs = isAppStoreBuild ? tabs.filter(({ id }) => id !== "update") : tabs;
 
   return (
     <>
@@ -36,7 +38,7 @@ export function SettingsModule() {
           </header>
 
           <div role="tablist" aria-label="환경 설정 메뉴" className="mt-5 flex gap-1 overflow-x-auto border-b border-surface-border-soft">
-            {tabs.map(({ id, label, icon: Icon }) => {
+            {visibleTabs.map(({ id, label, icon: Icon }) => {
               const selected = activeTab === id;
               return (
                 <button

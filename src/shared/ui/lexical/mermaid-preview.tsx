@@ -259,7 +259,7 @@ export function MermaidPreview({
   return (
     <>
       <div
-        className={`lexical-mermaid-preview${frame ? '' : ' lexical-mermaid-preview-flat'}`}
+        className={`lexical-mermaid-preview lexical-mermaid-preview-with-action${frame ? '' : ' lexical-mermaid-preview-flat'}`}
         style={{ position: 'relative' }}
       >
         <button

@@ -4,8 +4,9 @@ import Database from "better-sqlite3";
 import { prepareTauriSidecar } from "./prepare-tauri-sidecar.mjs";
 
 const projectRoot = path.resolve(import.meta.dirname, "..");
-const standaloneDir = path.join(projectRoot, ".next", "standalone");
-const staticDir = path.join(projectRoot, ".next", "static");
+const nextDistDir = path.join(projectRoot, process.env.PKT_NEXT_DIST_DIR || ".next");
+const standaloneDir = path.join(nextDistDir, "standalone");
+const staticDir = path.join(nextDistDir, "static");
 const publicDir = path.join(projectRoot, "public");
 const distDir = path.join(projectRoot, "dist");
 const loadingIllustration = path.join(projectRoot, "src-tauri", "assets", "next-loading.png");

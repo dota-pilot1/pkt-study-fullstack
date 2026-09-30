@@ -6,7 +6,7 @@ import fs from "node:fs";
 import * as schema from "@/db/schema";
 import bcrypt from "bcryptjs";
 import { applyMigrations } from "@/server/db/migrations";
-import { databaseExistedBeforeOpen, databasePath, dataDirectory, pendingRestorePath, sqlite } from "@/server/db/connection";
+import { databasePath, dataDirectory, isNextBuild, pendingRestorePath, sqlite } from "@/server/db/connection";
 import {
   API_IMPLEMENTATION_CHILD_SAMPLES,
   API_IMPLEMENTATION_NOTE_SAMPLE_LEXICAL_STATE,
@@ -186,33 +186,7 @@ for (const [code, name] of [["AX_BASIC", "AX 기초"], ["AX_CHALLENGE", "AX 챌�
     .run(code, name, now, now);
 }
 
-// 최초 설치 DB에 필요한 일반 노트의 시작 구조만 만든다. 기존 사용자 DB에는
-// 다시 실행하지 않아 삭제한 메뉴를 복원하지 않는다.
-if (!databaseExistedBeforeOpen) {
-  const initialNoteSeeds = [
-    ["SPRING_BOOT", "스프링 노트", "스프링 핵심", "Spring Boot 시작하기"],
-    ["JAVA", "자바 노트", "Java 기초", "객체와 컬렉션"],
-    ["DB", "DB 테이블 설계", "데이터 모델링", "고정 계층과 무한 계층"],
-    ["FRONTEND", "리액트 노트", "프론트 도메인 분석", "상태·전이 설계"],
-    ["FRONTEND", "리액트 노트", "리액트 노트", "React·Next.js 기술 노트"],
-    ["FRONTEND_DOMAIN", "프론트 도메인 분석", "도메인 분석", "상태·전이 설계"],
-    ["JS_TS", "JS·TS 노트", "JavaScript·TypeScript 기초", "배열 메서드와 타입"],
-    ["UI_NAV", "메뉴·네비게이션", "기본 UI 실습", "Sidebar와 Header"],
-    ["UI_FORM", "폼 UI", "인증 폼", "로그인 폼"],
-    ["UI_LAYOUT", "레이아웃·페이지", "레이아웃 기초", "Grid·Flex"],
-    ["UI_STATE", "인터랙션·상태", "인터랙션 패턴", "Hover"],
-  ] as const;
-  for (const [code, name, categoryTitle, topicTitle] of initialNoteSeeds) {
-    sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(code, name, now, now);
-    const space = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ?").get(code) as { id: number };
-    sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) SELECT ?, ?, 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM playbook_categories WHERE space_id = ? AND title = ?)").run(space.id, categoryTitle, now, now, space.id, categoryTitle);
-    const category = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1").get(space.id, categoryTitle) as { id: number };
-    sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) SELECT ?, ?, 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM playbook_topics WHERE category_id = ? AND title = ?)").run(category.id, topicTitle, now, now, category.id, topicTitle);
-  }
-}
-
-// 기존 스프링 노트에 Spring Security 학습 주제를 업데이트로 추가한다.
-// 같은 카테고리·제목이 이미 있으면 기존 순서와 문서를 보존한다.
+// 기존 스프링 공간의 이름만 보정한다. 노트·메뉴 자체는 자동 생성하지 않는다.
 const springSpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("SPRING_BOOT") as { id: number } | undefined;
 if (springSpace) {
   sqlite.prepare("UPDATE playbook_spaces SET name = ?, updated_at = ? WHERE id = ? AND name = ?")
@@ -288,38 +262,6 @@ if (!apiTopic && legacyApiTopic) {
 if (springSpace) {
   sqlite.prepare("UPDATE playbook_topics SET order_idx = 1, updated_at = ? WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ?")
     .run(now, springSpace.id, "스프링 핵심", "스프링 시큐리티");
-}
-
-// 스프링 시큐리티를 백엔드 레일의 독립 메뉴로 분리한다.
-// 기존 스프링 핵심 아래의 주제와 문서는 새 공간으로 이동해 내용을 보존한다.
-sqlite.prepare("INSERT OR IGNORE INTO playbook_spaces (code, name, created_at, updated_at) VALUES (?, ?, ?, ?)")
-  .run("SPRING_SECURITY", "스프링 시큐리티", now, now);
-const securitySpace = sqlite.prepare("SELECT id FROM playbook_spaces WHERE code = ? LIMIT 1").get("SPRING_SECURITY") as { id: number };
-let securityCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
-  .get(securitySpace.id, "스프링 시큐리티") as { id: number } | undefined;
-if (!securityCategory) {
-  sqlite.prepare("INSERT INTO playbook_categories (space_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-    .run(securitySpace.id, "스프링 시큐리티", 0, now, now);
-  securityCategory = sqlite.prepare("SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1")
-    .get(securitySpace.id, "스프링 시큐리티") as { id: number };
-}
-const existingSecurityTopic = sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = ? AND title = ? LIMIT 1")
-  .get(securityCategory.id, "스프링 시큐리티") as { id: number } | undefined;
-const legacySecurityTopic = springSpace
-  ? sqlite.prepare("SELECT id FROM playbook_topics WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ? LIMIT 1")
-    .get(springSpace.id, "스프링 핵심", "스프링 시큐리티") as { id: number } | undefined
-  : undefined;
-if (!existingSecurityTopic && legacySecurityTopic) {
-  sqlite.prepare("UPDATE playbook_topics SET category_id = ?, order_idx = 0, updated_at = ? WHERE id = ?")
-    .run(securityCategory.id, now, legacySecurityTopic.id);
-} else if (!existingSecurityTopic) {
-  sqlite.prepare("INSERT INTO playbook_topics (category_id, title, order_idx, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
-    .run(securityCategory.id, "스프링 시큐리티", 0, now, now);
-}
-if (springSpace) {
-  // 분리 전에 생성된 옛 공간의 빈 중복만 제거하고, 문서가 있으면 보존한다.
-  sqlite.prepare("DELETE FROM playbook_topics WHERE category_id = (SELECT id FROM playbook_categories WHERE space_id = ? AND title = ? ORDER BY id LIMIT 1) AND title = ? AND NOT EXISTS (SELECT 1 FROM playbook_documents WHERE topic_id = playbook_topics.id)")
-    .run(springSpace.id, "스프링 핵심", "스프링 시큐리티");
 }
 
 // 사내 지식 검색과 업무 자동화에 사용하는 Spring AI를 독립 백엔드 메뉴로 추가한다.
@@ -557,7 +499,10 @@ if (existingWorkManagementDocuments.length === 0) {
 }
 
 const initializationGlobal = globalThis as InitializationGlobal;
-if (!initializationGlobal.__pktStudyDatabaseInitialized) {
+// Next.js production build imports API routes against an empty temporary DB.
+// The packaged seed is initialized when the desktop app starts, not while
+// static build metadata is collected.
+if (!isNextBuild && !initializationGlobal.__pktStudyDatabaseInitialized) {
   initializeDatabase();
   initializationGlobal.__pktStudyDatabaseInitialized = true;
 }

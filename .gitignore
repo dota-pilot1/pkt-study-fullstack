@@ -1,6 +1,7 @@
 # Dependencies and build output
 node_modules/
 .next/
+.next-appstore/
 out/
 dist/
 coverage/
@@ -32,3 +33,6 @@ target/
 *.log
 .vercel/
 .codex/
+
+# The Mac App Store provisioning profile is downloaded from Apple per signing Mac.
+src-tauri/appstore/embedded.provisionprofile
