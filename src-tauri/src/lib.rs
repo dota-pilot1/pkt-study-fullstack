@@ -169,6 +169,26 @@ fn replace_database_with_packaged_seed(
     Ok(())
 }
 
+// 학습용 앱은 새 릴리즈의 기준 시드를 적용하고 기존 사용자 DB를 백업한다.
+#[cfg(any(not(debug_assertions), test))]
+fn synchronize_packaged_seed(
+    data_dir: &Path,
+    database_path: &Path,
+    packaged_database_path: &Path,
+    seed_version: &str,
+) -> std::io::Result<bool> {
+    let seed_version_path = data_dir.join("pkt-study-seed-version");
+    let installed_version = fs::read_to_string(&seed_version_path).unwrap_or_default();
+    if !packaged_database_path.exists()
+        || (database_path.exists() && installed_version.trim() == seed_version)
+    {
+        return Ok(false);
+    }
+    replace_database_with_packaged_seed(data_dir, database_path, packaged_database_path)?;
+    fs::write(seed_version_path, seed_version)?;
+    Ok(true)
+}
+
 #[cfg(not(debug_assertions))]
 fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> tauri::Result<()> {
     use std::{thread, time::Duration};
@@ -214,15 +234,17 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
     std::fs::create_dir_all(&data_dir).map_err(|error| tauri::Error::Anyhow(error.into()))?;
     let database_path = data_dir.join("pkt-study.db");
     let packaged_database_path = next_dir.join(".data").join("pkt-study.db");
-    // 사용자 메뉴·노트는 패키징 시드가 아니라 사용자 DB가 소유한다.
-    // 최초 설치에서만 기준 DB를 복사하고, 업데이트 때는 삭제한 메뉴를
-    // 되살리거나 사용자의 본문을 덮어쓰지 않는다.
-    if packaged_database_path.exists() && !database_path.exists()
+    if synchronize_packaged_seed(
+        &data_dir,
+        &database_path,
+        &packaged_database_path,
+        env!("CARGO_PKG_VERSION"),
+    )
+    .map_err(|error| tauri::Error::Anyhow(error.into()))?
     {
-        replace_database_with_packaged_seed(&data_dir, &database_path, &packaged_database_path)
-            .map_err(|error| tauri::Error::Anyhow(error.into()))?;
         eprintln!(
-            "initialized user SQLite database from packaged local seed: {}",
+            "synchronized user SQLite database with packaged seed v{}: {}",
+            env!("CARGO_PKG_VERSION"),
             database_path.display()
         );
     }
@@ -331,7 +353,7 @@ fn start_next_sidecar<R: tauri::Runtime>(app_handle: &tauri::AppHandle<R>) -> ta
 
 #[cfg(test)]
 mod tests {
-    use super::replace_database_with_packaged_seed;
+    use super::{replace_database_with_packaged_seed, synchronize_packaged_seed};
     use std::{
         fs,
         time::{SystemTime, UNIX_EPOCH},
@@ -376,5 +398,36 @@ mod tests {
         assert!(!test_dir.join("pkt-study.db-shm").exists());
 
         fs::remove_dir_all(test_dir).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn seed_sync_initializes_upgrades_and_keeps_same_version() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir =
+            std::env::temp_dir().join(format!("pkt-version-sync-{}-{unique}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let database = dir.join("pkt-study.db");
+        let seed = dir.join("packaged.db");
+        fs::write(&seed, b"first-seed").unwrap();
+        assert!(synchronize_packaged_seed(&dir, &database, &seed, "1.0.0").unwrap());
+        assert_eq!(fs::read(&database).unwrap(), b"first-seed");
+        fs::write(&database, b"user-edit").unwrap();
+        assert!(!synchronize_packaged_seed(&dir, &database, &seed, "1.0.0").unwrap());
+        assert_eq!(fs::read(&database).unwrap(), b"user-edit");
+        fs::write(&seed, b"updated-seed").unwrap();
+        assert!(synchronize_packaged_seed(&dir, &database, &seed, "1.0.1").unwrap());
+        assert_eq!(fs::read(&database).unwrap(), b"updated-seed");
+        assert_eq!(
+            fs::read(dir.join("pkt-study.db.before-seed-sync")).unwrap(),
+            b"user-edit"
+        );
+        assert_eq!(
+            fs::read_to_string(dir.join("pkt-study-seed-version")).unwrap(),
+            "1.0.1"
+        );
+        fs::remove_dir_all(dir).unwrap();
     }
 }
