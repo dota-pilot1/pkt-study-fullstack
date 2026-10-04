@@ -2,6 +2,7 @@
 node_modules/
 .next/
 .next-appstore/
+.next-release/
 out/
 dist/
 coverage/

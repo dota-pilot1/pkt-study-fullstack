@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { DOCUMENT_WRITING_GUIDELINES } from "./document-writing-guidelines";
+import HighlightInstructionOption, { useHighlightInstruction } from "./HighlightInstructionOption";
 import { Check, Copy } from "lucide-react";
 import type { PlaybookSampleKey } from "../../features/hospital-playbook/api";
 import { getApiBase } from "../../shared/api/client";
@@ -24,6 +26,7 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
   const [preset, setPreset] = useState<ApiPreset>("default");
   const [selectedSampleKeys, setSelectedSampleKeys] = useState<PlaybookSampleKey[]>([]);
   const [additionalInstruction, setAdditionalInstruction] = useState("");
+  const highlight = useHighlightInstruction();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [instructionCopied, setInstructionCopied] = useState(false);
   const base = "/api/llm/hospital-playbook";
@@ -92,6 +95,9 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
     "",
     "## 작업 목표",
     "현재 본문 아래에 구현 상세를 하위 문서로 기록합니다. 새 문서를 만들기 전 기존 하위 문서를 확인해 중복 생성을 피하세요.",
+    "",
+    ...DOCUMENT_WRITING_GUIDELINES,
+    ...(highlight.instructionText ? ["", "## 형광펜 지침", highlight.instructionText] : []),
     ...(additionalInstruction.trim() ? ["", "## 추가 지시", additionalInstruction.trim()] : []),
     "",
     "## 선택한 API",
@@ -160,6 +166,7 @@ export default function DocumentContextApiDialog({ documentId, topicId, document
             <span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">선택한 API와 샘플에 함께 넣을 작업 조건을 작성하세요.</span>
             <textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={5} placeholder="예: 기존 문서 구조를 따르고, 중복 하위 문서는 만들지 마세요." className="w-full resize-y rounded-lg border border-surface-border-soft bg-surface p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
           </label>
+          <HighlightInstructionOption option={highlight} />
 
           <div className="mb-2 mt-5 flex items-center justify-between gap-3">
             <h3 className="text-sm font-black text-text-primary">하위 문서 API</h3>

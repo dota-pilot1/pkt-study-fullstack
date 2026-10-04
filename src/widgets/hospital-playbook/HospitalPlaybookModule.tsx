@@ -323,6 +323,7 @@ function HospitalPlaybookModule({
   );
   const [isRefreshingTree, setIsRefreshingTree] = useState(false);
   const [submittedSearch, setSubmittedSearch] = useState("");
+  const [pendingCategorySelection, setPendingCategorySelection] = useState<number | null>(null);
   const [pendingTopicSelection, setPendingTopicSelection] = useState<
     number | null
   >(null);
@@ -455,6 +456,15 @@ function HospitalPlaybookModule({
   }, [hydrateLayout]);
   useEffect(() => {
     if (!selectionHydrated) return;
+    // 생성 응답의 ID가 갱신된 트리에 나타날 때까지 기존 메뉴로 보정하지 않는다.
+    if (pendingCategorySelection !== null) {
+      if (categories.some((item) => item.id === pendingCategorySelection)) {
+        setCategoryId(pendingCategorySelection);
+        setTopicId(null);
+        setPendingCategorySelection(null);
+      }
+      return;
+    }
     if (!categories.length) {
       setCategoryId((current) => (current === null ? current : null));
       return;
@@ -465,7 +475,7 @@ function HospitalPlaybookModule({
           categories.find((item) => item.id === initialCategoryId)?.id ??
           categories[0].id,
       );
-  }, [categories, categoryId, initialCategoryId, rememberedMenu?.categoryId, selectionHydrated]);
+  }, [categories, categoryId, initialCategoryId, rememberedMenu?.categoryId, selectionHydrated, pendingCategorySelection]);
   useEffect(() => {
     if (!selectionHydrated) return;
     const topics = category?.topics ?? EMPTY_TOPICS;
@@ -540,7 +550,10 @@ function HospitalPlaybookModule({
   const createCategory = useMutation({
     mutationFn: (categoryTitle: string) =>
       playbookApi.createCategory(domain, categoryTitle),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      setPendingCategorySelection(created.id);
+      setPendingTopicSelection(null);
+      setSubmittedSearch("");
       invalidate();
       showToast("1차 메뉴를 추가했습니다.");
     },
@@ -589,7 +602,10 @@ function HospitalPlaybookModule({
   const createTopic = useMutation({
     mutationFn: (value: { categoryId: number; title: string }) =>
       playbookApi.createTopic(value.categoryId, value.title),
-    onSuccess: () => {
+    onSuccess: (created, variables) => {
+      setCategoryId(variables.categoryId);
+      setPendingTopicSelection(created.id);
+      setSubmittedSearch("");
       invalidate();
       showToast("2차 메뉴를 추가했습니다.");
     },

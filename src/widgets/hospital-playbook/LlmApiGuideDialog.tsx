@@ -7,6 +7,8 @@ import { useToast } from "../../shared/ui/toast";
 import { ViewModeToggle } from "../../shared/ui/view-mode-toggle";
 import ApiGuideDialogShell from "./ApiGuideDialogShell";
 import ImplementationNoteSamplePreview from "./ImplementationNoteSamplePreview";
+import { DOCUMENT_WRITING_GUIDELINES } from "./document-writing-guidelines";
+import HighlightInstructionOption, { useHighlightInstruction } from "./HighlightInstructionOption";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE";
 type ApiItem = { id: string; label: string; method: HttpMethod; endpoint: string; summary: string; content: string };
@@ -36,6 +38,7 @@ export default function LlmApiGuideDialog({ domain, topicId = null, topicTitle =
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedApisCopied, setSelectedApisCopied] = useState(false);
   const [additionalInstruction, setAdditionalInstruction] = useState("");
+  const highlight = useHighlightInstruction();
   const [instructionCopied, setInstructionCopied] = useState(false);
   const { showToast } = useToast();
   const base = "/api/llm/hospital-playbook";
@@ -141,6 +144,9 @@ export default function LlmApiGuideDialog({ domain, topicId = null, topicTitle =
     isApiDesignMode ? "## API 설계 목표" : "## 작업 목표",
     isApiDesignMode ? "선택한 2차 주제의 기존 API 설계 문서를 먼저 확인합니다. 같은 목적의 문서가 있으면 최신 version을 기준으로 보강하고, 없으면 API 엔드포인트 하나당 본문 문서 하나를 만듭니다. 하위 문서는 만들지 않습니다." : scope === "topic" ? "선택한 2차 주제의 기존 문서와 하위 문서를 확인한 뒤, 필요한 문서를 조회·작성·수정합니다." : "현재 영역의 메뉴·2차 주제·문서 구조를 확인한 뒤, 필요한 노트를 조회·작성·수정합니다.",
     ...(isApiDesignMode ? ["", "## 새 API 설계 문서", `- 제목: ${apiDesignTitle.trim() || "미작성 — API 목적에 맞는 제목을 제안해 주세요."}`, "", "## API 설계 문서 기준", "- API의 목적, 범위·제외 범위, 요청 계약, 성공 응답, 서버 처리 규칙, 오류 응답 기준, 구현·검증 연결을 작성합니다.", "- 요청·성공 응답은 JSON 코드 블록으로 작성합니다.", "- 일반 설명은 기본 본문 텍스트·제목·목록으로 구성하고, 인용문은 경고·예외·결정 보류처럼 특별히 강조할 내용에만 사용합니다."] : []),
+    "",
+    ...DOCUMENT_WRITING_GUIDELINES,
+    ...(highlight.instructionText ? ["", "## 형광펜 지침", highlight.instructionText] : []),
     ...(additionalInstruction.trim() ? ["", "## 추가 지시", additionalInstruction.trim()] : []),
     "",
     "## 선택한 API",
@@ -229,6 +235,7 @@ export default function LlmApiGuideDialog({ domain, topicId = null, topicTitle =
             <span className="mb-2 block text-[11px] font-semibold leading-5 text-text-muted">선택한 API와 작성 샘플에 함께 넣을 작업 조건을 작성하세요.</span>
             <textarea value={additionalInstruction} onChange={(event) => setAdditionalInstruction(event.target.value)} rows={5} placeholder="예: 기존 문서 구조를 따르고, 중복 문서는 만들지 마세요." className="w-full resize-y rounded-lg border border-surface-border-soft bg-surface p-3 text-xs leading-5 text-text-primary outline-none focus:border-brand-border" />
           </label>
+          <HighlightInstructionOption option={highlight} />
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-1.5" aria-label="자주 쓰는 API 빠른 선택">
               <span className="mr-1 text-[11px] font-black text-text-muted">빠른 선택</span>
